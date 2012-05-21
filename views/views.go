@@ -36,14 +36,18 @@ func hashToPath(h []byte) string {
 func AddHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		p := Page{Title: "uploaded image"}
-		i, ih, _ := r.FormFile("image")
+		i, _, _ := r.FormFile("image")
 		h := sha1.New()
 		d, _ := ioutil.ReadAll(i)
 		io.WriteString(h, string(d))
 		path := "uploads/" + hashToPath(h.Sum(nil))
-		os.MkdirAll(path, 0644)
-		fmt.Println(ih.Filename)
-		fmt.Println(path)
+		os.MkdirAll(path, 0755)
+		fullpath := path + "full.jpg"
+		f,_ := os.OpenFile(fullpath, os.O_CREATE | os.O_RDWR, 0644)
+		defer f.Close()
+		n,_ := f.Write(d)
+		fmt.Println(n)
+		fmt.Println(len(d))
 		renderTemplate(w, "add", &p)
 	} else {
 		p := Page{Title: "upload image"}
