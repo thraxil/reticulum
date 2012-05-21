@@ -3,6 +3,7 @@ package views
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -13,6 +14,11 @@ import (
 
 type Page struct {
 	Title string
+}
+
+type ImageData struct {
+	Hash   string
+	Length int
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
@@ -26,16 +32,15 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func hashToPath(h []byte) string {
-	buffer := bytes.NewBufferString("");
+	buffer := bytes.NewBufferString("")
 	for i := range h {
-		fmt.Fprint(buffer, fmt.Sprintf("%x/",h[i]))
+		fmt.Fprint(buffer, fmt.Sprintf("%x/", h[i]))
 	}
 	return buffer.String()
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
-		p := Page{Title: "uploaded image"}
 		i, _, _ := r.FormFile("image")
 		h := sha1.New()
 		d, _ := ioutil.ReadAll(i)
@@ -43,12 +48,18 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 		path := "uploads/" + hashToPath(h.Sum(nil))
 		os.MkdirAll(path, 0755)
 		fullpath := path + "full.jpg"
-		f,_ := os.OpenFile(fullpath, os.O_CREATE | os.O_RDWR, 0644)
+		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 		defer f.Close()
-		n,_ := f.Write(d)
-		fmt.Println(n)
-		fmt.Println(len(d))
-		renderTemplate(w, "add", &p)
+		n, _ := f.Write(d)
+		id := ImageData{
+			Hash:   fmt.Sprintf("%x", h.Sum(nil)),
+			Length: n,
+		}
+		b, err := json.Marshal(id)
+		if err != nil {
+			fmt.Println("error:", err)
+		}
+		w.Write(b)
 	} else {
 		p := Page{Title: "upload image"}
 		renderTemplate(w, "add", &p)
