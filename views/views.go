@@ -1,12 +1,14 @@
 package views
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"fmt"
 	"html/template"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 type Page struct {
@@ -23,15 +25,25 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "index", &p)
 }
 
+func hashToPath(h []byte) string {
+	buffer := bytes.NewBufferString("");
+	for i := range h {
+		fmt.Fprint(buffer, fmt.Sprintf("%x/",h[i]))
+	}
+	return buffer.String()
+}
+
 func AddHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		p := Page{Title: "uploaded image"}
 		i, ih, _ := r.FormFile("image")
 		h := sha1.New()
 		d, _ := ioutil.ReadAll(i)
-		io.WriteString(h, d.String())
-		fmt.Printf("% x", h.Sum(nil))
+		io.WriteString(h, string(d))
+		path := "uploads/" + hashToPath(h.Sum(nil))
+		os.MkdirAll(path, 0644)
 		fmt.Println(ih.Filename)
+		fmt.Println(path)
 		renderTemplate(w, "add", &p)
 	} else {
 		p := Page{Title: "upload image"}
