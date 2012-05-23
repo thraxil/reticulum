@@ -53,7 +53,7 @@ func hashStringToPath(h string) string {
 func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
-		fmt.Fprintf(w, "bad request")
+		http.Error(w, "bad request", 404)
 		return
 	}
 	ahash := parts[2]
@@ -61,6 +61,11 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
 	filename := parts[4]
 	if filename == "" {
 		filename = "image.jpg"
+	}
+
+	if len(ahash) != 40 {
+		http.Error(w, "bad hash", 404)
+		return
 	}
 
 	path := "uploads/" + hashStringToPath(ahash) + "/image.jpg"
