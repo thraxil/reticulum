@@ -63,9 +63,10 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
 		filename = "image.jpg"
 	}
 
-	path := "uploads/" + hashStringToPath(ahash) + "/" + filename
-
-	fmt.Fprintf(w, path)
+	path := "uploads/" + hashStringToPath(ahash) + "/image.jpg"
+	w.Header().Set("Content-Type", "image/jpg")
+	contents, _ := ioutil.ReadFile(path)
+	w.Write(contents)
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request) {
