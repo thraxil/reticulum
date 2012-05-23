@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type Page struct {
@@ -34,9 +35,37 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 func hashToPath(h []byte) string {
 	buffer := bytes.NewBufferString("")
 	for i := range h {
-		fmt.Fprint(buffer, fmt.Sprintf("%x/", h[i]))
+		fmt.Fprint(buffer, fmt.Sprintf("%02x/", h[i]))
 	}
 	return buffer.String()
+}
+
+func hashStringToPath(h string) string {
+	var parts []string
+	for i := range h {
+		if (i % 2) != 0 {
+			parts = append(parts, h[i-1:i+1])
+		}
+	}
+	return strings.Join(parts, "/")
+}
+
+func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.URL.String(), "/")
+	if (len(parts) < 5) || (parts[1] != "image") {
+		fmt.Fprintf(w, "bad request")
+		return
+	}
+	ahash := parts[2]
+	//	size := parts[3]
+	filename := parts[4]
+	if filename == "" {
+		filename = "image.jpg"
+	}
+
+	path := "uploads/" + hashStringToPath(ahash) + "/" + filename
+
+	fmt.Fprintf(w, path)
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +76,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(h, string(d))
 		path := "uploads/" + hashToPath(h.Sum(nil))
 		os.MkdirAll(path, 0755)
-		fullpath := path + "full.jpg"
+		fullpath := path + "image.jpg"
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 		defer f.Close()
 		n, _ := f.Write(d)
