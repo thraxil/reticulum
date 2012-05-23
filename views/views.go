@@ -64,8 +64,12 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := "uploads/" + hashStringToPath(ahash) + "/image.jpg"
+	contents, err := ioutil.ReadFile(path)
+	if err != nil {
+		http.Error(w, "not found",404)
+		return
+	} 
 	w.Header().Set("Content-Type", "image/jpg")
-	contents, _ := ioutil.ReadFile(path)
 	w.Write(contents)
 }
 
