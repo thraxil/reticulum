@@ -5,7 +5,9 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"github.com/thraxil/resize"
 	"html/template"
+	"image/jpeg"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -57,7 +59,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ahash := parts[2]
-	//	size := parts[3]
+	size := parts[3]
 	filename := parts[4]
 	if filename == "" {
 		filename = "image.jpg"
@@ -69,13 +71,23 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	path := "uploads/" + hashStringToPath(ahash) + "/image.jpg"
-	contents, err := ioutil.ReadFile(path)
+
+	file, err := os.Open(path)
 	if err != nil {
-		http.Error(w, "not found",404)
+		http.Error(w, "not found", 404)
 		return
-	} 
+	}
+	defer file.Close()
+
+	m, err := jpeg.Decode(file)
+	if err != nil {
+		http.Error(w, "error decoding image", 500)
+	}
+
+	outputImage := resize.Resize(m, size)
 	w.Header().Set("Content-Type", "image/jpg")
-	w.Write(contents)
+	jpeg.Encode(w, outputImage, nil)
+	//	w.Write(contents)
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request) {
