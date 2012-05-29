@@ -61,6 +61,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
 	ahash := parts[2]
 	size := parts[3]
 	filename := parts[4]
+
 	if filename == "" {
 		filename = "image.jpg"
 	}
@@ -70,24 +71,44 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	path := "uploads/" + hashStringToPath(ahash) + "/image.jpg"
+	baseDir := "uploads/" + hashStringToPath(ahash)
+	path := baseDir + "/full.jpg"
+	sizedPath := baseDir + "/" + size + ".jpg"
 
-	file, err := os.Open(path)
+	contents, err := ioutil.ReadFile(sizedPath)
+	if err == nil {
+		// we've got it, so serve it directly
+		w.Header().Set("Content-Type", "image/jpg")
+		w.Write(contents)
+		return
+	}
+
+	// we don't have a scaled version, so try to get the full version
+	// resize it, write a cached version, then serve it
+	origFile, err := os.Open(path)
+	defer origFile.Close()
 	if err != nil {
 		http.Error(w, "not found", 404)
 		return
 	}
-	defer file.Close()
 
-	m, err := jpeg.Decode(file)
+	m, err := jpeg.Decode(origFile)
 	if err != nil {
 		http.Error(w, "error decoding image", 500)
 	}
 
 	outputImage := resize.Resize(m, size)
+	wFile, err := os.OpenFile(sizedPath, os.O_CREATE|os.O_RDWR, 0644)
+	defer wFile.Close()
+	if err != nil {
+		// what do we do if we can't write?
+		// we still have the resized image, so we can serve the response
+		// we just can't cache it. 
+	}
+	jpeg.Encode(wFile, outputImage, nil)
+
 	w.Header().Set("Content-Type", "image/jpg")
 	jpeg.Encode(w, outputImage, nil)
-	//	w.Write(contents)
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request) {
@@ -98,7 +119,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(h, string(d))
 		path := "uploads/" + hashToPath(h.Sum(nil))
 		os.MkdirAll(path, 0755)
-		fullpath := path + "image.jpg"
+		fullpath := path + "full.jpg"
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 		defer f.Close()
 		n, _ := f.Write(d)
