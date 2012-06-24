@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/thraxil/resize"
+//  "../../resize"
 	"html/template"
 	"image/jpeg"
 	"io"
@@ -27,11 +28,6 @@ type ImageData struct {
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 	t, _ := template.ParseFiles("templates/" + tmpl + ".html")
 	t.Execute(w, p)
-}
-
-func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	p := Page{Title: "index"}
-	renderTemplate(w, "index", &p)
 }
 
 func hashToPath(h []byte) string {
