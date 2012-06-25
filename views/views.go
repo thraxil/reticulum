@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 type Page struct {
@@ -25,10 +26,24 @@ type ImageData struct {
 	Length int
 }
 
+type NodeData struct {
+	Nickname string
+  UUID string
+  BaseUrl string
+  Location string
+  Writeable bool
+  LastSeen time.Time
+  LastFailed time.Time
+}
+
 type ConfigData struct {
 	Port int64
 	UUID string
-	Name string
+	Nickname string
+	BaseUrl string
+	Location string
+	Writeable bool
+	Neighbors []NodeData
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
@@ -138,4 +153,27 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cfg ConfigData) {
 		p := Page{Title: "upload image"}
 		renderTemplate(w, "add", &p)
 	}
+}
+
+type AnnounceResponse struct {
+	Nickname string
+	UUID string
+	Location string
+	Writeable bool
+	BaseUrl string
+}
+
+func AnnounceHandler(w http.ResponseWriter, r *http.Request, cfg ConfigData) {
+	ar := AnnounceResponse{
+	  Nickname: cfg.Nickname,
+		UUID: cfg.UUID,
+    Location: cfg.Location,
+  	Writeable: cfg.Writeable,
+  	BaseUrl: cfg.BaseUrl,
+	}
+	b, err := json.Marshal(ar)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	w.Write(b)
 }
