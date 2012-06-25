@@ -27,9 +27,13 @@ func main() {
 	}
 
 	f := views.ConfigData{}
-	json.Unmarshal(file, &f)
+	err = json.Unmarshal(file, &f)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	http.HandleFunc("/", makeHandler(views.AddHandler, f))
 	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, f))
+	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, f))
 	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), nil)
 }
