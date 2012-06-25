@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/thraxil/resize"
-//  "../../resize"
+	//  "../../resize"
 	"html/template"
 	"image/jpeg"
 	"io"
@@ -23,6 +23,12 @@ type Page struct {
 type ImageData struct {
 	Hash   string
 	Length int
+}
+
+type ConfigData struct {
+	Port int64
+	UUID string
+	Name string
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
@@ -48,7 +54,7 @@ func hashStringToPath(h string) string {
 	return strings.Join(parts, "/")
 }
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, cfg ConfigData) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -107,7 +113,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request) {
 	jpeg.Encode(w, outputImage, nil)
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request) {
+func AddHandler(w http.ResponseWriter, r *http.Request, cfg ConfigData) {
 	if r.Method == "POST" {
 		i, _, _ := r.FormFile("image")
 		h := sha1.New()
