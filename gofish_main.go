@@ -10,11 +10,7 @@ import (
 	"net/http"
 )
 
-type ConfigData struct {
-	Port int64
-	UUID string
-	Name string
-}
+
 
 func main() {
 	var config string
@@ -26,7 +22,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	f := ConfigData{}
+	f := views.ConfigData{}
 	json.Unmarshal(file, &f)
 
 	http.HandleFunc("/", views.AddHandler)

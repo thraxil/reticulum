@@ -25,6 +25,12 @@ type ImageData struct {
 	Length int
 }
 
+type ConfigData struct {
+	Port int64
+	UUID string
+	Name string
+}
+
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 	t, _ := template.ParseFiles("templates/" + tmpl + ".html")
 	t.Execute(w, p)
