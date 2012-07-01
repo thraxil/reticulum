@@ -2,6 +2,7 @@ package main
 
 import (
 	"./views"
+	"./models"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -10,9 +11,9 @@ import (
 	"net/http"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, views.ConfigData), cfg views.ConfigData) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, models.World), world models.World) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, cfg)
+		fn(w, r, world)
 	}
 }
 
@@ -26,14 +27,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	f := views.ConfigData{}
+	f := models.ConfigData{}
 	err = json.Unmarshal(file, &f)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	http.HandleFunc("/", makeHandler(views.AddHandler, f))
-	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, f))
-	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, f))
+	world := models.NewWorld(f.MyNode())
+
+	http.HandleFunc("/", makeHandler(views.AddHandler, *world))
+	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, *world))
+	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, *world))
 	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), nil)
 }
