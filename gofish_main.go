@@ -34,6 +34,9 @@ func main() {
 	}
 
 	world := models.NewWorld(f.MyNode())
+	for i := range f.Neighbors {
+		world.AddNeighbor(f.Neighbors[i])
+	}
 
 	http.HandleFunc("/", makeHandler(views.AddHandler, *world))
 	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, *world))
