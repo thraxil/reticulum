@@ -18,6 +18,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.World), wor
 }
 
 func main() {
+	// read the config file
 	var config string
 	flag.StringVar(&config, "config", "./config.json", "JSON config file")
 	flag.Parse()
@@ -38,9 +39,11 @@ func main() {
 		world.AddNeighbor(f.Neighbors[i])
 	}
 
-
+	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(views.AddHandler, world))
 	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, world))
 	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, world))
+
+	// everything is ready, let's go
 	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), nil)
 }
