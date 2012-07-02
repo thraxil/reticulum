@@ -1,6 +1,7 @@
 package views
 
 import (
+	"../models"
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"
@@ -14,7 +15,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 )
 
 type Page struct {
@@ -26,25 +26,6 @@ type ImageData struct {
 	Length int
 }
 
-type NodeData struct {
-	Nickname string
-  UUID string
-  BaseUrl string
-  Location string
-  Writeable bool
-  LastSeen time.Time
-  LastFailed time.Time
-}
-
-type ConfigData struct {
-	Port int64
-	UUID string
-	Nickname string
-	BaseUrl string
-	Location string
-	Writeable bool
-	Neighbors []NodeData
-}
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 	t, _ := template.ParseFiles("templates/" + tmpl + ".html")
@@ -69,7 +50,7 @@ func hashStringToPath(h string) string {
 	return strings.Join(parts, "/")
 }
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request, cfg ConfigData) {
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -128,7 +109,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cfg ConfigData) {
 	jpeg.Encode(w, outputImage, nil)
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request, cfg ConfigData) {
+func AddHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
 	if r.Method == "POST" {
 		i, _, _ := r.FormFile("image")
 		h := sha1.New()
@@ -161,15 +142,17 @@ type AnnounceResponse struct {
 	Location string
 	Writeable bool
 	BaseUrl string
+	Neighbors []models.NodeData
 }
 
-func AnnounceHandler(w http.ResponseWriter, r *http.Request, cfg ConfigData) {
+func AnnounceHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
 	ar := AnnounceResponse{
-	  Nickname: cfg.Nickname,
-		UUID: cfg.UUID,
-    Location: cfg.Location,
-  	Writeable: cfg.Writeable,
-  	BaseUrl: cfg.BaseUrl,
+	  Nickname: world.Myself.Nickname,
+		UUID: world.Myself.UUID,
+    Location: world.Myself.Location,
+  	Writeable: world.Myself.Writeable,
+  	BaseUrl: world.Myself.BaseUrl,
+	Neighbors: world.Neighbors,
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {
