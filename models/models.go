@@ -1,6 +1,7 @@
 package models
 
 import (
+	_ "fmt"
 	"time"
 )
 
@@ -16,6 +17,10 @@ type NodeData struct {
   LastFailed time.Time
 }
 
+func (n NodeData) String() string {
+	return "Node - nickname: " + n.Nickname + " UUID: " + n.UUID
+}
+
 // represents what our Node nows about the world
 // ie, itself and its neighbors
 type World struct {
@@ -25,7 +30,7 @@ type World struct {
 }
 
 func NewWorld(myself NodeData) *World {
-	n := &World{myself, nil, make(chan func())}
+	n := &World{Myself:myself, chF:make(chan func())}
 	go n.backend()
 	return n
 }
@@ -37,7 +42,9 @@ func (n *World) backend() {
 }
 
 func (n *World) AddNeighbor(nd NodeData) {
-	n.chF <- func() { n.Neighbors = append(n.Neighbors, nd) }
+	n.chF <- func() { 
+		n.Neighbors = append(n.Neighbors, nd) 
+	}
 }
 
 

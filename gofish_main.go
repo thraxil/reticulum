@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, models.World), world models.World) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.World), world *models.World) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, world)
 	}
@@ -38,8 +38,9 @@ func main() {
 		world.AddNeighbor(f.Neighbors[i])
 	}
 
-	http.HandleFunc("/", makeHandler(views.AddHandler, *world))
-	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, *world))
-	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, *world))
+
+	http.HandleFunc("/", makeHandler(views.AddHandler, world))
+	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, world))
+	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, world))
 	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), nil)
 }

@@ -50,7 +50,7 @@ func hashStringToPath(h string) string {
 	return strings.Join(parts, "/")
 }
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request, world models.World) {
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -109,7 +109,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, world models.Worl
 	jpeg.Encode(w, outputImage, nil)
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request, world models.World) {
+func AddHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
 	if r.Method == "POST" {
 		i, _, _ := r.FormFile("image")
 		h := sha1.New()
@@ -142,15 +142,17 @@ type AnnounceResponse struct {
 	Location string
 	Writeable bool
 	BaseUrl string
+	Neighbors []models.NodeData
 }
 
-func AnnounceHandler(w http.ResponseWriter, r *http.Request, world models.World) {
+func AnnounceHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
 	ar := AnnounceResponse{
 	  Nickname: world.Myself.Nickname,
 		UUID: world.Myself.UUID,
     Location: world.Myself.Location,
   	Writeable: world.Myself.Writeable,
   	BaseUrl: world.Myself.BaseUrl,
+	Neighbors: world.Neighbors,
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {
