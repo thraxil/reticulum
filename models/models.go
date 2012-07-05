@@ -1,7 +1,9 @@
 package models
 
 import (
-	_ "fmt"
+	"crypto/sha1"
+	"fmt"
+	"io"
 	"time"
 )
 
@@ -20,6 +22,17 @@ type NodeData struct {
 func (n NodeData) String() string {
 	return "Node - nickname: " + n.Nickname + " UUID: " + n.UUID
 }
+
+func (n NodeData) HashKeys() []string {
+	keys := make([]string, 128)
+	for i := range keys {
+		h := sha1.New()
+		io.WriteString(h, fmt.Sprintf("%s%d",n.UUID,i))
+		keys[i] = string(fmt.Sprintf("%x",h.Sum(nil)))
+	}
+	return keys
+}
+
 
 // represents what our Node nows about the world
 // ie, itself and its neighbors
@@ -76,3 +89,4 @@ func (c ConfigData) MyNode () NodeData {
 	}
 	return n
 }
+
