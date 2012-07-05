@@ -47,7 +47,14 @@ func (n *World) AddNeighbor(nd NodeData) {
 	}
 }
 
-
+func (n World) FindNeighborByUUID(uuid string) (*NodeData, bool) {
+	for i := range n.Neighbors {
+		if n.Neighbors[i].UUID == uuid {
+			return &n.Neighbors[i], true
+		}
+	}
+	return nil, false
+}
 
 type ConfigData struct {
 	Port int64

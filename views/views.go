@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 type Page struct {
@@ -146,6 +147,52 @@ type AnnounceResponse struct {
 }
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
+	if r.Method == "POST" {
+		// another node is announcing themselves to us
+		// if they are already in the Neighbors list, update as needed
+		// TODO: this should use channels to make it concurrency safe, like Add
+		if neighbor, ok := world.FindNeighborByUUID(r.FormValue("UUID")); ok {
+			fmt.Println("found our neighbor")
+			fmt.Println(neighbor.Nickname)
+			if r.FormValue("Nickname") != "" {
+				neighbor.Nickname = r.FormValue("Nickname")
+			}
+			if r.FormValue("Location") != "" {
+				neighbor.Location = r.FormValue("Location")
+			}
+			if r.FormValue("BaseUrl") != "" {
+				neighbor.BaseUrl = r.FormValue("BaseUrl")
+			}
+			if r.FormValue("Writeable") != "" {
+				if r.FormValue("Writeable") == "true" {
+					neighbor.Writeable = true
+				} else {
+					neighbor.Writeable = false
+				}
+			}
+			neighbor.LastSeen = time.Now()
+			// TODO: gossip enable by accepting the list of neighbors
+			// from the client and merging that data in.
+			// for now, just let it update its own entry
+			
+		} else {
+			// otherwise, add them to the Neighbors list
+			fmt.Println("adding neighbor")
+			nd := models.NodeData{
+			Nickname: r.FormValue("Nickname"),
+			UUID: r.FormValue("UUID"),
+			BaseUrl: r.FormValue("BaseUrl"),
+			Location: r.FormValue("Location"),
+			}
+			if r.FormValue("Writeable") == "true" {
+				nd.Writeable = true
+			} else {
+				nd.Writeable = false
+			}
+			nd.LastSeen = time.Now()
+			world.AddNeighbor(nd)
+		}
+	} 
 	ar := AnnounceResponse{
 	  Nickname: world.Myself.Nickname,
 		UUID: world.Myself.UUID,
