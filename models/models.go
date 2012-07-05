@@ -33,6 +33,10 @@ func (n NodeData) HashKeys() []string {
 	return keys
 }
 
+func (n NodeData) IsCurrent() bool {
+	return n.LastSeen.Unix() > n.LastFailed.Unix()
+}
+
 // represents what our Node nows about the world
 // ie, itself and its neighbors
 type World struct {

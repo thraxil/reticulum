@@ -163,11 +163,7 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request, world *models.World
 				neighbor.BaseUrl = r.FormValue("BaseUrl")
 			}
 			if r.FormValue("Writeable") != "" {
-				if r.FormValue("Writeable") == "true" {
-					neighbor.Writeable = true
-				} else {
-					neighbor.Writeable = false
-				}
+				neighbor.Writeable = r.FormValue("Writeable") == "true"
 			}
 			neighbor.LastSeen = time.Now()
 			// TODO: gossip enable by accepting the list of neighbors
