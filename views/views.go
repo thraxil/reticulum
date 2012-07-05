@@ -27,7 +27,6 @@ type ImageData struct {
 	Length int
 }
 
-
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 	t, _ := template.ParseFiles("templates/" + tmpl + ".html")
 	t.Execute(w, p)
@@ -138,11 +137,11 @@ func AddHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
 }
 
 type AnnounceResponse struct {
-	Nickname string
-	UUID string
-	Location string
+	Nickname  string
+	UUID      string
+	Location  string
 	Writeable bool
-	BaseUrl string
+	BaseUrl   string
 	Neighbors []models.NodeData
 }
 
@@ -174,15 +173,15 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request, world *models.World
 			// TODO: gossip enable by accepting the list of neighbors
 			// from the client and merging that data in.
 			// for now, just let it update its own entry
-			
+
 		} else {
 			// otherwise, add them to the Neighbors list
 			fmt.Println("adding neighbor")
 			nd := models.NodeData{
-			Nickname: r.FormValue("Nickname"),
-			UUID: r.FormValue("UUID"),
-			BaseUrl: r.FormValue("BaseUrl"),
-			Location: r.FormValue("Location"),
+				Nickname: r.FormValue("Nickname"),
+				UUID:     r.FormValue("UUID"),
+				BaseUrl:  r.FormValue("BaseUrl"),
+				Location: r.FormValue("Location"),
 			}
 			if r.FormValue("Writeable") == "true" {
 				nd.Writeable = true
@@ -192,14 +191,14 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request, world *models.World
 			nd.LastSeen = time.Now()
 			world.AddNeighbor(nd)
 		}
-	} 
+	}
 	ar := AnnounceResponse{
-	  Nickname: world.Myself.Nickname,
-		UUID: world.Myself.UUID,
-    Location: world.Myself.Location,
-  	Writeable: world.Myself.Writeable,
-  	BaseUrl: world.Myself.BaseUrl,
-	Neighbors: world.Neighbors,
+		Nickname:  world.Myself.Nickname,
+		UUID:      world.Myself.UUID,
+		Location:  world.Myself.Location,
+		Writeable: world.Myself.Writeable,
+		BaseUrl:   world.Myself.BaseUrl,
+		Neighbors: world.Neighbors,
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {
