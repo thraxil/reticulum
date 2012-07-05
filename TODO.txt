@@ -1,0 +1,42 @@
+* stash/retrieve views
+* on fetching, find appropriate node from ring
+* cluster test harness
+* human readable status page
+* update read/write rings on announce
+* track read/write failures
+* shared secret for security
+* rename to reticulum
+* configurable uploads directory
+* timed goroutine that periodically announces to known neighbors
+
+Old Apomixis TODO:
+
+* Verification job. Runs regularly, walks the directory of images on
+  the node, recalculates the hashes of the images, compares to the
+  hashes they were stored as and repairs and/or rebalances them as
+  necessary.
+* allow suggested image sizes upon upload. Ie, a client knows that
+  particular sizes are likely to be requested in the future so it
+  might as well create them beforehand.
+* experiment with just using Riak for image storing via its luwak file
+  storage. The problem with this is probably that resizing again
+  requires downloading via HTTP, resizing, then re-uploading.
+* move to something more lightweight than Celery/RabbitMQ for job queues.
+* distributing images between nodes on upload could be done in
+  background tasks to improve latency on upload.
+* location aware replication. Ie, you've got multiple datacenters
+  where nodes run and you want to make sure that uploaded images
+  always get stored to each datacenter in addition to the basic
+  replication level. This provides basic disaster recovery support.
+* The approach to scaling images that apomixis uses is very efficient
+  while retaining high quality, but still has the problem of needing
+  to load large images into memory. This bloats the apache/django
+  process and requires careful tweaking of the apache settings to keep
+  things fast. Should look into using imagemagick in an external
+  process to deal with very large images (or spawning an external
+  process with PIL).
+* should apomixis also handle tiling large images?
+* grayscale conversion? rounded corners? how complex image adjustment
+  should be included? should there be a plugin API so people can write
+  custom tweaks?
+* format conversion? eg, let users upload a .tif and serve it as a .jpg?
