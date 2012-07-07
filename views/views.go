@@ -51,7 +51,7 @@ func hashStringToPath(h string) string {
 	return strings.Join(parts, "/")
 }
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request, world *models.World, siteconfig models.SiteConfig) {
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster, siteconfig models.SiteConfig) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -110,7 +110,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, world *models.Wor
 	jpeg.Encode(w, outputImage, nil)
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request, world *models.World, siteconfig models.SiteConfig) {
+func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster, siteconfig models.SiteConfig) {
 	if r.Method == "POST" {
 		if siteconfig.KeyRequired() {
 			if !siteconfig.ValidKey(r.FormValue("key")) {
@@ -156,12 +156,12 @@ type AnnounceResponse struct {
 }
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request,
-	world *models.World, siteconfig models.SiteConfig) {
+	cluster *models.Cluster, siteconfig models.SiteConfig) {
 	if r.Method == "POST" {
 		// another node is announcing themselves to us
 		// if they are already in the Neighbors list, update as needed
 		// TODO: this should use channels to make it concurrency safe, like Add
-		if neighbor, ok := world.FindNeighborByUUID(r.FormValue("UUID")); ok {
+		if neighbor, ok := cluster.FindNeighborByUUID(r.FormValue("UUID")); ok {
 			fmt.Println("found our neighbor")
 			fmt.Println(neighbor.Nickname)
 			if r.FormValue("Nickname") != "" {
@@ -196,16 +196,16 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 				nd.Writeable = false
 			}
 			nd.LastSeen = time.Now()
-			world.AddNeighbor(nd)
+			cluster.AddNeighbor(nd)
 		}
 	}
 	ar := AnnounceResponse{
-		Nickname:  world.Myself.Nickname,
-		UUID:      world.Myself.UUID,
-		Location:  world.Myself.Location,
-		Writeable: world.Myself.Writeable,
-		BaseUrl:   world.Myself.BaseUrl,
-		Neighbors: world.Neighbors,
+		Nickname:  cluster.Myself.Nickname,
+		UUID:      cluster.Myself.UUID,
+		Location:  cluster.Myself.Location,
+		Writeable: cluster.Myself.Writeable,
+		BaseUrl:   cluster.Myself.BaseUrl,
+		Neighbors: cluster.Neighbors,
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {

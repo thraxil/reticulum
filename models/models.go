@@ -37,33 +37,33 @@ func (n NodeData) IsCurrent() bool {
 	return n.LastSeen.Unix() > n.LastFailed.Unix()
 }
 
-// represents what our Node nows about the world
+// represents what our Node nows about the cluster
 // ie, itself and its neighbors
-type World struct {
+type Cluster struct {
 	Myself    NodeData
 	Neighbors []NodeData
 	chF       chan func()
 }
 
-func NewWorld(myself NodeData) *World {
-	n := &World{Myself: myself, chF: make(chan func())}
+func NewCluster(myself NodeData) *Cluster {
+	n := &Cluster{Myself: myself, chF: make(chan func())}
 	go n.backend()
 	return n
 }
 
-func (n *World) backend() {
+func (n *Cluster) backend() {
 	for f := range n.chF {
 		f()
 	}
 }
 
-func (n *World) AddNeighbor(nd NodeData) {
+func (n *Cluster) AddNeighbor(nd NodeData) {
 	n.chF <- func() {
 		n.Neighbors = append(n.Neighbors, nd)
 	}
 }
 
-func (n World) FindNeighborByUUID(uuid string) (*NodeData, bool) {
+func (n Cluster) FindNeighborByUUID(uuid string) (*NodeData, bool) {
 	for i := range n.Neighbors {
 		if n.Neighbors[i].UUID == uuid {
 			return &n.Neighbors[i], true

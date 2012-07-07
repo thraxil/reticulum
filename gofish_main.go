@@ -11,9 +11,9 @@ import (
 	"net/http"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.World, models.SiteConfig), world *models.World, siteconfig models.SiteConfig) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.Cluster, models.SiteConfig), cluster *models.Cluster, siteconfig models.SiteConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, world, siteconfig)
+		fn(w, r, cluster, siteconfig)
 	}
 }
 
@@ -34,17 +34,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	world := models.NewWorld(f.MyNode())
+	cluster := models.NewCluster(f.MyNode())
 	for i := range f.Neighbors {
-		world.AddNeighbor(f.Neighbors[i])
+		cluster.AddNeighbor(f.Neighbors[i])
 	}
 
 	siteconfig := f.MyConfig()
 
 	// set up HTTP Handlers
-	http.HandleFunc("/", makeHandler(views.AddHandler, world, siteconfig))
-	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, world, siteconfig))
-	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, world, siteconfig))
+	http.HandleFunc("/", makeHandler(views.AddHandler, cluster, siteconfig))
+	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, cluster, siteconfig))
+	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, cluster, siteconfig))
 
 	// everything is ready, let's go
 	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), nil)
