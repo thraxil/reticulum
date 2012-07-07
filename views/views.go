@@ -20,6 +20,7 @@ import (
 
 type Page struct {
 	Title string
+	RequireKey bool
 }
 
 type ImageData struct {
@@ -50,7 +51,7 @@ func hashStringToPath(h string) string {
 	return strings.Join(parts, "/")
 }
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, world *models.World, siteconfig models.SiteConfig) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -109,8 +110,14 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, world *models.Wor
 	jpeg.Encode(w, outputImage, nil)
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
+func AddHandler(w http.ResponseWriter, r *http.Request, world *models.World, siteconfig models.SiteConfig) {
 	if r.Method == "POST" {
+		if siteconfig.KeyRequired() {
+			if !siteconfig.ValidKey(r.FormValue("key")) {
+				http.Error(w, "invalid upload key", 403)
+				return
+			}
+		}
 		i, _, _ := r.FormFile("image")
 		h := sha1.New()
 		d, _ := ioutil.ReadAll(i)
@@ -131,7 +138,10 @@ func AddHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
 		}
 		w.Write(b)
 	} else {
-		p := Page{Title: "upload image"}
+		p := Page{
+		Title: "upload image",
+		RequireKey: siteconfig.KeyRequired(),
+		}
 		renderTemplate(w, "add", &p)
 	}
 }
@@ -145,7 +155,8 @@ type AnnounceResponse struct {
 	Neighbors []models.NodeData
 }
 
-func AnnounceHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
+func AnnounceHandler(w http.ResponseWriter, r *http.Request,
+	world *models.World, siteconfig models.SiteConfig) {
 	if r.Method == "POST" {
 		// another node is announcing themselves to us
 		// if they are already in the Neighbors list, update as needed

@@ -72,6 +72,8 @@ func (n World) FindNeighborByUUID(uuid string) (*NodeData, bool) {
 	return nil, false
 }
 
+// the structure of the config.json file
+// where config info is stored
 type ConfigData struct {
 	Port      int64
 	UUID      string
@@ -79,6 +81,7 @@ type ConfigData struct {
 	BaseUrl   string
 	Location  string
 	Writeable bool
+	UploadKeys []string
 	Neighbors []NodeData
 }
 
@@ -91,4 +94,31 @@ func (c ConfigData) MyNode() NodeData {
 		Writeable: c.Writeable,
 	}
 	return n
+}
+
+func (c ConfigData) MyConfig() SiteConfig {
+	return SiteConfig{
+	Port: c.Port,
+	UploadKeys: c.UploadKeys,
+	}
+}
+
+// basically a subset of ConfigData, that is just
+// the general administrative stuff
+type SiteConfig struct {
+	Port int64
+	UploadKeys []string
+}
+
+func (s SiteConfig) KeyRequired() bool {
+	return len(s.UploadKeys) > 0
+}
+
+func (s SiteConfig) ValidKey(key string) bool {
+	for i := range s.UploadKeys {
+		if key == s.UploadKeys[i] {
+			return true
+		}
+	}
+	return false
 }
