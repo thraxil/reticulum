@@ -10,6 +10,8 @@
 * gif/png support
 * secure url "drm" options
 * lowercase external json attribute names/params
+* https support
+* specify file upload permissions other than default 755/644
 
 Old Apomixis TODO:
 

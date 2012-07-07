@@ -43,6 +43,7 @@ func main() {
 
 	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(views.AddHandler, cluster, siteconfig))
+	http.HandleFunc("/stash/", makeHandler(views.StashHandler, cluster, siteconfig))
 	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, cluster, siteconfig))
 	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, cluster, siteconfig))
 

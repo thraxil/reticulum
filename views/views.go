@@ -110,7 +110,8 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 	jpeg.Encode(w, outputImage, nil)
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster, siteconfig models.SiteConfig) {
+func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
+	siteconfig models.SiteConfig) {
 	if r.Method == "POST" {
 		if siteconfig.KeyRequired() {
 			if !siteconfig.ValidKey(r.FormValue("key")) {
@@ -144,6 +145,27 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 		}
 		renderTemplate(w, "add", &p)
 	}
+}
+
+func StashHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
+	siteconfig models.SiteConfig) {
+	if r.Method != "POST" {
+		http.Error(w, "POST only", 400)
+		return
+	}
+	//	extension := r.FormValue("extension")
+	i, _, _ := r.FormFile("image")
+	h := sha1.New()
+	d, _ := ioutil.ReadAll(i)
+	io.WriteString(h, string(d))
+	path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
+	os.MkdirAll(path, 0755)
+	fullpath := path + "full.jpg"
+	// TODO: if target file already exists, no need to overwrite
+	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
+	defer f.Close()
+	f.Write(d)
+	fmt.Fprintln(w, "done")
 }
 
 type AnnounceResponse struct {
