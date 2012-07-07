@@ -8,6 +8,8 @@
 * rename to reticulum
 * configurable uploads directory
 * timed goroutine that periodically announces to known neighbors
+* gif/png support
+* secure url "drm" options
 
 Old Apomixis TODO:
 
