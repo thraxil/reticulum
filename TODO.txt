@@ -6,10 +6,10 @@
 * track read/write failures
 * shared secret for security
 * rename to reticulum
-* configurable uploads directory
 * timed goroutine that periodically announces to known neighbors
 * gif/png support
 * secure url "drm" options
+* lowercase external json attribute names/params
 
 Old Apomixis TODO:
 

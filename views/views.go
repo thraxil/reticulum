@@ -70,7 +70,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		return
 	}
 
-	baseDir := "uploads/" + hashStringToPath(ahash)
+	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
 	path := baseDir + "/full.jpg"
 	sizedPath := baseDir + "/" + size + ".jpg"
 
@@ -122,7 +122,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 		h := sha1.New()
 		d, _ := ioutil.ReadAll(i)
 		io.WriteString(h, string(d))
-		path := "uploads/" + hashToPath(h.Sum(nil))
+		path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
 		os.MkdirAll(path, 0755)
 		fullpath := path + "full.jpg"
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)

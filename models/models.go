@@ -82,6 +82,7 @@ type ConfigData struct {
 	Location  string
 	Writeable bool
 	UploadKeys []string
+	UploadDirectory string
 	Neighbors []NodeData
 }
 
@@ -97,9 +98,12 @@ func (c ConfigData) MyNode() NodeData {
 }
 
 func (c ConfigData) MyConfig() SiteConfig {
+	// todo: defaults should go here
+	// todo: normalize uploaddirectory trailing slash
 	return SiteConfig{
 	Port: c.Port,
 	UploadKeys: c.UploadKeys,
+	UploadDirectory: c.UploadDirectory,
 	}
 }
 
@@ -108,6 +112,7 @@ func (c ConfigData) MyConfig() SiteConfig {
 type SiteConfig struct {
 	Port int64
 	UploadKeys []string
+	UploadDirectory string
 }
 
 func (s SiteConfig) KeyRequired() bool {
