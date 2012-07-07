@@ -23,7 +23,6 @@ Old Apomixis TODO:
 * experiment with just using Riak for image storing via its luwak file
   storage. The problem with this is probably that resizing again
   requires downloading via HTTP, resizing, then re-uploading.
-* move to something more lightweight than Celery/RabbitMQ for job queues.
 * distributing images between nodes on upload could be done in
   background tasks to improve latency on upload.
 * location aware replication. Ie, you've got multiple datacenters
