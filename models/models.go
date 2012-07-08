@@ -136,7 +136,16 @@ func (n Cluster) WriteRing() RingEntryList {
 // returns the list of all nodes in the order
 // that the given hash will choose to write to them
 func (n Cluster) WriteOrder(hash string) []NodeData {
-	wr := n.WriteRing()
+	return HashOrder(hash, len(n.Neighbors) + 1, n.WriteRing())
+}
+
+// returns the list of all nodes in the order
+// that the given hash will choose to try to read from them
+func (n Cluster) ReadOrder(hash string) []NodeData {
+	return HashOrder(hash, len(n.Neighbors) + 1, n.Ring())
+}
+
+func HashOrder(hash string, size int, ring []RingEntry) []NodeData {
 	// our approach is to find the first bucket after our hash,
 	// partition the ring on that and put the first part on the
 	// end. Then go through and extract the ordering.
@@ -148,47 +157,17 @@ func (n Cluster) WriteOrder(hash string) []NodeData {
 	// [7,8,9,10] + [1,2,3,4,5,6]
   // [7,8,9,10,1,2,3,4,5,6]
 	var partitionIndex = 0
-	for i, r := range wr {
+	for i, r := range ring {
 		if r.Hash > hash {
 			partitionIndex = i
 			break
 		}
 	}
 	// yay, slices
-	reordered := make([]RingEntry, len(wr))
-	reordered = append(wr[partitionIndex:], wr[:partitionIndex]...)
+	reordered := make([]RingEntry, len(ring))
+	reordered = append(ring[partitionIndex:], ring[:partitionIndex]...)
 
-	results := make([]NodeData, len(n.Neighbors) + 1)
-	var seen = map[string] bool {}
-	var i = 0
-	for _, r := range reordered {
-		if !seen[r.Node.UUID] {
-			results[i] = r.Node
-			i++
-			seen[r.Node.UUID] = true
-		}
-	}
-	return results
-}
-
-// returns the list of all nodes in the order
-// that the given hash will choose to try to read from them
-func (n Cluster) ReadOrder(hash string) []NodeData {
-	wr := n.Ring()
-	// see WriteWring for an explanation of the algorithm
-
-	var partitionIndex = 0
-	for i, r := range wr {
-		if r.Hash > hash {
-			partitionIndex = i
-			break
-		}
-	}
-	// yay, slices
-	reordered := make([]RingEntry, len(wr))
-	reordered = append(wr[partitionIndex:], wr[:partitionIndex]...)
-
-	results := make([]NodeData, len(n.Neighbors) + 1)
+	results := make([]NodeData, size)
 	var seen = map[string] bool {}
 	var i = 0
 	for _, r := range reordered {
