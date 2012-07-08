@@ -133,42 +133,73 @@ func (n Cluster) WriteRing() RingEntryList {
 	return keys
 }
 
-// def write_order(image_hash):
-//     wr = deque(write_ring())
-//     nodes = []
-//     appending = False
-//     seen = dict()
-//     while len(wr) > 0:
-//         # get the first element
-//         (k,n) = wr.popleft()
-//         if appending or image_hash > k:
-//             if n.uuid not in seen:
-//                 nodes.append(n)
-//                 seen[n.uuid] = True
-//             appending = True
-//         else:
-//             # put it back on
-//             wr.append((k,n))
-//     return nodes
+// returns the list of all nodes in the order
+// that the given hash will choose to write to them
+func (n Cluster) WriteOrder(hash string) []NodeData {
+	wr := n.WriteRing()
+	// our approach is to find the first bucket after our hash,
+	// partition the ring on that and put the first part on the
+	// end. Then go through and extract the ordering.
 
-// def read_order(image_hash):
-//     r = deque(ring())
-//     nodes = []
-//     appending = False
-//     seen = dict()
-//     while len(r) > 0:
-//         # get the first element
-//         (k,n) = r.popleft()
-//         if appending or image_hash > k:
-//             if n.uuid not in seen:
-//                 nodes.append(n)
-//                 seen[n.uuid] = True
-//             appending = True
-//         else:
-//             # put it back on
-//             r.append((k,n))
-//     return nodes
+	// so, with a ring of [1,2,3,4,5,6,7,8,9,10]
+	// and a hash of 7, we partition it into
+	// [1,2,3,4,5,6] and [7,8,9,10]
+	// then recombine them into
+	// [7,8,9,10] + [1,2,3,4,5,6]
+  // [7,8,9,10,1,2,3,4,5,6]
+	var partitionIndex = 0
+	for i, r := range wr {
+		if r.Hash > hash {
+			partitionIndex = i
+			break
+		}
+	}
+	// yay, slices
+	reordered := make([]RingEntry, len(wr))
+	reordered = append(wr[partitionIndex:], wr[:partitionIndex]...)
 
+	results := make([]NodeData, len(n.Neighbors) + 1)
+	var seen = map[string] bool {}
+	var i = 0
+	for _, r := range reordered {
+		if !seen[r.Node.UUID] {
+			results[i] = r.Node
+			i++
+			seen[r.Node.UUID] = true
+		}
+	}
+	return results
+}
+
+// returns the list of all nodes in the order
+// that the given hash will choose to try to read from them
+func (n Cluster) ReadOrder(hash string) []NodeData {
+	wr := n.Ring()
+	// see WriteWring for an explanation of the algorithm
+
+	var partitionIndex = 0
+	for i, r := range wr {
+		if r.Hash > hash {
+			partitionIndex = i
+			break
+		}
+	}
+	// yay, slices
+	reordered := make([]RingEntry, len(wr))
+	reordered = append(wr[partitionIndex:], wr[:partitionIndex]...)
+
+	results := make([]NodeData, len(n.Neighbors) + 1)
+	var seen = map[string] bool {}
+	var i = 0
+	for _, r := range reordered {
+		if !seen[r.Node.UUID] {
+			results[i] = r.Node
+			i++
+			seen[r.Node.UUID] = true
+		}
+	}
+	return results
+}
 
 // the structure of the config.json file
 // where config info is stored
