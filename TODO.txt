@@ -1,4 +1,4 @@
-* stash/retrieve views
+* retrieve views
 * on fetching, find appropriate node from ring
 * cluster test harness
 * human readable status page
@@ -6,8 +6,12 @@
 * track read/write failures
 * shared secret for security
 * rename to reticulum
-* configurable uploads directory
 * timed goroutine that periodically announces to known neighbors
+* gif/png support
+* secure url "drm" options
+* lowercase external json attribute names/params
+* https support
+* specify file upload permissions other than default 755/644
 
 Old Apomixis TODO:
 
@@ -21,7 +25,6 @@ Old Apomixis TODO:
 * experiment with just using Riak for image storing via its luwak file
   storage. The problem with this is probably that resizing again
   requires downloading via HTTP, resizing, then re-uploading.
-* move to something more lightweight than Celery/RabbitMQ for job queues.
 * distributing images between nodes on upload could be done in
   background tasks to improve latency on upload.
 * location aware replication. Ie, you've got multiple datacenters

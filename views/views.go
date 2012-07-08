@@ -19,7 +19,8 @@ import (
 )
 
 type Page struct {
-	Title string
+	Title      string
+	RequireKey bool
 }
 
 type ImageData struct {
@@ -50,7 +51,7 @@ func hashStringToPath(h string) string {
 	return strings.Join(parts, "/")
 }
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster, siteconfig models.SiteConfig) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -69,7 +70,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, world *models.Wor
 		return
 	}
 
-	baseDir := "uploads/" + hashStringToPath(ahash)
+	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
 	path := baseDir + "/full.jpg"
 	sizedPath := baseDir + "/" + size + ".jpg"
 
@@ -109,13 +110,20 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, world *models.Wor
 	jpeg.Encode(w, outputImage, nil)
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
+func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
+	siteconfig models.SiteConfig) {
 	if r.Method == "POST" {
+		if siteconfig.KeyRequired() {
+			if !siteconfig.ValidKey(r.FormValue("key")) {
+				http.Error(w, "invalid upload key", 403)
+				return
+			}
+		}
 		i, _, _ := r.FormFile("image")
 		h := sha1.New()
 		d, _ := ioutil.ReadAll(i)
 		io.WriteString(h, string(d))
-		path := "uploads/" + hashToPath(h.Sum(nil))
+		path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
 		os.MkdirAll(path, 0755)
 		fullpath := path + "full.jpg"
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
@@ -131,9 +139,33 @@ func AddHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
 		}
 		w.Write(b)
 	} else {
-		p := Page{Title: "upload image"}
+		p := Page{
+			Title:      "upload image",
+			RequireKey: siteconfig.KeyRequired(),
+		}
 		renderTemplate(w, "add", &p)
 	}
+}
+
+func StashHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
+	siteconfig models.SiteConfig) {
+	if r.Method != "POST" {
+		http.Error(w, "POST only", 400)
+		return
+	}
+	//	extension := r.FormValue("extension")
+	i, _, _ := r.FormFile("image")
+	h := sha1.New()
+	d, _ := ioutil.ReadAll(i)
+	io.WriteString(h, string(d))
+	path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
+	os.MkdirAll(path, 0755)
+	fullpath := path + "full.jpg"
+	// TODO: if target file already exists, no need to overwrite
+	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
+	defer f.Close()
+	f.Write(d)
+	fmt.Fprintln(w, "done")
 }
 
 type AnnounceResponse struct {
@@ -145,12 +177,13 @@ type AnnounceResponse struct {
 	Neighbors []models.NodeData
 }
 
-func AnnounceHandler(w http.ResponseWriter, r *http.Request, world *models.World) {
+func AnnounceHandler(w http.ResponseWriter, r *http.Request,
+	cluster *models.Cluster, siteconfig models.SiteConfig) {
 	if r.Method == "POST" {
 		// another node is announcing themselves to us
 		// if they are already in the Neighbors list, update as needed
 		// TODO: this should use channels to make it concurrency safe, like Add
-		if neighbor, ok := world.FindNeighborByUUID(r.FormValue("UUID")); ok {
+		if neighbor, ok := cluster.FindNeighborByUUID(r.FormValue("UUID")); ok {
 			fmt.Println("found our neighbor")
 			fmt.Println(neighbor.Nickname)
 			if r.FormValue("Nickname") != "" {
@@ -185,16 +218,16 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request, world *models.World
 				nd.Writeable = false
 			}
 			nd.LastSeen = time.Now()
-			world.AddNeighbor(nd)
+			cluster.AddNeighbor(nd)
 		}
 	}
 	ar := AnnounceResponse{
-		Nickname:  world.Myself.Nickname,
-		UUID:      world.Myself.UUID,
-		Location:  world.Myself.Location,
-		Writeable: world.Myself.Writeable,
-		BaseUrl:   world.Myself.BaseUrl,
-		Neighbors: world.Neighbors,
+		Nickname:  cluster.Myself.Nickname,
+		UUID:      cluster.Myself.UUID,
+		Location:  cluster.Myself.Location,
+		Writeable: cluster.Myself.Writeable,
+		BaseUrl:   cluster.Myself.BaseUrl,
+		Neighbors: cluster.Neighbors,
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {
