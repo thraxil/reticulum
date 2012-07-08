@@ -20,7 +20,7 @@ type NodeData struct {
 	LastFailed time.Time
 }
 
-var REPLICAS = 16;
+var REPLICAS = 16
 
 func (n NodeData) String() string {
 	return "Node - nickname: " + n.Nickname + " UUID: " + n.UUID
@@ -76,7 +76,7 @@ func (n Cluster) FindNeighborByUUID(uuid string) (*NodeData, bool) {
 }
 
 func (n Cluster) NeighborsInclusive() []NodeData {
-	a := make([]NodeData, len(n.Neighbors) + 1)
+	a := make([]NodeData, len(n.Neighbors)+1)
 	a[0] = n.Myself
 	for i := range n.Neighbors {
 		a[i+1] = n.Neighbors[i]
@@ -87,12 +87,12 @@ func (n Cluster) NeighborsInclusive() []NodeData {
 func (n Cluster) WriteableNeighbors() []NodeData {
 	var all = n.NeighborsInclusive()
 	var p []NodeData // == nil
-  for _, i := range all {
-    if i.Writeable {
-      p = append(p, i)
-    }
-  }
-  return p
+	for _, i := range all {
+		if i.Writeable {
+			p = append(p, i)
+		}
+	}
+	return p
 }
 
 type RingEntry struct {
@@ -101,8 +101,9 @@ type RingEntry struct {
 }
 
 type RingEntryList []RingEntry
-func (p RingEntryList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
-func (p RingEntryList) Len() int { return len(p) }
+
+func (p RingEntryList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p RingEntryList) Len() int           { return len(p) }
 func (p RingEntryList) Less(i, j int) bool { return p[i].Hash < p[j].Hash }
 
 func (n Cluster) Ring() RingEntryList {
@@ -119,7 +120,7 @@ func neighborsToRing(neighbors []NodeData) RingEntryList {
 		node := neighbors[i]
 		nkeys := node.HashKeys()
 		for j := range nkeys {
-			keys[i*REPLICAS + j] = RingEntry{Node: node, Hash: nkeys[j]}
+			keys[i*REPLICAS+j] = RingEntry{Node: node, Hash: nkeys[j]}
 		}
 	}
 	sort.Sort(keys)
@@ -129,13 +130,13 @@ func neighborsToRing(neighbors []NodeData) RingEntryList {
 // returns the list of all nodes in the order
 // that the given hash will choose to write to them
 func (n Cluster) WriteOrder(hash string) []NodeData {
-	return hashOrder(hash, len(n.Neighbors) + 1, n.WriteRing())
+	return hashOrder(hash, len(n.Neighbors)+1, n.WriteRing())
 }
 
 // returns the list of all nodes in the order
 // that the given hash will choose to try to read from them
 func (n Cluster) ReadOrder(hash string) []NodeData {
-	return hashOrder(hash, len(n.Neighbors) + 1, n.Ring())
+	return hashOrder(hash, len(n.Neighbors)+1, n.Ring())
 }
 
 func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
@@ -148,7 +149,7 @@ func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 	// [1,2,3,4,5,6] and [7,8,9,10]
 	// then recombine them into
 	// [7,8,9,10] + [1,2,3,4,5,6]
-  // [7,8,9,10,1,2,3,4,5,6]
+	// [7,8,9,10,1,2,3,4,5,6]
 	var partitionIndex = 0
 	for i, r := range ring {
 		if r.Hash > hash {
@@ -161,7 +162,7 @@ func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 	reordered = append(ring[partitionIndex:], ring[:partitionIndex]...)
 
 	results := make([]NodeData, size)
-	var seen = map[string] bool {}
+	var seen = map[string]bool{}
 	var i = 0
 	for _, r := range reordered {
 		if !seen[r.Node.UUID] {
@@ -176,15 +177,15 @@ func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 // the structure of the config.json file
 // where config info is stored
 type ConfigData struct {
-	Port      int64
-	UUID      string
-	Nickname  string
-	BaseUrl   string
-	Location  string
-	Writeable bool
-	UploadKeys []string
+	Port            int64
+	UUID            string
+	Nickname        string
+	BaseUrl         string
+	Location        string
+	Writeable       bool
+	UploadKeys      []string
 	UploadDirectory string
-	Neighbors []NodeData
+	Neighbors       []NodeData
 }
 
 func (c ConfigData) MyNode() NodeData {
@@ -202,17 +203,17 @@ func (c ConfigData) MyConfig() SiteConfig {
 	// todo: defaults should go here
 	// todo: normalize uploaddirectory trailing slash
 	return SiteConfig{
-	Port: c.Port,
-	UploadKeys: c.UploadKeys,
-	UploadDirectory: c.UploadDirectory,
+		Port:            c.Port,
+		UploadKeys:      c.UploadKeys,
+		UploadDirectory: c.UploadDirectory,
 	}
 }
 
 // basically a subset of ConfigData, that is just
 // the general administrative stuff
 type SiteConfig struct {
-	Port int64
-	UploadKeys []string
+	Port            int64
+	UploadKeys      []string
 	UploadDirectory string
 }
 

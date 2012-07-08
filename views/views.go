@@ -19,7 +19,7 @@ import (
 )
 
 type Page struct {
-	Title string
+	Title      string
 	RequireKey bool
 }
 
@@ -140,8 +140,8 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 		w.Write(b)
 	} else {
 		p := Page{
-		Title: "upload image",
-		RequireKey: siteconfig.KeyRequired(),
+			Title:      "upload image",
+			RequireKey: siteconfig.KeyRequired(),
 		}
 		renderTemplate(w, "add", &p)
 	}

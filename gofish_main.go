@@ -1,8 +1,8 @@
 package main
 
 import (
-	"./views"
 	"./models"
+	"./views"
 	"encoding/json"
 	"flag"
 	"fmt"
