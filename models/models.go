@@ -129,16 +129,16 @@ func neighborsToRing(neighbors []NodeData) RingEntryList {
 // returns the list of all nodes in the order
 // that the given hash will choose to write to them
 func (n Cluster) WriteOrder(hash string) []NodeData {
-	return HashOrder(hash, len(n.Neighbors) + 1, n.WriteRing())
+	return hashOrder(hash, len(n.Neighbors) + 1, n.WriteRing())
 }
 
 // returns the list of all nodes in the order
 // that the given hash will choose to try to read from them
 func (n Cluster) ReadOrder(hash string) []NodeData {
-	return HashOrder(hash, len(n.Neighbors) + 1, n.Ring())
+	return hashOrder(hash, len(n.Neighbors) + 1, n.Ring())
 }
 
-func HashOrder(hash string, size int, ring []RingEntry) []NodeData {
+func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 	// our approach is to find the first bucket after our hash,
 	// partition the ring on that and put the first part on the
 	// end. Then go through and extract the ordering.
