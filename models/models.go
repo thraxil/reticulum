@@ -106,24 +106,17 @@ func (p RingEntryList) Len() int { return len(p) }
 func (p RingEntryList) Less(i, j int) bool { return p[i].Hash < p[j].Hash }
 
 func (n Cluster) Ring() RingEntryList {
-	allnodes := n.NeighborsInclusive()
-	keys := make(RingEntryList, REPLICAS*len(allnodes))
-	for i := range allnodes {
-		node := allnodes[i]
-		nkeys := node.HashKeys()
-		for j := range nkeys {
-			keys[i*REPLICAS + j] = RingEntry{Node: node, Hash: nkeys[j]}
-		}
-	}
-	sort.Sort(keys)
-	return keys
+	return neighborsToRing(n.NeighborsInclusive())
 }
 
 func (n Cluster) WriteRing() RingEntryList {
-	allnodes := n.WriteableNeighbors()
-	keys := make(RingEntryList, REPLICAS*len(allnodes))
-	for i := range allnodes {
-		node := allnodes[i]
+	return neighborsToRing(n.WriteableNeighbors())
+}
+
+func neighborsToRing(neighbors []NodeData) RingEntryList {
+	keys := make(RingEntryList, REPLICAS*len(neighbors))
+	for i := range neighbors {
+		node := neighbors[i]
 		nkeys := node.HashKeys()
 		for j := range nkeys {
 			keys[i*REPLICAS + j] = RingEntry{Node: node, Hash: nkeys[j]}
