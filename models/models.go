@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io"
+	"sort"
 	"time"
 )
 
@@ -19,12 +20,14 @@ type NodeData struct {
 	LastFailed time.Time
 }
 
+var REPLICAS = 16;
+
 func (n NodeData) String() string {
 	return "Node - nickname: " + n.Nickname + " UUID: " + n.UUID
 }
 
 func (n NodeData) HashKeys() []string {
-	keys := make([]string, 128)
+	keys := make([]string, REPLICAS)
 	for i := range keys {
 		h := sha1.New()
 		io.WriteString(h, fmt.Sprintf("%s%d", n.UUID, i))
@@ -71,6 +74,101 @@ func (n Cluster) FindNeighborByUUID(uuid string) (*NodeData, bool) {
 	}
 	return nil, false
 }
+
+func (n Cluster) NeighborsInclusive() []NodeData {
+	a := make([]NodeData, len(n.Neighbors) + 1)
+	a[0] = n.Myself
+	for i := range n.Neighbors {
+		a[i+1] = n.Neighbors[i]
+	}
+	return a
+}
+
+func (n Cluster) WriteableNeighbors() []NodeData {
+	var all = n.NeighborsInclusive()
+	var p []NodeData // == nil
+  for _, i := range all {
+    if i.Writeable {
+      p = append(p, i)
+    }
+  }
+  return p
+}
+
+type RingEntry struct {
+	Node NodeData
+	Hash string // the hash
+}
+
+type RingEntryList []RingEntry
+func (p RingEntryList) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+func (p RingEntryList) Len() int { return len(p) }
+func (p RingEntryList) Less(i, j int) bool { return p[i].Hash < p[j].Hash }
+
+func (n Cluster) Ring() RingEntryList {
+	allnodes := n.NeighborsInclusive()
+	keys := make(RingEntryList, REPLICAS*len(allnodes))
+	for i := range allnodes {
+		node := allnodes[i]
+		nkeys := node.HashKeys()
+		for j := range nkeys {
+			keys[i*REPLICAS + j] = RingEntry{Node: node, Hash: nkeys[j]}
+		}
+	}
+	sort.Sort(keys)
+	return keys
+}
+
+func (n Cluster) WriteRing() RingEntryList {
+	allnodes := n.WriteableNeighbors()
+	keys := make(RingEntryList, REPLICAS*len(allnodes))
+	for i := range allnodes {
+		node := allnodes[i]
+		nkeys := node.HashKeys()
+		for j := range nkeys {
+			keys[i*REPLICAS + j] = RingEntry{Node: node, Hash: nkeys[j]}
+		}
+	}
+	sort.Sort(keys)
+	return keys
+}
+
+// def write_order(image_hash):
+//     wr = deque(write_ring())
+//     nodes = []
+//     appending = False
+//     seen = dict()
+//     while len(wr) > 0:
+//         # get the first element
+//         (k,n) = wr.popleft()
+//         if appending or image_hash > k:
+//             if n.uuid not in seen:
+//                 nodes.append(n)
+//                 seen[n.uuid] = True
+//             appending = True
+//         else:
+//             # put it back on
+//             wr.append((k,n))
+//     return nodes
+
+// def read_order(image_hash):
+//     r = deque(ring())
+//     nodes = []
+//     appending = False
+//     seen = dict()
+//     while len(r) > 0:
+//         # get the first element
+//         (k,n) = r.popleft()
+//         if appending or image_hash > k:
+//             if n.uuid not in seen:
+//                 nodes.append(n)
+//                 seen[n.uuid] = True
+//             appending = True
+//         else:
+//             # put it back on
+//             r.append((k,n))
+//     return nodes
+
 
 // the structure of the config.json file
 // where config info is stored

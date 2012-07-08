@@ -1,4 +1,4 @@
-* stash/retrieve views
+* retrieve views
 * on fetching, find appropriate node from ring
 * cluster test harness
 * human readable status page
