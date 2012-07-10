@@ -9,11 +9,15 @@ import (
 	"github.com/thraxil/resize"
 	//  "../../resize"
 	"html/template"
+	"image"
+	"image/gif"
 	"image/jpeg"
+	"image/png"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -26,6 +30,7 @@ type Page struct {
 type ImageData struct {
 	Hash   string
 	Length int
+	Extension string
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
@@ -51,6 +56,12 @@ func hashStringToPath(h string) string {
 	return strings.Join(parts, "/")
 }
 
+var decoders = map[string](func(io.Reader)(image.Image, error)){
+	"jpg":jpeg.Decode,
+	"gif":gif.Decode,
+	"png":png.Decode,
+}
+
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster, siteconfig models.SiteConfig) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
@@ -60,10 +71,10 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 	ahash := parts[2]
 	size := parts[3]
 	filename := parts[4]
-
 	if filename == "" {
 		filename = "image.jpg"
-	}
+	} 
+	extension := filepath.Ext(filename)
 
 	if len(ahash) != 40 {
 		http.Error(w, "bad hash", 404)
@@ -71,13 +82,25 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 	}
 
 	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
-	path := baseDir + "/full.jpg"
-	sizedPath := baseDir + "/" + size + ".jpg"
+	dl, err := ioutil.ReadDir(baseDir)
+	if err != nil {
+		fmt.Println("error reading directory")
+	}
+	for _, dir := range dl {
+		switch {
+		case !dir.IsDir():
+			fmt.Println(dir.Name())
+		case dir.IsDir():
+			fmt.Println("directory",dir.Name())
+		}
+	}
+	path := baseDir + "/full." + extension
+	sizedPath := baseDir + "/" + size + "." + extension
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
 		// we've got it, so serve it directly
-		w.Header().Set("Content-Type", "image/jpg")
+		w.Header().Set("Content-Type", extmimes[extension])
 		w.Write(contents)
 		return
 	}
@@ -91,7 +114,8 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		return
 	}
 
-	m, err := jpeg.Decode(origFile)
+
+	m, err := decoders[extension](origFile)
 	if err != nil {
 		http.Error(w, "error decoding image", 500)
 	}
@@ -104,10 +128,38 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		// we still have the resized image, so we can serve the response
 		// we just can't cache it. 
 	}
-	jpeg.Encode(wFile, outputImage, nil)
+	w.Header().Set("Content-Type", extmimes[extension])
+	if extension == "jpg" {
+		jpeg.Encode(wFile, outputImage, nil)
+		jpeg.Encode(w, outputImage, nil)
+		return
+	} 
+	if extension == "gif" {
+		// image/gif doesn't include an Encode()
+		// so we'll use png for now. 
+		// :(
+		png.Encode(wFile, outputImage)
+		png.Encode(w, outputImage)
+		return
+	}
+	if extension == "png" {
+		png.Encode(wFile, outputImage)
+		png.Encode(w, outputImage)
+		return
+	}
+	
+}
 
-	w.Header().Set("Content-Type", "image/jpg")
-	jpeg.Encode(w, outputImage, nil)
+var mimeexts = map[string]string{
+	"image/jpeg":"jpg",
+	"image/gif":"gif",
+	"image/png":"png",
+}
+
+var extmimes = map[string]string{
+	"jpg":"image/jpeg",
+	"gif":"image/gif",
+	"png":"image/png",
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
@@ -119,19 +171,22 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 				return
 			}
 		}
-		i, _, _ := r.FormFile("image")
+		i, fh, _ := r.FormFile("image")
 		h := sha1.New()
 		d, _ := ioutil.ReadAll(i)
 		io.WriteString(h, string(d))
 		path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
 		os.MkdirAll(path, 0755)
-		fullpath := path + "full.jpg"
+		mimetype := fh.Header["Content-Type"][0]
+		ext := mimeexts[mimetype]
+		fullpath := path + "full." + ext
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 		defer f.Close()
 		n, _ := f.Write(d)
 		id := ImageData{
 			Hash:   fmt.Sprintf("%x", h.Sum(nil)),
 			Length: n,
+			Extension: ext,
 		}
 		b, err := json.Marshal(id)
 		if err != nil {
@@ -153,14 +208,15 @@ func StashHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluste
 		http.Error(w, "POST only", 400)
 		return
 	}
-	//	extension := r.FormValue("extension")
-	i, _, _ := r.FormFile("image")
+	i, fh, _ := r.FormFile("image")
 	h := sha1.New()
 	d, _ := ioutil.ReadAll(i)
 	io.WriteString(h, string(d))
 	path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
 	os.MkdirAll(path, 0755)
-	fullpath := path + "full.jpg"
+	mimetype := fh.Header["Content-Type"][0]
+	ext := mimeexts[mimetype]
+	fullpath := path + "full." + ext
 	// TODO: if target file already exists, no need to overwrite
 	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 	defer f.Close()
