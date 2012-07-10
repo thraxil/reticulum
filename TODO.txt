@@ -5,7 +5,6 @@
 * update read/write rings on announce
 * track read/write failures
 * shared secret for security
-* rename to reticulum
 * timed goroutine that periodically announces to known neighbors
 * gif/png support
 * secure url "drm" options
