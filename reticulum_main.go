@@ -11,7 +11,7 @@ import (
 	"net/http"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.Cluster, models.SiteConfig, models.SharedChannels), 
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.Cluster, models.SiteConfig, models.SharedChannels),
 	cluster *models.Cluster, siteconfig models.SiteConfig,
 	channels models.SharedChannels) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -45,13 +45,13 @@ func main() {
 
 	// start our resize worker goroutines
 	var channels = models.SharedChannels{
-		ResizeQueue:make(chan models.ResizeRequest),
+		ResizeQueue: make(chan models.ResizeRequest),
 	}
 
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
 		go views.ResizeWorker(channels.ResizeQueue)
 	}
-	
+
 	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(views.AddHandler, cluster, siteconfig, channels))
 	http.HandleFunc("/stash/", makeHandler(views.StashHandler, cluster, siteconfig, channels))

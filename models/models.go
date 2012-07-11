@@ -178,16 +178,16 @@ func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 // the structure of the config.json file
 // where config info is stored
 type ConfigData struct {
-	Port            int64
-	UUID            string
-	Nickname        string
-	BaseUrl         string
-	Location        string
-	Writeable       bool
+	Port             int64
+	UUID             string
+	Nickname         string
+	BaseUrl          string
+	Location         string
+	Writeable        bool
 	NumResizeWorkers int
-	UploadKeys      []string
-	UploadDirectory string
-	Neighbors       []NodeData
+	UploadKeys       []string
+	UploadDirectory  string
+	Neighbors        []NodeData
 }
 
 func (c ConfigData) MyNode() NodeData {
@@ -210,9 +210,9 @@ func (c ConfigData) MyConfig() SiteConfig {
 		numWorkers = 1
 	}
 	return SiteConfig{
-		Port:            c.Port,
-		UploadKeys:      c.UploadKeys,
-		UploadDirectory: c.UploadDirectory,
+		Port:             c.Port,
+		UploadKeys:       c.UploadKeys,
+		UploadDirectory:  c.UploadDirectory,
 		NumResizeWorkers: numWorkers,
 	}
 }
@@ -220,9 +220,9 @@ func (c ConfigData) MyConfig() SiteConfig {
 // basically a subset of ConfigData, that is just
 // the general administrative stuff
 type SiteConfig struct {
-	Port            int64
-	UploadKeys      []string
-	UploadDirectory string
+	Port             int64
+	UploadKeys       []string
+	UploadDirectory  string
 	NumResizeWorkers int
 }
 
@@ -240,16 +240,15 @@ func (s SiteConfig) ValidKey(key string) bool {
 }
 
 type ResizeRequest struct {
-	Path string
+	Path      string
 	Extension string
-	Size string
-	Response chan ResizeResponse
+	Size      string
+	Response  chan ResizeResponse
 }
 
 type ResizeResponse struct {
 	OutputImage *image.Image
 }
-
 
 type SharedChannels struct {
 	ResizeQueue chan ResizeRequest

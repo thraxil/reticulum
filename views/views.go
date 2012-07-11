@@ -28,8 +28,8 @@ type Page struct {
 }
 
 type ImageData struct {
-	Hash   string
-	Length int
+	Hash      string
+	Length    int
 	Extension string
 }
 
@@ -56,13 +56,13 @@ func hashStringToPath(h string) string {
 	return strings.Join(parts, "/")
 }
 
-var decoders = map[string](func(io.Reader)(image.Image, error)){
-	"jpg":jpeg.Decode,
-	"gif":gif.Decode,
-	"png":png.Decode,
+var decoders = map[string](func(io.Reader) (image.Image, error)){
+	"jpg": jpeg.Decode,
+	"gif": gif.Decode,
+	"png": png.Decode,
 }
 
-var jpeg_options = jpeg.Options{Quality:90}
+var jpeg_options = jpeg.Options{Quality: 90}
 
 func ResizeWorker(requests chan models.ResizeRequest) {
 	for req := range requests {
@@ -89,7 +89,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 	filename := parts[4]
 	if filename == "" {
 		filename = "image.jpg"
-	} 
+	}
 	extension := filepath.Ext(filename)
 	if len(ahash) != 40 {
 		http.Error(w, "bad hash", 404)
@@ -106,7 +106,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		case !dir.IsDir():
 			fmt.Println(dir.Name())
 		case dir.IsDir():
-			fmt.Println("directory",dir.Name())
+			fmt.Println("directory", dir.Name())
 		}
 	}
 	path := baseDir + "/full" + extension
@@ -124,7 +124,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 	// we don't have a scaled version, so try to get the full version
 	// resize it, write a cached version, then serve it
 	c := make(chan models.ResizeResponse)
-	channels.ResizeQueue <- models.ResizeRequest{path,extension,size, c}
+	channels.ResizeQueue <- models.ResizeRequest{path, extension, size, c}
 	result := <-c
 	outputImage := *result.OutputImage
 	// TODO handle resize errors
@@ -141,7 +141,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		jpeg.Encode(wFile, outputImage, &jpeg_options)
 		jpeg.Encode(w, outputImage, &jpeg_options)
 		return
-	} 
+	}
 	if extension == ".gif" {
 		// image/gif doesn't include an Encode()
 		// so we'll use png for now. 
@@ -155,19 +155,19 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		png.Encode(w, outputImage)
 		return
 	}
-	
+
 }
 
 var mimeexts = map[string]string{
-	"image/jpeg":"jpg",
-	"image/gif":"gif",
-	"image/png":"png",
+	"image/jpeg": "jpg",
+	"image/gif":  "gif",
+	"image/png":  "png",
 }
 
 var extmimes = map[string]string{
-	"jpg":"image/jpeg",
-	"gif":"image/gif",
-	"png":"image/png",
+	"jpg": "image/jpeg",
+	"gif": "image/gif",
+	"png": "image/png",
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
@@ -192,8 +192,8 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 		defer f.Close()
 		n, _ := f.Write(d)
 		id := ImageData{
-			Hash:   fmt.Sprintf("%x", h.Sum(nil)),
-			Length: n,
+			Hash:      fmt.Sprintf("%x", h.Sum(nil)),
+			Length:    n,
 			Extension: ext,
 		}
 		b, err := json.Marshal(id)
