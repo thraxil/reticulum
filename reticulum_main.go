@@ -48,7 +48,7 @@ func main() {
 		ResizeQueue:make(chan models.ResizeRequest),
 	}
 
-	for i := 0; i < 4; i++ {
+	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
 		go views.ResizeWorker(channels.ResizeQueue)
 	}
 	

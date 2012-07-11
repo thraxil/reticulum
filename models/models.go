@@ -184,6 +184,7 @@ type ConfigData struct {
 	BaseUrl         string
 	Location        string
 	Writeable       bool
+	NumResizeWorkers int
 	UploadKeys      []string
 	UploadDirectory string
 	Neighbors       []NodeData
@@ -203,10 +204,16 @@ func (c ConfigData) MyNode() NodeData {
 func (c ConfigData) MyConfig() SiteConfig {
 	// todo: defaults should go here
 	// todo: normalize uploaddirectory trailing slash
+	numWorkers := c.NumResizeWorkers
+	if numWorkers < 1 {
+		// come on! we need at least one
+		numWorkers = 1
+	}
 	return SiteConfig{
 		Port:            c.Port,
 		UploadKeys:      c.UploadKeys,
 		UploadDirectory: c.UploadDirectory,
+		NumResizeWorkers: numWorkers,
 	}
 }
 
@@ -216,6 +223,7 @@ type SiteConfig struct {
 	Port            int64
 	UploadKeys      []string
 	UploadDirectory string
+	NumResizeWorkers int
 }
 
 func (s SiteConfig) KeyRequired() bool {
