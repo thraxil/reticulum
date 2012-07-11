@@ -1,0 +1,7 @@
+{"Nickname": "node1",
+"UUID" : "some-uuid",
+"Port" : 8080,
+"UploadDirectory" : "uploads/",
+"NumResizeWorkers" : 4,
+"Neighbors": []
+}
