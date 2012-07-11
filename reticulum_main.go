@@ -11,9 +11,11 @@ import (
 	"net/http"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.Cluster, models.SiteConfig), cluster *models.Cluster, siteconfig models.SiteConfig) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.Cluster, models.SiteConfig, models.SharedChannels), 
+	cluster *models.Cluster, siteconfig models.SiteConfig,
+	channels models.SharedChannels) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, cluster, siteconfig)
+		fn(w, r, cluster, siteconfig, channels)
 	}
 }
 
@@ -41,11 +43,20 @@ func main() {
 
 	siteconfig := f.MyConfig()
 
+	// start our resize worker goroutines
+	var channels = models.SharedChannels{
+		ResizeQueue:make(chan models.ResizeRequest),
+	}
+
+	for i := 0; i < 4; i++ {
+		go views.ResizeWorker(channels.ResizeQueue)
+	}
+	
 	// set up HTTP Handlers
-	http.HandleFunc("/", makeHandler(views.AddHandler, cluster, siteconfig))
-	http.HandleFunc("/stash/", makeHandler(views.StashHandler, cluster, siteconfig))
-	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, cluster, siteconfig))
-	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, cluster, siteconfig))
+	http.HandleFunc("/", makeHandler(views.AddHandler, cluster, siteconfig, channels))
+	http.HandleFunc("/stash/", makeHandler(views.StashHandler, cluster, siteconfig, channels))
+	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, cluster, siteconfig, channels))
+	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, cluster, siteconfig, channels))
 
 	// everything is ready, let's go
 	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), nil)

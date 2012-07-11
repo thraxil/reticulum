@@ -3,6 +3,7 @@ package models
 import (
 	"crypto/sha1"
 	"fmt"
+	"image"
 	"io"
 	"sort"
 	"time"
@@ -228,4 +229,20 @@ func (s SiteConfig) ValidKey(key string) bool {
 		}
 	}
 	return false
+}
+
+type ResizeRequest struct {
+	Path string
+	Extension string
+	Size string
+	Response chan ResizeResponse
+}
+
+type ResizeResponse struct {
+	OutputImage *image.Image
+}
+
+
+type SharedChannels struct {
+	ResizeQueue chan ResizeRequest
 }

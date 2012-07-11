@@ -64,7 +64,21 @@ var decoders = map[string](func(io.Reader)(image.Image, error)){
 
 var jpeg_options = jpeg.Options{Quality:90}
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster, siteconfig models.SiteConfig) {
+func ResizeWorker(requests chan models.ResizeRequest) {
+	for req := range requests {
+		fmt.Println("got a resize request")
+		// TODO: filesystem and resize error handlers
+		origFile, _ := os.Open(req.Path)
+		defer origFile.Close()
+		m, _ := decoders[req.Extension[1:]](origFile)
+		outputImage := resize.Resize(m, req.Size)
+		// send our response
+		req.Response <- models.ResizeResponse{&outputImage}
+	}
+}
+
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
+	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -106,21 +120,15 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		return
 	}
 
+	// call to Resizeworker goes here
 	// we don't have a scaled version, so try to get the full version
 	// resize it, write a cached version, then serve it
-	origFile, err := os.Open(path)
-	defer origFile.Close()
-	if err != nil {
-		http.Error(w, "not found", 404)
-		return
-	}
+	c := make(chan models.ResizeResponse)
+	channels.ResizeQueue <- models.ResizeRequest{path,extension,size, c}
+	result := <-c
+	outputImage := *result.OutputImage
+	// TODO handle resize errors
 
-	m, err := decoders[extension[1:]](origFile)
-	if err != nil {
-		http.Error(w, "error decoding image", 500)
-	}
-
-	outputImage := resize.Resize(m, size)
 	wFile, err := os.OpenFile(sizedPath, os.O_CREATE|os.O_RDWR, 0644)
 	defer wFile.Close()
 	if err != nil {
@@ -163,7 +171,7 @@ var extmimes = map[string]string{
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
-	siteconfig models.SiteConfig) {
+	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	if r.Method == "POST" {
 		if siteconfig.KeyRequired() {
 			if !siteconfig.ValidKey(r.FormValue("key")) {
@@ -203,7 +211,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 }
 
 func StashHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
-	siteconfig models.SiteConfig) {
+	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	if r.Method != "POST" {
 		http.Error(w, "POST only", 400)
 		return
@@ -234,7 +242,8 @@ type AnnounceResponse struct {
 }
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request,
-	cluster *models.Cluster, siteconfig models.SiteConfig) {
+	cluster *models.Cluster, siteconfig models.SiteConfig,
+	channels models.SharedChannels) {
 	if r.Method == "POST" {
 		// another node is announcing themselves to us
 		// if they are already in the Neighbors list, update as needed
