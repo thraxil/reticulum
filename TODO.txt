@@ -6,12 +6,13 @@
 * track read/write failures
 * shared secret for security
 * timed goroutine that periodically announces to known neighbors
-* gif/png support
 * secure url "drm" options
 * lowercase external json attribute names/params
 * https support
 * specify file upload permissions other than default 755/644
 * include hash-type in exposed hashes. eg: "sha1-0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"
+* when an animated gif is scaled down, it does not keep it
+  animated. can this be fixed?
 
 Old Apomixis TODO:
 

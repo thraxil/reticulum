@@ -62,6 +62,8 @@ var decoders = map[string](func(io.Reader)(image.Image, error)){
 	"png":png.Decode,
 }
 
+var jpeg_options = jpeg.Options{Quality:90}
+
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster, siteconfig models.SiteConfig) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
@@ -75,7 +77,6 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		filename = "image.jpg"
 	} 
 	extension := filepath.Ext(filename)
-
 	if len(ahash) != 40 {
 		http.Error(w, "bad hash", 404)
 		return
@@ -94,13 +95,13 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 			fmt.Println("directory",dir.Name())
 		}
 	}
-	path := baseDir + "/full." + extension
-	sizedPath := baseDir + "/" + size + "." + extension
+	path := baseDir + "/full" + extension
+	sizedPath := baseDir + "/" + size + extension
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
 		// we've got it, so serve it directly
-		w.Header().Set("Content-Type", extmimes[extension])
+		w.Header().Set("Content-Type", extmimes[extension[1:]])
 		w.Write(contents)
 		return
 	}
@@ -114,8 +115,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		return
 	}
 
-
-	m, err := decoders[extension](origFile)
+	m, err := decoders[extension[1:]](origFile)
 	if err != nil {
 		http.Error(w, "error decoding image", 500)
 	}
@@ -128,13 +128,13 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		// we still have the resized image, so we can serve the response
 		// we just can't cache it. 
 	}
-	w.Header().Set("Content-Type", extmimes[extension])
-	if extension == "jpg" {
-		jpeg.Encode(wFile, outputImage, nil)
-		jpeg.Encode(w, outputImage, nil)
+	w.Header().Set("Content-Type", extmimes[extension[1:]])
+	if extension == ".jpg" {
+		jpeg.Encode(wFile, outputImage, &jpeg_options)
+		jpeg.Encode(w, outputImage, &jpeg_options)
 		return
 	} 
-	if extension == "gif" {
+	if extension == ".gif" {
 		// image/gif doesn't include an Encode()
 		// so we'll use png for now. 
 		// :(
@@ -142,7 +142,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		png.Encode(w, outputImage)
 		return
 	}
-	if extension == "png" {
+	if extension == ".png" {
 		png.Encode(wFile, outputImage)
 		png.Encode(w, outputImage)
 		return
