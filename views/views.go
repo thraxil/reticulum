@@ -66,7 +66,6 @@ var jpeg_options = jpeg.Options{Quality: 90}
 
 func ResizeWorker(requests chan models.ResizeRequest) {
 	for req := range requests {
-		fmt.Println("got a resize request")
 		// TODO: filesystem and resize error handlers
 		origFile, _ := os.Open(req.Path)
 		defer origFile.Close()
@@ -229,7 +228,6 @@ func StashHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluste
 	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 	defer f.Close()
 	f.Write(d)
-	fmt.Fprintln(w, "done")
 }
 
 type AnnounceResponse struct {
