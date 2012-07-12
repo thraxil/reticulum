@@ -3,6 +3,7 @@ package main
 import (
 	"./models"
 	"./views"
+	"./resize_worker"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -45,11 +46,11 @@ func main() {
 
 	// start our resize worker goroutines
 	var channels = models.SharedChannels{
-		ResizeQueue: make(chan models.ResizeRequest),
+		ResizeQueue: make(chan resize_worker.ResizeRequest),
 	}
 
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
-		go views.ResizeWorker(channels.ResizeQueue)
+		go resize_worker.ResizeWorker(channels.ResizeQueue)
 	}
 
 	// set up HTTP Handlers

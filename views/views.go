@@ -2,15 +2,12 @@ package views
 
 import (
 	"../models"
+	"../resize_worker"
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"github.com/thraxil/resize"
-	//  "../../resize"
 	"html/template"
-	"image"
-	"image/gif"
 	"image/jpeg"
 	"image/png"
 	"io"
@@ -56,25 +53,7 @@ func hashStringToPath(h string) string {
 	return strings.Join(parts, "/")
 }
 
-var decoders = map[string](func(io.Reader) (image.Image, error)){
-	"jpg": jpeg.Decode,
-	"gif": gif.Decode,
-	"png": png.Decode,
-}
-
 var jpeg_options = jpeg.Options{Quality: 90}
-
-func ResizeWorker(requests chan models.ResizeRequest) {
-	for req := range requests {
-		// TODO: filesystem and resize error handlers
-		origFile, _ := os.Open(req.Path)
-		defer origFile.Close()
-		m, _ := decoders[req.Extension[1:]](origFile)
-		outputImage := resize.Resize(m, req.Size)
-		// send our response
-		req.Response <- models.ResizeResponse{&outputImage}
-	}
-}
 
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
@@ -122,8 +101,8 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 	// call to Resizeworker goes here
 	// we don't have a scaled version, so try to get the full version
 	// resize it, write a cached version, then serve it
-	c := make(chan models.ResizeResponse)
-	channels.ResizeQueue <- models.ResizeRequest{path, extension, size, c}
+	c := make(chan resize_worker.ResizeResponse)
+	channels.ResizeQueue <- resize_worker.ResizeRequest{path, extension, size, c}
 	result := <-c
 	outputImage := *result.OutputImage
 	// TODO handle resize errors
