@@ -39,3 +39,7 @@
   should be included? should there be a plugin API so people can write
   custom tweaks?
 * format conversion? eg, let users upload a .tif and serve it as a .jpg?
+* progressive jpeg stuff for the *really* big images. ie, it is my
+  understanding that large medical images, etc. can be encoded with
+  smaller, scaled versions embedded in the file so it can be read
+  without reading the entire huge file into memory.
