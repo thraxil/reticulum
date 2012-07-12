@@ -15,7 +15,6 @@
 == cluster features ==
 * retrieve views
 * on fetching, find appropriate node from ring
-* cluster test harness
 * update read/write rings on announce
 * track read/write failures
 * shared secret for security
