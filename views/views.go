@@ -115,7 +115,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 	if err != nil {
 		// we don't have the full-size on this node either
 		// need to check the rest of the cluster
-		img_data, err := retrieveImage(cluster, ahash, size, extension)
+		img_data, err := retrieveImage(cluster, ahash, size, extension[1:])
 		if err != nil {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
@@ -235,6 +235,78 @@ func StashHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluste
 	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 	defer f.Close()
 	f.Write(d)
+}
+
+func RetrieveHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
+	siteconfig models.SiteConfig, channels models.SharedChannels) {
+
+	// request will look like /retrieve/$hash/$size/$ext/
+	parts := strings.Split(r.URL.String(), "/")
+	if (len(parts) != 6) || (parts[1] != "retrieve") {
+		http.Error(w, "bad request", 404)
+		return
+	}
+	ahash := parts[2]
+	size := parts[3]
+	extension := parts[4]
+
+	if len(ahash) != 40 {
+		http.Error(w, "bad hash", 404)
+		return
+	}
+	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
+	path := baseDir + "/full" + "." + extension
+	sizedPath := baseDir + "/" + size + "." + extension
+
+	contents, err := ioutil.ReadFile(sizedPath)
+	if err == nil {
+		// we've got it, so serve it directly
+		w.Header().Set("Content-Type", extmimes[extension])
+		w.Write(contents)
+		return
+	}
+	_, err = ioutil.ReadFile(path)
+	if err != nil {
+		// we don't have the full-size on this node either
+		http.Error(w, "not found", 404)
+		return
+	}
+
+	// we do have the full-size, but not the scaled one
+	// so resize it, cache it, and serve it.
+
+	c := make(chan resize_worker.ResizeResponse)
+	channels.ResizeQueue <- resize_worker.ResizeRequest{path, "." + extension, size, c}
+	result := <-c
+	outputImage := *result.OutputImage
+	// TODO handle resize errors
+
+	wFile, err := os.OpenFile(sizedPath, os.O_CREATE|os.O_RDWR, 0644)
+	defer wFile.Close()
+	if err != nil {
+		// what do we do if we can't write?
+		// we still have the resized image, so we can serve the response
+		// we just can't cache it. 
+	}
+	w.Header().Set("Content-Type", extmimes[extension])
+	if extension == "jpg" {
+		jpeg.Encode(wFile, outputImage, &jpeg_options)
+		jpeg.Encode(w, outputImage, &jpeg_options)
+		return
+	}
+	if extension == "gif" {
+		// image/gif doesn't include an Encode()
+		// so we'll use png for now. 
+		// :(
+		png.Encode(wFile, outputImage)
+		png.Encode(w, outputImage)
+		return
+	}
+	if extension == "png" {
+		png.Encode(wFile, outputImage)
+		png.Encode(w, outputImage)
+		return
+	}
 }
 
 type AnnounceResponse struct {

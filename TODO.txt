@@ -11,7 +11,7 @@
   particular sizes are likely to be requested in the future so it
   might as well create them beforehand.
 * per-image info available in json (see image_info() in apomixis)
-
+* handle /favicon.ico
 
 == cluster features ==
 * retrieve views

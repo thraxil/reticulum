@@ -74,6 +74,7 @@ func main() {
 	http.HandleFunc("/", makeHandler(views.AddHandler, cluster, siteconfig, channels))
 	http.HandleFunc("/stash/", makeHandler(views.StashHandler, cluster, siteconfig, channels))
 	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, cluster, siteconfig, channels))
+	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, cluster, siteconfig, channels))
 	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, cluster, siteconfig, channels))
 
 	// everything is ready, let's go
