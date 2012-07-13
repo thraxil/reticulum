@@ -11,3 +11,6 @@ clean:
 
 testclean:
 	rm -rf test/uploads*
+
+run: reticulum
+	./reticulum -config=test/config0.json

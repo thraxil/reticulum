@@ -3,8 +3,12 @@ package models
 import (
 	"../resize_worker"
 	"crypto/sha1"
+	"errors"
 	"fmt"
+	"image"
 	"io"
+	"io/ioutil"
+	"net/http"
 	"sort"
 	"time"
 )
@@ -39,6 +43,29 @@ func (n NodeData) HashKeys() []string {
 
 func (n NodeData) IsCurrent() bool {
 	return n.LastSeen.Unix() > n.LastFailed.Unix()
+}
+
+func (n NodeData) retrieveUrl(hash string, size string, extension string) string {
+	return "http://" + n.BaseUrl + "/retrieve/" + hash + "/" + size + "/" + extension + "/"
+}
+
+func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]byte, error) {
+	resp, err := http.Get(n.retrieveUrl(hash, size, extension))
+	if err != nil {
+		// TODO: update our last-failed
+		return nil, err
+	} // otherwise, we go the image
+	// TODO: update last-seen
+	if resp.Status != "200" {
+		return nil, errors.New("404, probably")
+	}
+	b, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	return b, nil
+}
+
+func (n *NodeData) Stash(hash string, extension string, img *image.Image) {
+
 }
 
 // represents what our Node nows about the cluster

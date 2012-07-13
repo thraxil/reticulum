@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"image/jpeg"
@@ -55,6 +56,25 @@ func hashStringToPath(h string) string {
 
 var jpeg_options = jpeg.Options{Quality: 90}
 
+func retrieveImage(cluster *models.Cluster, ahash string, size string, extension string) ([]byte, error){
+	// we don't have the full-size, so check the cluster
+	nodes_to_check := cluster.ReadOrder(ahash)
+	// this is where we go down the list and ask the other
+	// nodes for the image
+	for _, n := range nodes_to_check {
+		fmt.Printf("checking node %v\n", n)
+		img, err := n.RetrieveImage(ahash, size, extension)
+		if err == nil {
+			// got it, return it
+			fmt.Println("got it!")
+			return img, nil
+		}
+		// that node didn't have it so we keep going
+	}
+	fmt.Println("not in the cluster")
+	return nil, errors.New("not found in the cluster")
+}
+
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	parts := strings.Split(r.URL.String(), "/")
@@ -88,20 +108,22 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 
 	_, err = ioutil.ReadFile(path)
 	if err != nil {
-		// we don't have the full-size, so check the cluster
-		nodes_to_check := cluster.ReadOrder(ahash)
-		fmt.Printf("%v\n", nodes_to_check)
-		// this is where we go down the list and ask the other
-		// nodes for the image
-		
-		// for now we just have to 404
-		http.Error(w, "not found", 404)
+		// we don't have the full-size on this node either
+		// need to check the rest of the cluster
+		img_data, err := retrieveImage(cluster, ahash, size, extension)
+		if err != nil {
+			// for now we just have to 404
+			http.Error(w, "not found", 404)
+		} else {
+			w.Header().Set("Content-Type", extmimes[extension[1:]])
+			w.Write(img_data)
+		}
 		return
 	}
 
-	// call to Resizeworker goes here
-	// we don't have a scaled version, so try to get the full version
-	// resize it, write a cached version, then serve it
+	// we do have the full-size, but not the scaled one
+	// so resize it, cache it, and serve it.
+
 	c := make(chan resize_worker.ResizeResponse)
 	channels.ResizeQueue <- resize_worker.ResizeRequest{path, extension, size, c}
 	result := <-c

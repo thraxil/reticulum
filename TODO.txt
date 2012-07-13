@@ -10,6 +10,7 @@
 * allow suggested image sizes upon upload. Ie, a client knows that
   particular sizes are likely to be requested in the future so it
   might as well create them beforehand.
+* per-image info available in json (see image_info() in apomixis)
 
 
 == cluster features ==
@@ -27,6 +28,12 @@
   where nodes run and you want to make sure that uploaded images
   always get stored to each datacenter in addition to the basic
   replication level. This provides basic disaster recovery support.
+* bloom filters on 404s. Currently, when a node gets a request for an
+	image it doesn't have, it will go through all its neighbors looking
+	for a copy. In the case of a 'true' 404 where the image isn't in the
+	cluster at all, that's expensive. A bloom filter tracking all images
+	that the cluster has seen could let us cut our losses quicker and
+	give the user a 404 without having to poll every single node.
 
 == R&D ==
 
@@ -47,3 +54,12 @@
   given image. This would reduce the cost of a true 404 where the
   cluster doesn't have the image at all. We could tell without
   querying every single node.
+* LRU disk cache of all images that pass through. Basically try to
+  obviate the need for an nginx caching proxy in front of the
+  cluster. One node could be configured with that cache and be the
+  "front" node. 
+* should the resize workers do the actual resize work in another
+  goroutine that is spawned for just the one job. I'm thinking that
+  might let reticulum take care of the automatic garbage collection
+  when a goroutine finishes. Resizing a large image can consume a lot
+  of memory and that would more or less guarantee against leaks.
