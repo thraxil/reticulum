@@ -75,18 +75,6 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 	}
 
 	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
-	dl, err := ioutil.ReadDir(baseDir)
-	if err != nil {
-		fmt.Println("error reading directory")
-	}
-	for _, dir := range dl {
-		switch {
-		case !dir.IsDir():
-			fmt.Println(dir.Name())
-		case dir.IsDir():
-			fmt.Println("directory", dir.Name())
-		}
-	}
 	path := baseDir + "/full" + extension
 	sizedPath := baseDir + "/" + size + extension
 

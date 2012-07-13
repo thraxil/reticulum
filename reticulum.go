@@ -2,14 +2,16 @@ package main
 
 import (
 	"./models"
-	"./views"
 	"./resize_worker"
+	"./views"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"log/syslog"
 	"net/http"
+	"time"
 )
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.Cluster, models.SiteConfig, models.SharedChannels),
@@ -20,7 +22,22 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.Cluster, mo
 	}
 }
 
+func Log(handler http.Handler, logger *syslog.Writer) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t0 := time.Now()
+		handler.ServeHTTP(w, r)
+		t1 := time.Now()
+		logger.Info(fmt.Sprintf("%s %s %s [%v]", r.RemoteAddr, r.Method, r.URL, t1.Sub(t0)))
+	})
+}
+
 func main() {
+	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
+	if err != nil {
+		log.Fatal("couldn't log to syslog")
+	}
+	sl.Info("starting up")
+
 	// read the config file
 	var config string
 	flag.StringVar(&config, "config", "./config.json", "JSON config file")
@@ -60,5 +77,5 @@ func main() {
 	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, cluster, siteconfig, channels))
 
 	// everything is ready, let's go
-	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, sl))
 }
