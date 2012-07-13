@@ -86,6 +86,19 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 		return
 	}
 
+	_, err = ioutil.ReadFile(path)
+	if err != nil {
+		// we don't have the full-size, so check the cluster
+		nodes_to_check := cluster.ReadOrder(ahash)
+		fmt.Printf("%v\n", nodes_to_check)
+		// this is where we go down the list and ask the other
+		// nodes for the image
+		
+		// for now we just have to 404
+		http.Error(w, "not found", 404)
+		return
+	}
+
 	// call to Resizeworker goes here
 	// we don't have a scaled version, so try to get the full version
 	// resize it, write a cached version, then serve it
