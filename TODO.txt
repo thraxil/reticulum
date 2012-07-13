@@ -43,3 +43,7 @@
   understanding that large medical images, etc. can be encoded with
   smaller, scaled versions embedded in the file so it can be read
   without reading the entire huge file into memory.
+* bloom filter to keep track of which other nodes we expect to have a
+  given image. This would reduce the cost of a true 404 where the
+  cluster doesn't have the image at all. We could tell without
+  querying every single node.
