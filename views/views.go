@@ -61,7 +61,12 @@ func retrieveImage(cluster *models.Cluster, ahash string, size string, extension
 	nodes_to_check := cluster.ReadOrder(ahash)
 	// this is where we go down the list and ask the other
 	// nodes for the image
+	// TODO: parallelize this
 	for _, n := range nodes_to_check {
+		if n.UUID == cluster.Myself.UUID {
+			// checking ourself would be silly
+			continue
+		}
 		fmt.Printf("checking node %v\n", n)
 		img, err := n.RetrieveImage(ahash, size, extension)
 		if err == nil {
