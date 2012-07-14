@@ -67,16 +67,13 @@ func retrieveImage(cluster *models.Cluster, ahash string, size string, extension
 			// checking ourself would be silly
 			continue
 		}
-		fmt.Printf("checking node %v\n", n)
 		img, err := n.RetrieveImage(ahash, size, extension)
 		if err == nil {
 			// got it, return it
-			fmt.Println("got it!")
 			return img, nil
 		}
 		// that node didn't have it so we keep going
 	}
-	fmt.Println("not in the cluster")
 	return nil, errors.New("not found in the cluster")
 }
 
@@ -189,6 +186,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 		h := sha1.New()
 		d, _ := ioutil.ReadAll(i)
 		io.WriteString(h, string(d))
+		ahash := fmt.Sprintf("%x", h.Sum(nil))
 		path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
 		os.MkdirAll(path, 0755)
 		mimetype := fh.Header["Content-Type"][0]
@@ -197,8 +195,12 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 		defer f.Close()
 		n, _ := f.Write(d)
+
+		// now stash it to other nodes in the cluster too
+		cluster.Stash(ahash, fullpath)
+
 		id := ImageData{
-			Hash:      fmt.Sprintf("%x", h.Sum(nil)),
+			Hash:      ahash,
 			Length:    n,
 			Extension: ext,
 		}
@@ -228,9 +230,9 @@ func StashHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluste
 	io.WriteString(h, string(d))
 	path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
 	os.MkdirAll(path, 0755)
-	mimetype := fh.Header["Content-Type"][0]
-	ext := mimeexts[mimetype]
-	fullpath := path + "full." + ext
+	ext := filepath.Ext(fh.Filename)
+
+	fullpath := path + "full" + ext
 	// TODO: if target file already exists, no need to overwrite
 	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 	defer f.Close()
@@ -271,7 +273,6 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cluster *models.Clu
 		http.Error(w, "not found", 404)
 		return
 	}
-
 	// we do have the full-size, but not the scaled one
 	// so resize it, cache it, and serve it.
 

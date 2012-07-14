@@ -1,4 +1,5 @@
 == single node features ==
+
 * lowercase external json attribute names/params
 * https support
 * specify file upload permissions other than default 755/644
@@ -16,7 +17,7 @@
   trailing slashes optional, default to port 80, etc)
 
 == cluster features ==
-* on upload, stash to backup nodes
+
 * update read/write rings on announce
 * track read/write failures
 * shared secret for security

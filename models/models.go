@@ -2,13 +2,15 @@ package models
 
 import (
 	"../resize_worker"
+	"bytes"
 	"crypto/sha1"
 	"errors"
 	"fmt"
-	"image"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"os"
 	"sort"
 	"time"
 )
@@ -49,6 +51,10 @@ func (n NodeData) retrieveUrl(hash string, size string, extension string) string
 	return "http://" + n.BaseUrl + "/retrieve/" + hash + "/" + size + "/" + extension + "/"
 }
 
+func (n NodeData) stashUrl() string {
+	return "http://" + n.BaseUrl + "/stash/"
+}
+
 func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]byte, error) {
 	resp, err := http.Get(n.retrieveUrl(hash, size, extension))
 	if err != nil {
@@ -56,7 +62,7 @@ func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]
 		return nil, err
 	} // otherwise, we go the image
 	n.LastSeen = time.Now()
-	if resp.Status != "200" {
+	if resp.Status != "200 OK" {
 		return nil, errors.New("404, probably")
 	}
 	b, _ := ioutil.ReadAll(resp.Body)
@@ -64,8 +70,27 @@ func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]
 	return b, nil
 }
 
-func (n *NodeData) Stash(hash string, extension string, img *image.Image) {
+func postFile(filename string, target_url string) (*http.Response, error) { 
+  body_buf := bytes.NewBufferString("")
+  body_writer := multipart.NewWriter(body_buf)
+  file_writer, err := body_writer.CreateFormFile("image", filename)
+  if err != nil {
+    panic(err.Error())
+  }
+	fh, err := os.Open(filename)
+  if err != nil {
+    panic(err.Error())
+  }
+  io.Copy(file_writer, fh)
+//  body_writer.WriteField("data", json_str)
+  content_type := body_writer.FormDataContentType()
+  body_writer.Close()
+  return http.Post(target_url, content_type, body_buf)
+}
 
+func (n *NodeData) Stash(filename string) bool {
+	_, err := postFile(filename, n.stashUrl())
+	return err == nil
 }
 
 // represents what our Node nows about the cluster
@@ -140,6 +165,26 @@ func (n Cluster) Ring() RingEntryList {
 
 func (n Cluster) WriteRing() RingEntryList {
 	return neighborsToRing(n.WriteableNeighbors())
+}
+
+func (cluster *Cluster) Stash(ahash string, filename string) {
+	// we don't have the full-size, so check the cluster
+	nodes_to_check := cluster.WriteOrder(ahash)
+	var save_count = 0
+	// TODO: parallelize this
+	for _, n := range nodes_to_check {
+		// TODO: detect when the node to stash to is the current one
+		// and just save directly instead of doing a POST to ourself
+		if n.Stash(filename) {
+			save_count++
+		}
+		// that node didn't have it so we keep going
+		if save_count > 2 {
+			// got as many as we need
+			break
+  	}
+	}
+	return
 }
 
 func neighborsToRing(neighbors []NodeData) RingEntryList {
