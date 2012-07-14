@@ -1,3 +1,4 @@
 uploads
 config.json
 reticulum
+test/uploads*
