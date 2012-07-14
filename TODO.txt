@@ -21,7 +21,6 @@
 == cluster features ==
 
 * update read/write rings on announce
-* track read/write failures
 * shared secret for security
 * timed goroutine that periodically announces to known neighbors
 * Verification job. Runs regularly, walks the directory of images on
