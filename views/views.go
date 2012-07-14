@@ -1,6 +1,7 @@
 package views
 
 import (
+	"../cluster"
 	"../models"
 	"../node"
 	"../resize_worker"
@@ -60,14 +61,14 @@ func hashStringToPath(h string) string {
 
 var jpeg_options = jpeg.Options{Quality: 90}
 
-func retrieveImage(cluster *models.Cluster, ahash string, size string, extension string) ([]byte, error){
+func retrieveImage(c *cluster.Cluster, ahash string, size string, extension string) ([]byte, error){
 	// we don't have the full-size, so check the cluster
-	nodes_to_check := cluster.ReadOrder(ahash)
+	nodes_to_check := c.ReadOrder(ahash)
 	// this is where we go down the list and ask the other
 	// nodes for the image
 	// TODO: parallelize this
 	for _, n := range nodes_to_check {
-		if n.UUID == cluster.Myself.UUID {
+		if n.UUID == c.Myself.UUID {
 			// checking ourself would be silly
 			continue
 		}
@@ -81,7 +82,7 @@ func retrieveImage(cluster *models.Cluster, ahash string, size string, extension
 	return nil, errors.New("not found in the cluster")
 }
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
@@ -116,7 +117,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cluster *models.C
 	if err != nil {
 		// we don't have the full-size on this node either
 		// need to check the rest of the cluster
-		img_data, err := retrieveImage(cluster, ahash, size, extension[1:])
+		img_data, err := retrieveImage(cls, ahash, size, extension[1:])
 		if err != nil {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
@@ -177,7 +178,7 @@ var extmimes = map[string]string{
 	"png": "image/png",
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
+func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	if r.Method == "POST" {
 		if siteconfig.KeyRequired() {
@@ -201,7 +202,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 		n, _ := f.Write(d)
 
 		// now stash it to other nodes in the cluster too
-		nodes := cluster.Stash(ahash, fullpath, siteconfig.Replication)
+		nodes := c.Stash(ahash, fullpath, siteconfig.Replication)
 
 		id := ImageData{
 			Hash:      ahash,
@@ -225,7 +226,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 	}
 }
 
-func StashHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
+func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	if r.Method != "POST" {
 		http.Error(w, "POST only", 400)
@@ -246,7 +247,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluste
 	f.Write(d)
 }
 
-func RetrieveHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
+func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
 
 	// request will look like /retrieve/$hash/$size/$ext/
@@ -327,13 +328,13 @@ type AnnounceResponse struct {
 }
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request,
-	cluster *models.Cluster, siteconfig models.SiteConfig,
+	c *cluster.Cluster, siteconfig models.SiteConfig,
 	channels models.SharedChannels) {
 	if r.Method == "POST" {
 		// another node is announcing themselves to us
 		// if they are already in the Neighbors list, update as needed
 		// TODO: this should use channels to make it concurrency safe, like Add
-		if neighbor, ok := cluster.FindNeighborByUUID(r.FormValue("UUID")); ok {
+		if neighbor, ok := c.FindNeighborByUUID(r.FormValue("UUID")); ok {
 			fmt.Println("found our neighbor")
 			fmt.Println(neighbor.Nickname)
 			if r.FormValue("Nickname") != "" {
@@ -368,16 +369,16 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 				nd.Writeable = false
 			}
 			nd.LastSeen = time.Now()
-			cluster.AddNeighbor(nd)
+			c.AddNeighbor(nd)
 		}
 	}
 	ar := AnnounceResponse{
-		Nickname:  cluster.Myself.Nickname,
-		UUID:      cluster.Myself.UUID,
-		Location:  cluster.Myself.Location,
-		Writeable: cluster.Myself.Writeable,
-		BaseUrl:   cluster.Myself.BaseUrl,
-		Neighbors: cluster.Neighbors,
+		Nickname:  c.Myself.Nickname,
+		UUID:      c.Myself.UUID,
+		Location:  c.Myself.Location,
+		Writeable: c.Myself.Writeable,
+		BaseUrl:   c.Myself.BaseUrl,
+		Neighbors: c.Neighbors,
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {

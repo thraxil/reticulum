@@ -1,6 +1,7 @@
 package main
 
 import (
+	"./cluster"
 	"./models"
 	"./resize_worker"
 	"./views"
@@ -14,11 +15,11 @@ import (
 	"time"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *models.Cluster, models.SiteConfig, models.SharedChannels),
-	cluster *models.Cluster, siteconfig models.SiteConfig,
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *cluster.Cluster, models.SiteConfig, models.SharedChannels),
+	c *cluster.Cluster, siteconfig models.SiteConfig,
 	channels models.SharedChannels) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, cluster, siteconfig, channels)
+		fn(w, r, c, siteconfig, channels)
 	}
 }
 
@@ -54,9 +55,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	cluster := models.NewCluster(f.MyNode())
+	c := cluster.NewCluster(f.MyNode())
 	for i := range f.Neighbors {
-		cluster.AddNeighbor(f.Neighbors[i])
+		c.AddNeighbor(f.Neighbors[i])
 	}
 
 	siteconfig := f.MyConfig()
@@ -71,11 +72,11 @@ func main() {
 	}
 
 	// set up HTTP Handlers
-	http.HandleFunc("/", makeHandler(views.AddHandler, cluster, siteconfig, channels))
-	http.HandleFunc("/stash/", makeHandler(views.StashHandler, cluster, siteconfig, channels))
-	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, cluster, siteconfig, channels))
-	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, cluster, siteconfig, channels))
-	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, cluster, siteconfig, channels))
+	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels))
+	http.HandleFunc("/stash/", makeHandler(views.StashHandler, c, siteconfig, channels))
+	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, c, siteconfig, channels))
+	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, c, siteconfig, channels))
+	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, c, siteconfig, channels))
 	http.HandleFunc("/favicon.ico", views.FaviconHandler)
 
 	// everything is ready, let's go
