@@ -52,10 +52,10 @@ func (n NodeData) retrieveUrl(hash string, size string, extension string) string
 func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]byte, error) {
 	resp, err := http.Get(n.retrieveUrl(hash, size, extension))
 	if err != nil {
-		// TODO: update our last-failed
+		n.LastFailed = time.Now()
 		return nil, err
 	} // otherwise, we go the image
-	// TODO: update last-seen
+	n.LastSeen = time.Now()
 	if resp.Status != "200" {
 		return nil, errors.New("404, probably")
 	}

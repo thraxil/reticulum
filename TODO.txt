@@ -12,10 +12,11 @@
   might as well create them beforehand.
 * per-image info available in json (see image_info() in apomixis)
 * handle /favicon.ico
+* more flexible/robust handling of BaseUrls (http:// optional,
+  trailing slashes optional, default to port 80, etc)
 
 == cluster features ==
-* retrieve views
-* on fetching, find appropriate node from ring
+* on upload, stash to backup nodes
 * update read/write rings on announce
 * track read/write failures
 * shared secret for security
@@ -63,3 +64,9 @@
   might let reticulum take care of the automatic garbage collection
   when a goroutine finishes. Resizing a large image can consume a lot
   of memory and that would more or less guarantee against leaks.
+* optimistic vs strict upload mode. Ie, should it wait for
+  confirmation from N nodes that the image has been stored before
+  responding to the client, or are we confident that once the initial
+  node has the file, it will probably be fine. Maybe allow a threshold
+  in between. So we could aim for 7 replicas, but respond "ok" once we
+  know 3 have stored it.
