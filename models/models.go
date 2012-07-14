@@ -167,15 +167,17 @@ func (n Cluster) WriteRing() RingEntryList {
 	return neighborsToRing(n.WriteableNeighbors())
 }
 
-func (cluster *Cluster) Stash(ahash string, filename string, replication int) {
+func (cluster *Cluster) Stash(ahash string, filename string, replication int) []string {
 	// we don't have the full-size, so check the cluster
 	nodes_to_check := cluster.WriteOrder(ahash)
+	saved_to := make([]string, replication)
 	var save_count = 0
 	// TODO: parallelize this
 	for _, n := range nodes_to_check {
 		// TODO: detect when the node to stash to is the current one
 		// and just save directly instead of doing a POST to ourself
 		if n.Stash(filename) {
+			saved_to[save_count] = n.Nickname
 			save_count++
 		}
 		// that node didn't have it so we keep going
@@ -184,7 +186,7 @@ func (cluster *Cluster) Stash(ahash string, filename string, replication int) {
 			break
   	}
 	}
-	return
+	return saved_to
 }
 
 func neighborsToRing(neighbors []NodeData) RingEntryList {

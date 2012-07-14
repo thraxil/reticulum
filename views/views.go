@@ -200,14 +200,15 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 		n, _ := f.Write(d)
 
 		// now stash it to other nodes in the cluster too
-		cluster.Stash(ahash, fullpath, siteconfig.Replication)
+		nodes := cluster.Stash(ahash, fullpath, siteconfig.Replication)
 
 		id := ImageData{
 			Hash:      ahash,
 			Length:    n,
 			Extension: ext,
 		  FullUrl: "/image/" + ahash + "/full/image." + ext,
-  		Satisfied: true,
+  	  Satisfied: len(nodes) >= siteconfig.Replication,
+  		Nodes: nodes,
 		}
 		b, err := json.Marshal(id)
 		if err != nil {
