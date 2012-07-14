@@ -378,3 +378,8 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 	}
 	w.Write(b)
 }
+
+func FaviconHandler(w http.ResponseWriter, r *http.Request) {
+	// just give it nothing to make it go away
+	w.Write(nil)
+}

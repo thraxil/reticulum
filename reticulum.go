@@ -76,6 +76,7 @@ func main() {
 	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, cluster, siteconfig, channels))
 	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, cluster, siteconfig, channels))
 	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, cluster, siteconfig, channels))
+	http.HandleFunc("/favicon.ico", views.FaviconHandler)
 
 	// everything is ready, let's go
 	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, sl))
