@@ -35,7 +35,6 @@
 	cluster at all, that's expensive. A bloom filter tracking all images
 	that the cluster has seen could let us cut our losses quicker and
 	give the user a 404 without having to poll every single node.
-* configurable replication rate (default 3, currently)
 
 == R&D ==
 

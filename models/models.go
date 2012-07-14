@@ -167,7 +167,7 @@ func (n Cluster) WriteRing() RingEntryList {
 	return neighborsToRing(n.WriteableNeighbors())
 }
 
-func (cluster *Cluster) Stash(ahash string, filename string) {
+func (cluster *Cluster) Stash(ahash string, filename string, replication int) {
 	// we don't have the full-size, so check the cluster
 	nodes_to_check := cluster.WriteOrder(ahash)
 	var save_count = 0
@@ -179,7 +179,7 @@ func (cluster *Cluster) Stash(ahash string, filename string) {
 			save_count++
 		}
 		// that node didn't have it so we keep going
-		if save_count > 2 {
+		if save_count >= replication {
 			// got as many as we need
 			break
   	}
@@ -260,6 +260,7 @@ type ConfigData struct {
 	UploadKeys       []string
 	UploadDirectory  string
 	Neighbors        []NodeData
+  Replication      int
 }
 
 func (c ConfigData) MyNode() NodeData {
@@ -281,11 +282,16 @@ func (c ConfigData) MyConfig() SiteConfig {
 		// come on! we need at least one
 		numWorkers = 1
 	}
+	replication := c.Replication
+	if replication < 1 {
+		replication = 1
+	}
 	return SiteConfig{
 		Port:             c.Port,
 		UploadKeys:       c.UploadKeys,
 		UploadDirectory:  c.UploadDirectory,
 		NumResizeWorkers: numWorkers,
+  	Replication: replication,
 	}
 }
 
@@ -296,6 +302,7 @@ type SiteConfig struct {
 	UploadKeys       []string
 	UploadDirectory  string
 	NumResizeWorkers int
+  Replication      int
 }
 
 func (s SiteConfig) KeyRequired() bool {

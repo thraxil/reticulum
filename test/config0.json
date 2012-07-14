@@ -3,6 +3,7 @@
 "Port" : 8080,
 "UploadDirectory" : "test/uploads0/",
 "NumResizeWorkers" : 4,
+"Replication" : 3,
 "Neighbors": [
 	     {"Nickname": "node1",
 	     "UUID": "uuid-node-1",

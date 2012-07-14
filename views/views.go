@@ -197,7 +197,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 		n, _ := f.Write(d)
 
 		// now stash it to other nodes in the cluster too
-		cluster.Stash(ahash, fullpath)
+		cluster.Stash(ahash, fullpath, siteconfig.Replication)
 
 		id := ImageData{
 			Hash:      ahash,
