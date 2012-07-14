@@ -2,6 +2,7 @@ package views
 
 import (
 	"../models"
+	"../node"
 	"../resize_worker"
 	"bytes"
 	"crypto/sha1"
@@ -322,7 +323,7 @@ type AnnounceResponse struct {
 	Location  string `json:"location"`
 	Writeable bool `json:"writeable"`
 	BaseUrl   string `json:"base_url"` 
-	Neighbors []models.NodeData `json:"neighbors"`
+	Neighbors []node.NodeData `json:"neighbors"`
 }
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request,
@@ -355,7 +356,7 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 		} else {
 			// otherwise, add them to the Neighbors list
 			fmt.Println("adding neighbor")
-			nd := models.NodeData{
+			nd := node.NodeData{
 				Nickname: r.FormValue("Nickname"),
 				UUID:     r.FormValue("UUID"),
 				BaseUrl:  r.FormValue("BaseUrl"),

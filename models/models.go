@@ -1,117 +1,24 @@
 package models
 
 import (
+	"../node"
 	"../resize_worker"
-	"bytes"
-	"crypto/sha1"
-	"errors"
-	"fmt"
-	"io"
-	"io/ioutil"
-	"mime/multipart"
-	"net/http"
-	"os"
 	"sort"
-	"time"
 )
 
-// what we know about a single node
-// (ourself or another)
-type NodeData struct {
-	Nickname   string `json:"nickname"`
-	UUID       string `json:"uuid"`
-	BaseUrl    string `json:"base_url"`
-	Location   string `json:"location"`
-	Writeable  bool `json:"bool"`
-	LastSeen   time.Time `json:"last_seen"`
-	LastFailed time.Time `json:"last_failed"`
-}
-
+// TODO: move this to a config
 var REPLICAS = 16
 
-func (n NodeData) String() string {
-	return "Node - nickname: " + n.Nickname + " UUID: " + n.UUID
-}
-
-func (n NodeData) HashKeys() []string {
-	keys := make([]string, REPLICAS)
-	for i := range keys {
-		h := sha1.New()
-		io.WriteString(h, fmt.Sprintf("%s%d", n.UUID, i))
-		keys[i] = string(fmt.Sprintf("%x", h.Sum(nil)))
-	}
-	return keys
-}
-
-func (n NodeData) IsCurrent() bool {
-	return n.LastSeen.Unix() > n.LastFailed.Unix()
-}
-
-func (n NodeData) retrieveUrl(hash string, size string, extension string) string {
-	return "http://" + n.BaseUrl + "/retrieve/" + hash + "/" + size + "/" + extension + "/"
-}
-
-func (n NodeData) stashUrl() string {
-	return "http://" + n.BaseUrl + "/stash/"
-}
-
-func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]byte, error) {
-	resp, err := http.Get(n.retrieveUrl(hash, size, extension))
-	if err != nil {
-		n.LastFailed = time.Now()
-		return nil, err
-	} // otherwise, we go the image
-	n.LastSeen = time.Now()
-	if resp.Status != "200 OK" {
-		return nil, errors.New("404, probably")
-	}
-	b, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	return b, nil
-}
-
-func postFile(filename string, target_url string) (*http.Response, error) { 
-  body_buf := bytes.NewBufferString("")
-  body_writer := multipart.NewWriter(body_buf)
-  file_writer, err := body_writer.CreateFormFile("image", filename)
-  if err != nil {
-    panic(err.Error())
-  }
-	fh, err := os.Open(filename)
-  if err != nil {
-    panic(err.Error())
-  }
-  io.Copy(file_writer, fh)
-  content_type := body_writer.FormDataContentType()
-  body_writer.Close()
-  return http.Post(target_url, content_type, body_buf)
-}
-
-func (n *NodeData) Stash(filename string) bool {
-	_, err := postFile(filename, n.stashUrl())
-	if err != nil {
-		// this node failed us, so take them out of
-		// the write ring until we hear otherwise from them
-		// TODO: look more closely at the response to 
-		//       possibly act differently in specific cases
-		//       ie, allow them to specify a temporary failure
-		n.LastFailed = time.Now()
-		n.Writeable = false
-	} else {
-		n.LastSeen = time.Now()
-	}
-	return err == nil
-}
 
 // represents what our Node nows about the cluster
 // ie, itself and its neighbors
 type Cluster struct {
-	Myself    NodeData
-	Neighbors []NodeData
+	Myself    node.NodeData
+	Neighbors []node.NodeData
 	chF       chan func()
 }
 
-func NewCluster(myself NodeData) *Cluster {
+func NewCluster(myself node.NodeData) *Cluster {
 	n := &Cluster{Myself: myself, chF: make(chan func())}
 	go n.backend()
 	return n
@@ -123,13 +30,13 @@ func (n *Cluster) backend() {
 	}
 }
 
-func (n *Cluster) AddNeighbor(nd NodeData) {
+func (n *Cluster) AddNeighbor(nd node.NodeData) {
 	n.chF <- func() {
 		n.Neighbors = append(n.Neighbors, nd)
 	}
 }
 
-func (n Cluster) FindNeighborByUUID(uuid string) (*NodeData, bool) {
+func (n Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 	for i := range n.Neighbors {
 		if n.Neighbors[i].UUID == uuid {
 			return &n.Neighbors[i], true
@@ -138,8 +45,8 @@ func (n Cluster) FindNeighborByUUID(uuid string) (*NodeData, bool) {
 	return nil, false
 }
 
-func (n Cluster) NeighborsInclusive() []NodeData {
-	a := make([]NodeData, len(n.Neighbors)+1)
+func (n Cluster) NeighborsInclusive() []node.NodeData {
+	a := make([]node.NodeData, len(n.Neighbors)+1)
 	a[0] = n.Myself
 	for i := range n.Neighbors {
 		a[i+1] = n.Neighbors[i]
@@ -147,9 +54,9 @@ func (n Cluster) NeighborsInclusive() []NodeData {
 	return a
 }
 
-func (n Cluster) WriteableNeighbors() []NodeData {
+func (n Cluster) WriteableNeighbors() []node.NodeData {
 	var all = n.NeighborsInclusive()
-	var p []NodeData // == nil
+	var p []node.NodeData // == nil
 	for _, i := range all {
 		if i.Writeable {
 			p = append(p, i)
@@ -159,7 +66,7 @@ func (n Cluster) WriteableNeighbors() []NodeData {
 }
 
 type RingEntry struct {
-	Node NodeData
+	Node node.NodeData
 	Hash string // the hash
 }
 
@@ -199,7 +106,7 @@ func (cluster *Cluster) Stash(ahash string, filename string, replication int) []
 	return saved_to
 }
 
-func neighborsToRing(neighbors []NodeData) RingEntryList {
+func neighborsToRing(neighbors []node.NodeData) RingEntryList {
 	keys := make(RingEntryList, REPLICAS*len(neighbors))
 	for i := range neighbors {
 		node := neighbors[i]
@@ -214,17 +121,17 @@ func neighborsToRing(neighbors []NodeData) RingEntryList {
 
 // returns the list of all nodes in the order
 // that the given hash will choose to write to them
-func (n Cluster) WriteOrder(hash string) []NodeData {
+func (n Cluster) WriteOrder(hash string) []node.NodeData {
 	return hashOrder(hash, len(n.Neighbors)+1, n.WriteRing())
 }
 
 // returns the list of all nodes in the order
 // that the given hash will choose to try to read from them
-func (n Cluster) ReadOrder(hash string) []NodeData {
+func (n Cluster) ReadOrder(hash string) []node.NodeData {
 	return hashOrder(hash, len(n.Neighbors)+1, n.Ring())
 }
 
-func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
+func hashOrder(hash string, size int, ring []RingEntry) []node.NodeData {
 	// our approach is to find the first bucket after our hash,
 	// partition the ring on that and put the first part on the
 	// end. Then go through and extract the ordering.
@@ -246,7 +153,7 @@ func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 	reordered := make([]RingEntry, len(ring))
 	reordered = append(ring[partitionIndex:], ring[:partitionIndex]...)
 
-	results := make([]NodeData, size)
+	results := make([]node.NodeData, size)
 	var seen = map[string]bool{}
 	var i = 0
 	for _, r := range reordered {
@@ -271,12 +178,12 @@ type ConfigData struct {
 	NumResizeWorkers int
 	UploadKeys       []string
 	UploadDirectory  string
-	Neighbors        []NodeData
+	Neighbors        []node.NodeData
   Replication      int
 }
 
-func (c ConfigData) MyNode() NodeData {
-	n := NodeData{
+func (c ConfigData) MyNode() node.NodeData {
+	n := node.NodeData{
 		Nickname:  c.Nickname,
 		UUID:      c.UUID,
 		BaseUrl:   c.BaseUrl,
