@@ -26,9 +26,12 @@ type Page struct {
 }
 
 type ImageData struct {
-	Hash      string
-	Length    int
-	Extension string
+	Hash      string `json:"hash"`
+	Length    int `json:"length"`
+	Extension string `json:"extension"`
+	FullUrl string `json:"full_url"`
+	Satisfied bool `json:"satisfied"`
+	Nodes []string `json:"nodes"`
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
@@ -203,6 +206,8 @@ func AddHandler(w http.ResponseWriter, r *http.Request, cluster *models.Cluster,
 			Hash:      ahash,
 			Length:    n,
 			Extension: ext,
+		  FullUrl: "/image/" + ahash + "/full/image." + ext,
+  		Satisfied: true,
 		}
 		b, err := json.Marshal(id)
 		if err != nil {
@@ -311,12 +316,12 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cluster *models.Clu
 }
 
 type AnnounceResponse struct {
-	Nickname  string
-	UUID      string
-	Location  string
-	Writeable bool
-	BaseUrl   string
-	Neighbors []models.NodeData
+	Nickname  string `json:"nickname"`
+	UUID      string `json:"uuid"`
+	Location  string `json:"location"`
+	Writeable bool `json:"writeable"`
+	BaseUrl   string `json:"base_url"` 
+	Neighbors []models.NodeData `json:"neighbors"`
 }
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request,

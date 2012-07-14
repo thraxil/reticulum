@@ -18,13 +18,13 @@ import (
 // what we know about a single node
 // (ourself or another)
 type NodeData struct {
-	Nickname   string
-	UUID       string
-	BaseUrl    string
-	Location   string
-	Writeable  bool
-	LastSeen   time.Time
-	LastFailed time.Time
+	Nickname   string `json:"nickname"`
+	UUID       string `json:"uuid"`
+	BaseUrl    string `json:"base_url"`
+	Location   string `json:"location"`
+	Writeable  bool `json:"bool"`
+	LastSeen   time.Time `json:"last_seen"`
+	LastFailed time.Time `json:"last_failed"`
 }
 
 var REPLICAS = 16

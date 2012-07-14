@@ -1,6 +1,5 @@
 == single node features ==
 
-* lowercase external json attribute names/params
 * https support
 * specify file upload permissions other than default 755/644
 * include hash-type in exposed hashes. eg: "sha1-0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"
@@ -14,6 +13,10 @@
 * per-image info available in json (see image_info() in apomixis)
 * more flexible/robust handling of BaseUrls (http:// optional,
   trailing slashes optional, default to port 80, etc)
+* look at available disk space and automatically switch to
+  non-writeable when past a configured threshold to avoid filling
+  disks.
+* allow lowercase parameter names in config file
 
 == cluster features ==
 
