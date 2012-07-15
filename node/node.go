@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	_ "log/syslog"
+	"log"
+	"log/syslog"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -117,8 +118,12 @@ type AnnounceResponse struct {
 	Neighbors []NodeData `json:"neighbors"`
 }
 
-func (n *NodeData) Ping(originator NodeData) AnnounceResponse {
-	// todo, send information about ourself as well
+func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
+	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
+	if err != nil {
+		log.Fatal("couldn't log to syslog")
+	}
+
 	params := url.Values{}
 	params.Set("uuid",originator.UUID)
 	params.Set("nickname",originator.Nickname)
@@ -129,21 +134,23 @@ func (n *NodeData) Ping(originator NodeData) AnnounceResponse {
 	} else {
 		params.Set("writeable", "false")
 	}
-	
+
+	var response AnnounceResponse
 	resp, err := http.PostForm(n.announceUrl(), params)
 
 	if err != nil {
+		sl.Info(fmt.Sprintf("node %s returned an error on ping: %s", n.Nickname, err.Error()))
 		n.LastFailed = time.Now()
+		return response, err
 	} else {
 		n.LastSeen = time.Now()
 		// todo, update Writeable, Nickname, etc.
 	}
-	var response AnnounceResponse
 	b, _ := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	err = json.Unmarshal(b, &response)
 	if err != nil {
 		fmt.Println("bad json response")
 	}
-	return response
+	return response, nil
 }

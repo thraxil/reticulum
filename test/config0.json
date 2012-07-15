@@ -5,6 +5,7 @@
 "NumResizeWorkers" : 4,
 "Replication" : 3,
 "GossiperSleep" : 10,
+"Writeable" : true,
 "Neighbors": [
 	     {"Nickname": "node1",
 	     "UUID": "uuid-node-1",

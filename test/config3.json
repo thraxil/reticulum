@@ -3,6 +3,7 @@
 "Port" : 8083,
 "UploadDirectory" : "test/uploads3/",
 "NumResizeWorkers" : 4,
+"Writeable" : true,
 "Neighbors": [
 	     {"Nickname": "node1",
 	     "UUID": "uuid-node-1",

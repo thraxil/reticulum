@@ -192,7 +192,10 @@ func (c *Cluster) Gossip(i, base_time int) {
 			jitter = rand.Intn(30)
 			time.Sleep(time.Duration(base_time + jitter) * time.Second)
 			sl.Info(fmt.Sprintf("node %s pinging %s",c.Myself.Nickname,n.Nickname))
-			resp := n.Ping(c.Myself)
+			resp, err := n.Ping(c.Myself)
+			if err != nil {
+				continue
+			}
 			// UUID and BaseUrl must be the same
 			n.Writeable = resp.Writeable
 			n.Nickname = resp.Nickname
