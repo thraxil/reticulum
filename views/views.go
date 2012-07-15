@@ -334,20 +334,18 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 		// another node is announcing themselves to us
 		// if they are already in the Neighbors list, update as needed
 		// TODO: this should use channels to make it concurrency safe, like Add
-		if neighbor, ok := c.FindNeighborByUUID(r.FormValue("UUID")); ok {
-			fmt.Println("found our neighbor")
-			fmt.Println(neighbor.Nickname)
-			if r.FormValue("Nickname") != "" {
-				neighbor.Nickname = r.FormValue("Nickname")
+		if neighbor, ok := c.FindNeighborByUUID(r.FormValue("uuid")); ok {
+			if r.FormValue("nickname") != "" {
+				neighbor.Nickname = r.FormValue("nickname")
 			}
-			if r.FormValue("Location") != "" {
-				neighbor.Location = r.FormValue("Location")
+			if r.FormValue("location") != "" {
+				neighbor.Location = r.FormValue("location")
 			}
-			if r.FormValue("BaseUrl") != "" {
-				neighbor.BaseUrl = r.FormValue("BaseUrl")
+			if r.FormValue("base_url") != "" {
+				neighbor.BaseUrl = r.FormValue("base_url")
 			}
-			if r.FormValue("Writeable") != "" {
-				neighbor.Writeable = r.FormValue("Writeable") == "true"
+			if r.FormValue("writeable") != "" {
+				neighbor.Writeable = r.FormValue("writeable") == "true"
 			}
 			neighbor.LastSeen = time.Now()
 			// TODO: gossip enable by accepting the list of neighbors
@@ -358,12 +356,12 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 			// otherwise, add them to the Neighbors list
 			fmt.Println("adding neighbor")
 			nd := node.NodeData{
-				Nickname: r.FormValue("Nickname"),
-				UUID:     r.FormValue("UUID"),
-				BaseUrl:  r.FormValue("BaseUrl"),
-				Location: r.FormValue("Location"),
+				Nickname: r.FormValue("nickname"),
+				UUID:     r.FormValue("uuid"),
+				BaseUrl:  r.FormValue("base_url"),
+				Location: r.FormValue("location"),
 			}
-			if r.FormValue("Writeable") == "true" {
+			if r.FormValue("writeable") == "true" {
 				nd.Writeable = true
 			} else {
 				nd.Writeable = false

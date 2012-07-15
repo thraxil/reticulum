@@ -20,7 +20,6 @@
 
 == cluster features ==
 
-* update read/write rings on announce
 * shared secret for security
 * Verification job. Runs regularly, walks the directory of images on
   the node, recalculates the hashes of the images, compares to the
@@ -36,6 +35,7 @@
 	cluster at all, that's expensive. A bloom filter tracking all images
 	that the cluster has seen could let us cut our losses quicker and
 	give the user a 404 without having to poll every single node.
+* full gossip: get neighbor list from neighbors and merge
 
 == R&D ==
 

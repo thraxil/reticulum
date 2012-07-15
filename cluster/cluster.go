@@ -191,10 +191,9 @@ func (c *Cluster) Gossip(i int) {
 			}
 			// avoid thundering herd
 			jitter = rand.Intn(30)
-			sl.Info(fmt.Sprintf("%d",jitter))
 			time.Sleep(time.Duration(base_time + jitter) * time.Second)
 			sl.Info(fmt.Sprintf("node %s pinging %s",c.Myself.Nickname,n.Nickname))
-			n.Ping()
+			n.Ping(c.Myself)
 			// TODO, take output from that node
 		}
 	}

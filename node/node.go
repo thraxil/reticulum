@@ -10,6 +10,7 @@ import (
 	_ "log/syslog"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 )
@@ -106,9 +107,21 @@ func (n NodeData) announceUrl() string {
 	return "http://" + n.BaseUrl + "/announce/"
 }
 
-func (n *NodeData) Ping() {
+func (n *NodeData) Ping(originator NodeData) {
 	// todo, send information about ourself as well
-	_, err := http.Get(n.announceUrl())
+	params := url.Values{}
+	params.Set("uuid",originator.UUID)
+	params.Set("nickname",originator.Nickname)
+	params.Set("location",originator.Location)
+	params.Set("base_url",originator.BaseUrl)
+	if originator.Writeable {
+		params.Set("writeable", "true")
+	} else {
+		params.Set("writeable", "false")
+	}
+	
+	_, err := http.PostForm(n.announceUrl(), params)
+
 	if err != nil {
 		n.LastFailed = time.Now()
 	} else {
