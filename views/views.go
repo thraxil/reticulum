@@ -200,6 +200,11 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 		defer f.Close()
 		n, _ := f.Write(d)
+		// yes, the full-size for this image gets written to disk on
+		// this node even if it may not be one of the "right" ones
+		// for it to end up on. This isn't optimal, but is easy
+		// and we can just let the verify/balance worker clean it up
+    // at some point in the future.
 
 		// now stash it to other nodes in the cluster too
 		nodes := c.Stash(ahash, fullpath, siteconfig.Replication)
@@ -230,6 +235,10 @@ func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	if r.Method != "POST" {
 		http.Error(w, "POST only", 400)
+		return
+	}
+	if !c.Myself.Writeable {
+		http.Error(w, "non-writeable node", 400)
 		return
 	}
 	i, fh, _ := r.FormFile("image")

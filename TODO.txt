@@ -20,6 +20,7 @@
 * make stash/retrieve/add match apomixis API for compatibility
 * version API
 * option to write out/serialize config file with updated neighbor list
+* configurable jitter range for gossiper
 
 == cluster features ==
 
