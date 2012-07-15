@@ -10,7 +10,6 @@
 * allow suggested image sizes upon upload. Ie, a client knows that
   particular sizes are likely to be requested in the future so it
   might as well create them beforehand.
-* per-image info available in json (see image_info() in apomixis)
 * more flexible/robust handling of BaseUrls (http:// optional,
   trailing slashes optional, default to port 80, etc)
 * look at available disk space and automatically switch to
@@ -19,6 +18,9 @@
 * allow lowercase parameter names in config file
 * enable multicore support
 * make stash/retrieve/add match apomixis API for compatibility
+* configurable sleep time for gossiper
+* version API
+* option to write out/serialize config file with updated neighbor list
 
 == cluster features ==
 
