@@ -42,20 +42,22 @@ func ResizeWorker(requests chan ResizeRequest) {
 		sl.Info("handling a resize request")
 		t0 := time.Now()
 		origFile, err := os.Open(req.Path)
-		defer origFile.Close()
 		if err != nil {
+			origFile.Close()
 			sl.Err(fmt.Sprintf("resize worker could not open %s: %s", req.Path, err.Error()))
 			req.Response <- ResizeResponse{nil,false}
 			continue
 		}
 		m, err := decoders[req.Extension[1:]](origFile)
 		if err != nil {
+			origFile.Close()
 			sl.Err(fmt.Sprintf("could not find an appropriate decoder for %s (%s): %s",req.Path, req.Extension, err.Error()))
 			req.Response <- ResizeResponse{nil,false}
 			continue
 		}
 		outputImage := resize.Resize(m, req.Size)
 		// send our response
+		origFile.Close()
 		req.Response <- ResizeResponse{&outputImage,true}
 		t1 := time.Now()
 		sl.Info(fmt.Sprintf("finished resize [%v]", t1.Sub(t0)))
