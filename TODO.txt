@@ -22,7 +22,6 @@
 
 * update read/write rings on announce
 * shared secret for security
-* timed goroutine that periodically announces to known neighbors
 * Verification job. Runs regularly, walks the directory of images on
   the node, recalculates the hashes of the images, compares to the
   hashes they were stored as and repairs and/or rebalances them as

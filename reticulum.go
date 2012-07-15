@@ -71,6 +71,9 @@ func main() {
 		go resize_worker.ResizeWorker(channels.ResizeQueue)
 	}
 
+	// start our gossiper
+	go c.Gossip(int(f.Port))
+
 	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels))
 	http.HandleFunc("/stash/", makeHandler(views.StashHandler, c, siteconfig, channels))

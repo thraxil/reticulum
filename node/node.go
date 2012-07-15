@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	_ "log/syslog"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -99,4 +100,19 @@ func (n *NodeData) Stash(filename string) bool {
 		n.LastSeen = time.Now()
 	}
 	return err == nil
+}
+
+func (n NodeData) announceUrl() string {
+	return "http://" + n.BaseUrl + "/announce/"
+}
+
+func (n *NodeData) Ping() {
+	// todo, send information about ourself as well
+	_, err := http.Get(n.announceUrl())
+	if err != nil {
+		n.LastFailed = time.Now()
+	} else {
+		n.LastSeen = time.Now()
+		// todo, update Writeable, Nickname, etc.
+	}
 }

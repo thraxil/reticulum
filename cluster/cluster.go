@@ -2,7 +2,12 @@ package cluster
 
 import (
 	"../node"
+	"fmt"
+	"log"
+	"log/syslog"
+	"math/rand"
 	"sort"
+	"time"
 )
 
 // TODO: move this to a config
@@ -163,4 +168,34 @@ func hashOrder(hash string, size int, ring []RingEntry) []node.NodeData {
 		}
 	}
 	return results
+}
+
+// periodically pings all the known neighbors to gossip
+// run this as a goroutine
+func (c *Cluster) Gossip(i int) {
+	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
+	if err != nil {
+		log.Fatal("couldn't log to syslog")
+	}
+	sl.Info("starting gossiper")
+
+	rand.Seed(int64(time.Now().Unix()) + int64(i))
+	var base_time = 60
+	var jitter int
+	for {
+		// run forever
+		for _, n := range c.Neighbors {
+			if n.UUID == c.Myself.UUID {
+				// don't ping ourself
+				continue
+			}
+			// avoid thundering herd
+			jitter = rand.Intn(30)
+			sl.Info(fmt.Sprintf("%d",jitter))
+			time.Sleep(time.Duration(base_time + jitter) * time.Second)
+			sl.Info(fmt.Sprintf("node %s pinging %s",c.Myself.Nickname,n.Nickname))
+			n.Ping()
+			// TODO, take output from that node
+		}
+	}
 }
