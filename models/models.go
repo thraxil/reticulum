@@ -19,6 +19,7 @@ type ConfigData struct {
 	UploadDirectory  string
 	Neighbors        []node.NodeData
   Replication      int
+	GossiperSleep    int
 }
 
 func (c ConfigData) MyNode() node.NodeData {
@@ -44,12 +45,18 @@ func (c ConfigData) MyConfig() SiteConfig {
 	if replication < 1 {
 		replication = 1
 	}
+	gossiper_sleep := c.GossiperSleep
+	if gossiper_sleep < 1 {
+		// default to 60 seconds
+		gossiper_sleep = 60
+	}
 	return SiteConfig{
 		Port:             c.Port,
 		UploadKeys:       c.UploadKeys,
 		UploadDirectory:  c.UploadDirectory,
 		NumResizeWorkers: numWorkers,
   	Replication: replication,
+	  GossiperSleep: gossiper_sleep,
 	}
 }
 
@@ -61,6 +68,7 @@ type SiteConfig struct {
 	UploadDirectory  string
 	NumResizeWorkers int
   Replication      int
+	GossiperSleep    int
 }
 
 func (s SiteConfig) KeyRequired() bool {

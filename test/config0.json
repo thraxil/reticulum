@@ -4,6 +4,7 @@
 "UploadDirectory" : "test/uploads0/",
 "NumResizeWorkers" : 4,
 "Replication" : 3,
+"GossiperSleep" : 10,
 "Neighbors": [
 	     {"Nickname": "node1",
 	     "UUID": "uuid-node-1",

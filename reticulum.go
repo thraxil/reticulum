@@ -72,7 +72,7 @@ func main() {
 	}
 
 	// start our gossiper
-	go c.Gossip(int(f.Port))
+	go c.Gossip(int(f.Port), siteconfig.GossiperSleep)
 
 	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels))

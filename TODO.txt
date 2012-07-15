@@ -18,7 +18,6 @@
 * allow lowercase parameter names in config file
 * enable multicore support
 * make stash/retrieve/add match apomixis API for compatibility
-* configurable sleep time for gossiper
 * version API
 * option to write out/serialize config file with updated neighbor list
 

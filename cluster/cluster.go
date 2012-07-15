@@ -172,7 +172,7 @@ func hashOrder(hash string, size int, ring []RingEntry) []node.NodeData {
 
 // periodically pings all the known neighbors to gossip
 // run this as a goroutine
-func (c *Cluster) Gossip(i int) {
+func (c *Cluster) Gossip(i, base_time int) {
 	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
 	if err != nil {
 		log.Fatal("couldn't log to syslog")
@@ -180,7 +180,6 @@ func (c *Cluster) Gossip(i int) {
 	sl.Info("starting gossiper")
 
 	rand.Seed(int64(time.Now().Unix()) + int64(i))
-	var base_time = 60
 	var jitter int
 	for {
 		// run forever
@@ -194,7 +193,6 @@ func (c *Cluster) Gossip(i int) {
 			time.Sleep(time.Duration(base_time + jitter) * time.Second)
 			sl.Info(fmt.Sprintf("node %s pinging %s",c.Myself.Nickname,n.Nickname))
 			resp := n.Ping(c.Myself)
-			sl.Info(fmt.Sprintf("%v",resp))
 			// UUID and BaseUrl must be the same
 			n.Writeable = resp.Writeable
 			n.Nickname = resp.Nickname
