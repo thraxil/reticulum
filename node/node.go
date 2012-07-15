@@ -3,6 +3,7 @@ package node
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -107,7 +108,16 @@ func (n NodeData) announceUrl() string {
 	return "http://" + n.BaseUrl + "/announce/"
 }
 
-func (n *NodeData) Ping(originator NodeData) {
+type AnnounceResponse struct {
+	Nickname  string `json:"nickname"`
+	UUID      string `json:"uuid"`
+	Location  string `json:"location"`
+	Writeable bool `json:"writeable"`
+	BaseUrl   string `json:"base_url"` 
+	Neighbors []NodeData `json:"neighbors"`
+}
+
+func (n *NodeData) Ping(originator NodeData) AnnounceResponse {
 	// todo, send information about ourself as well
 	params := url.Values{}
 	params.Set("uuid",originator.UUID)
@@ -120,7 +130,7 @@ func (n *NodeData) Ping(originator NodeData) {
 		params.Set("writeable", "false")
 	}
 	
-	_, err := http.PostForm(n.announceUrl(), params)
+	resp, err := http.PostForm(n.announceUrl(), params)
 
 	if err != nil {
 		n.LastFailed = time.Now()
@@ -128,4 +138,12 @@ func (n *NodeData) Ping(originator NodeData) {
 		n.LastSeen = time.Now()
 		// todo, update Writeable, Nickname, etc.
 	}
+	var response AnnounceResponse
+	b, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	err = json.Unmarshal(b, &response)
+	if err != nil {
+		fmt.Println("bad json response")
+	}
+	return response
 }

@@ -193,8 +193,28 @@ func (c *Cluster) Gossip(i int) {
 			jitter = rand.Intn(30)
 			time.Sleep(time.Duration(base_time + jitter) * time.Second)
 			sl.Info(fmt.Sprintf("node %s pinging %s",c.Myself.Nickname,n.Nickname))
-			n.Ping(c.Myself)
-			// TODO, take output from that node
+			resp := n.Ping(c.Myself)
+			sl.Info(fmt.Sprintf("%v",resp))
+			// UUID and BaseUrl must be the same
+			n.Writeable = resp.Writeable
+			n.Nickname = resp.Nickname
+			n.Location = resp.Location
+			for _, neighbor := range resp.Neighbors {
+				if neighbor.UUID == c.Myself.UUID {
+					// as usual, skip ourself
+					continue
+				}
+				if existing_neighbor, ok := c.FindNeighborByUUID(neighbor.UUID); ok {
+					existing_neighbor.Nickname = neighbor.Nickname
+					existing_neighbor.Location = neighbor.Location
+					existing_neighbor.BaseUrl = neighbor.BaseUrl
+					existing_neighbor.Writeable = neighbor.Writeable
+				} else {
+					// heard about another node second hand
+					fmt.Println("adding neighbor via gossip")
+					c.AddNeighbor(neighbor)
+				}
+			}
 		}
 	}
 }

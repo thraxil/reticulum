@@ -17,6 +17,8 @@
   non-writeable when past a configured threshold to avoid filling
   disks.
 * allow lowercase parameter names in config file
+* enable multicore support
+* make stash/retrieve/add match apomixis API for compatibility
 
 == cluster features ==
 
@@ -36,6 +38,9 @@
 	that the cluster has seen could let us cut our losses quicker and
 	give the user a 404 without having to poll every single node.
 * full gossip: get neighbor list from neighbors and merge
+* expunge a non-responding neighbor from the list after some period
+  (or just apply a circuit breaker pattern and ping them less and less
+  frequently)
 
 == R&D ==
 
@@ -71,3 +76,4 @@
   node has the file, it will probably be fine. Maybe allow a threshold
   in between. So we could aim for 7 replicas, but respond "ok" once we
   know 3 have stored it.
+* SPDY support

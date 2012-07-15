@@ -318,15 +318,6 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 	}
 }
 
-type AnnounceResponse struct {
-	Nickname  string `json:"nickname"`
-	UUID      string `json:"uuid"`
-	Location  string `json:"location"`
-	Writeable bool `json:"writeable"`
-	BaseUrl   string `json:"base_url"` 
-	Neighbors []node.NodeData `json:"neighbors"`
-}
-
 func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 	c *cluster.Cluster, siteconfig models.SiteConfig,
 	channels models.SharedChannels) {
@@ -370,7 +361,7 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 			c.AddNeighbor(nd)
 		}
 	}
-	ar := AnnounceResponse{
+	ar := node.AnnounceResponse{
 		Nickname:  c.Myself.Nickname,
 		UUID:      c.Myself.UUID,
 		Location:  c.Myself.Location,
