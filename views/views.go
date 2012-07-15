@@ -134,8 +134,11 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 	c := make(chan resize_worker.ResizeResponse)
 	channels.ResizeQueue <- resize_worker.ResizeRequest{path, extension, size, c}
 	result := <-c
+	if !result.Success {
+		http.Error(w, "could not resize image", 500)
+		return
+	}
 	outputImage := *result.OutputImage
-	// TODO handle resize errors
 
 	wFile, err := os.OpenFile(sizedPath, os.O_CREATE|os.O_RDWR, 0644)
 	defer wFile.Close()
@@ -296,8 +299,11 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 	c := make(chan resize_worker.ResizeResponse)
 	channels.ResizeQueue <- resize_worker.ResizeRequest{path, "." + extension, size, c}
 	result := <-c
+	if !result.Success {
+		http.Error(w, "could not resize image", 500)
+		return
+	}
 	outputImage := *result.OutputImage
-	// TODO handle resize errors
 
 	wFile, err := os.OpenFile(sizedPath, os.O_CREATE|os.O_RDWR, 0644)
 	defer wFile.Close()
