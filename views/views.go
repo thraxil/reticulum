@@ -138,6 +138,14 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 		http.Error(w, "could not resize image", 500)
 		return
 	}
+	if result.Magick {
+		// imagemagick did the resize, so we just spit out
+		// the sized file
+		w.Header().Set("Content-Type", extmimes[extension])
+		img_contents, _ := ioutil.ReadFile(sizedPath)
+		w.Write(img_contents)
+		return
+	}
 	outputImage := *result.OutputImage
 
 	wFile, err := os.OpenFile(sizedPath, os.O_CREATE|os.O_RDWR, 0644)
@@ -301,6 +309,14 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
+		return
+	}
+	if result.Magick {
+		// imagemagick did the resize, so we just spit out
+		// the sized file
+		w.Header().Set("Content-Type", extmimes[extension])
+		img_contents, _ := ioutil.ReadFile(sizedPath)
+		w.Write(img_contents)
 		return
 	}
 	outputImage := *result.OutputImage
