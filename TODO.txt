@@ -22,6 +22,14 @@
 * configurable jitter range for gossiper
 * configurable path to convert (until image/jpeg supports progressive
   jpgs)
+* entropy based cropping (find the part of the image with the most
+  entropy and crop so that ends up in the center)
+* pull an image from a URL as an alternative to uploading
+* handle etags + if-modified-since headers
+* send image dimensions in HTTP headers
+* detect noop resizes and 301 redirect to an existing one (ie, if they
+  ask for a scaled image that's larger than the full-size)
+* background goroutines for stashing replicas
 
 == cluster features ==
 
