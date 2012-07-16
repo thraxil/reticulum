@@ -1,0 +1,59 @@
+<html>
+<head>
+<title>{{.Title}}</title>
+</head>
+
+<body>
+<h1>{{.Title}}</h1>
+
+<h2>Config</h2>
+
+<table>
+	<tr><th>Port</th><td>{{ .Config.Port }}</td></tr>
+	<tr><th>Replication</th><td>{{ .Config.Replication }}</td></tr>
+	<tr><th># Resize Workers</th><td>{{ .Config.NumResizeWorkers }}</td></tr>
+	<tr><th>Gossip sleep duration</th><td>{{ .Config.GossiperSleep }}</td></tr>
+</table>
+
+<h2>This Node</h2>
+
+<table>
+	<tr><th>Nickname</th><td>{{ .Cluster.Myself.Nickname }}</td></tr>
+	<tr><th>UUID</th><td>{{ .Cluster.Myself.UUID }}</td></tr>
+	<tr><th>Location</th><td>{{ .Cluster.Myself.Location }}</td></tr>
+	<tr><th>Writeable</th><td>{{ .Cluster.Myself.Writeable }}</td></tr>
+	<tr><th>Base URL</th><td>{{ .Cluster.Myself.BaseUrl }}</td></tr>
+</table>
+
+<h2>Neighbors</h2>
+
+<table>
+	<tr>
+		<th>Nickname</th>
+		<th>UUID</th>
+		<th>BaseUrl</th>
+		<th>Location</th>
+		<th>Writeable</th>
+		<th>LastSeen</th>
+		<th>LastFailed</th>
+	</tr>
+
+{{ range .Cluster.Neighbors }}
+
+	<tr>
+		<th>{{ .Nickname }}</th>
+		<td>{{ .UUID }}</td>
+		<td>{{ .BaseUrl }}</td>
+		<td>{{ .Location }}</td>
+		<td>{{ .Writeable }}</td>
+		<td>{{ .LastSeen }}</td>
+		<td>{{ .LastFailed }}</td>
+	</tr>
+	
+{{ end }}
+
+</table>
+
+
+</body>
+</html>

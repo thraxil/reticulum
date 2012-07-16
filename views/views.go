@@ -242,6 +242,23 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	}
 }
 
+type StatusPage struct {
+	Title string
+	Config models.SiteConfig
+	Cluster cluster.Cluster
+}
+
+func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
+	siteconfig models.SiteConfig, channels models.SharedChannels) {
+	p := StatusPage{
+	Title:      "Status",
+	Config: siteconfig,
+	Cluster: *c,
+	}
+	t, _ := template.ParseFiles("templates/status.html")
+	t.Execute(w, p)
+}
+
 func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	if r.Method != "POST" {
