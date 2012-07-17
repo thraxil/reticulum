@@ -30,6 +30,10 @@
 * detect noop resizes and 301 redirect to an existing one (ie, if they
   ask for a scaled image that's larger than the full-size)
 * background goroutines for stashing replicas
+* safe removal of node from cluster. It would mark itself as
+  read-only, then walk its store of images and make sure they are each
+  at the desired replication rate on other nodes if possible.
+* node generation boilerplace command (like 'tahoe create')
 
 == cluster features ==
 
@@ -52,6 +56,7 @@
 * expunge a non-responding neighbor from the list after some period
   (or just apply a circuit breaker pattern and ping them less and less
   frequently)
+* weight nodes (is this a good idea?)
 
 == R&D ==
 
@@ -88,3 +93,4 @@
   in between. So we could aim for 7 replicas, but respond "ok" once we
   know 3 have stored it.
 * SPDY support
+* investigate techniques for busting through NATs
