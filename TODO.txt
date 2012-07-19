@@ -34,6 +34,11 @@
   read-only, then walk its store of images and make sure they are each
   at the desired replication rate on other nodes if possible.
 * node generation boilerplace command (like 'tahoe create')
+* the resize library should support a fast vs good toggle to allow it
+  to resize via google's graphics-go (fast) or the better looking, but
+  significantly slower resize algo. Then the node can make executive
+  decisions like "a 50px thumbnail does not need to look that good" or
+  do multi-stage resize like apomixis did.
 
 == cluster features ==
 
