@@ -16,6 +16,8 @@
 * enable multicore support
 * make stash/retrieve/add match apomixis API for compatibility
 ** add needs to return the list of nodes that it uploaded to
+** stash needs to take the hash in the url (could probably just ignore
+   it?)
 * version API
 * option to write out/serialize config file with updated neighbor list
 * configurable jitter range for gossiper
