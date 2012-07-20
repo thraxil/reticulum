@@ -3,8 +3,6 @@
 * https support
 * specify file upload permissions other than default 755/644
 * include hash-type in exposed hashes. eg: "sha1-0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"
-* when an animated gif is scaled down, it does not keep it
-  animated. can this be fixed?
 * secure url "drm" options
 * allow suggested image sizes upon upload. Ie, a client knows that
   particular sizes are likely to be requested in the future so it
@@ -17,6 +15,9 @@
 * allow lowercase parameter names in config file
 * enable multicore support
 * make stash/retrieve/add match apomixis API for compatibility
+** add needs to return the list of nodes that it uploaded to
+** stash needs to take the hash in the url (could probably just ignore
+   it?)
 * version API
 * option to write out/serialize config file with updated neighbor list
 * configurable jitter range for gossiper
@@ -38,6 +39,14 @@
   always possible that an uploaded image has a replica on a node that
   is currently unreachable. Permanent delete would require maintaining
   (and sharing) a blacklist.
+* the resize library should support a fast vs good toggle to allow it
+  to resize via google's graphics-go (fast) or the better looking, but
+  significantly slower resize algo. Then the node can make executive
+  decisions like "a 50px thumbnail does not need to look that good" or
+  do multi-stage resize like apomixis did.
+* listen for a HUP signal to re-read config
+* uuid generation tool
+
 
 == cluster features ==
 
@@ -77,10 +86,6 @@
   understanding that large medical images, etc. can be encoded with
   smaller, scaled versions embedded in the file so it can be read
   without reading the entire huge file into memory.
-* bloom filter to keep track of which other nodes we expect to have a
-  given image. This would reduce the cost of a true 404 where the
-  cluster doesn't have the image at all. We could tell without
-  querying every single node.
 * LRU disk cache of all images that pass through. Basically try to
   obviate the need for an nginx caching proxy in front of the
   cluster. One node could be configured with that cache and be the
@@ -98,3 +103,6 @@
   know 3 have stored it.
 * SPDY support
 * investigate techniques for busting through NATs
+* detect duplicate UUIDs in the cluster and alert a sysadmin
+* when an animated gif is scaled down, it does not keep it
+  animated. can this be fixed?

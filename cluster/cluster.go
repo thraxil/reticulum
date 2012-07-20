@@ -16,6 +16,9 @@ var REPLICAS = 16
 
 // represents what our Node nows about the cluster
 // ie, itself and its neighbors
+// TODO: we do a lot of lookups of neighbors by UUID
+// there should probably be a map for that so we don't
+// have to run through the whole list every time
 type Cluster struct {
 	Myself    node.NodeData
 	Neighbors []node.NodeData
@@ -23,43 +26,107 @@ type Cluster struct {
 }
 
 func NewCluster(myself node.NodeData) *Cluster {
-	n := &Cluster{Myself: myself, chF: make(chan func())}
-	go n.backend()
-	return n
+	c := &Cluster{Myself: myself, chF: make(chan func())}
+	go c.backend()
+	return c
 }
 
-func (n *Cluster) backend() {
-	for f := range n.chF {
+func (c *Cluster) backend() {
+	// TODO: all operations that mutate Neighbors
+	// need to come through this
+	for f := range c.chF {
 		f()
 	}
 }
 
-func (n *Cluster) AddNeighbor(nd node.NodeData) {
-	n.chF <- func() {
-		n.Neighbors = append(n.Neighbors, nd)
+func (c *Cluster) AddNeighbor(nd node.NodeData) {
+	c.chF <- func() {
+		c.Neighbors = append(c.Neighbors, nd)
 	}
 }
 
-func (n Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
-	for i := range n.Neighbors {
-		if n.Neighbors[i].UUID == uuid {
-			return &n.Neighbors[i], true
+func (c *Cluster) RemoveNeighbor(nd node.NodeData) {
+	// TODO: this compiles and looks about right, 
+	// but has not actually been tested
+	c.chF <- func() {
+		// find the index in the list of neighbors
+		var idx = 0
+		for i := range c.Neighbors {
+			if c.Neighbors[i].UUID == nd.UUID {
+				idx = i
+				break
+			}
 		}
+		// and remove it
+		c.Neighbors = append(c.Neighbors[:idx], c.Neighbors[idx+1:]...) 
 	}
-	return nil, false
 }
 
-func (n Cluster) NeighborsInclusive() []node.NodeData {
-	a := make([]node.NodeData, len(n.Neighbors)+1)
-	a[0] = n.Myself
-	for i := range n.Neighbors {
-		a[i+1] = n.Neighbors[i]
-	}
-	return a
+type fResp struct {
+	N *node.NodeData
+	Err bool
 }
 
-func (n Cluster) WriteableNeighbors() []node.NodeData {
-	var all = n.NeighborsInclusive()
+func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
+	r := make(chan fResp)
+	go func() {
+		c.chF <- func() {
+			for i := range c.Neighbors {
+				if c.Neighbors[i].UUID == uuid {
+					r <- fResp{&c.Neighbors[i], true}
+					return
+				}
+			}
+			r <- fResp{nil, false}
+		}
+	}()
+	resp := <- r
+	return resp.N, resp.Err
+}
+
+func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
+	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
+	if err != nil {
+		log.Fatal("couldn't log to syslog")
+	}
+	sl.Info("outer UpdateNeighbor()")
+	c.chF <- func() {
+		sl.Info("inner UpdateNeighbor()")
+		for i := range c.Neighbors {
+			if c.Neighbors[i].UUID == neighbor.UUID {
+				c.Neighbors[i].Nickname = neighbor.Nickname
+				c.Neighbors[i].Location = neighbor.Location
+				c.Neighbors[i].BaseUrl = neighbor.BaseUrl
+				c.Neighbors[i].Writeable = neighbor.Writeable
+				if neighbor.LastSeen.Sub(c.Neighbors[i].LastSeen) > 0 {
+					c.Neighbors[i].LastSeen = neighbor.LastSeen
+				}
+			}
+		}
+		sl.Info("UpdateNeighbor() done")
+	}
+}
+
+type listResp struct {
+	Ns []node.NodeData
+}
+
+func (c Cluster) NeighborsInclusive() []node.NodeData {
+	r := make(chan listResp)
+	go func() {
+		c.chF <- func() {
+			a := make([]node.NodeData, 1)
+			a[0] = c.Myself
+			a = append(a, c.Neighbors...)
+			r <- listResp{a}
+		}
+	}()
+	resp := <- r
+	return resp.Ns
+}
+
+func (c Cluster) WriteableNeighbors() []node.NodeData {
+	var all = c.NeighborsInclusive()
 	var p []node.NodeData // == nil
 	for _, i := range all {
 		if i.Writeable {
@@ -80,12 +147,14 @@ func (p RingEntryList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p RingEntryList) Len() int           { return len(p) }
 func (p RingEntryList) Less(i, j int) bool { return p[i].Hash < p[j].Hash }
 
-func (n Cluster) Ring() RingEntryList {
-	return neighborsToRing(n.NeighborsInclusive())
+func (c Cluster) Ring() RingEntryList {
+	// TODO: cache the ring so we don't have to regenerate
+	// every time. it only changes when a node joins or leaves
+	return neighborsToRing(c.NeighborsInclusive())
 }
 
-func (n Cluster) WriteRing() RingEntryList {
-	return neighborsToRing(n.WriteableNeighbors())
+func (c Cluster) WriteRing() RingEntryList {
+	return neighborsToRing(c.WriteableNeighbors())
 }
 
 func (cluster *Cluster) Stash(ahash string, filename string, replication int) []string {
@@ -125,14 +194,14 @@ func neighborsToRing(neighbors []node.NodeData) RingEntryList {
 
 // returns the list of all nodes in the order
 // that the given hash will choose to write to them
-func (n Cluster) WriteOrder(hash string) []node.NodeData {
-	return hashOrder(hash, len(n.Neighbors)+1, n.WriteRing())
+func (c Cluster) WriteOrder(hash string) []node.NodeData {
+	return hashOrder(hash, len(c.Neighbors)+1, c.WriteRing())
 }
 
 // returns the list of all nodes in the order
 // that the given hash will choose to try to read from them
-func (n Cluster) ReadOrder(hash string) []node.NodeData {
-	return hashOrder(hash, len(n.Neighbors)+1, n.Ring())
+func (c Cluster) ReadOrder(hash string) []node.NodeData {
+	return hashOrder(hash, len(c.Neighbors)+1, c.Ring())
 }
 
 func hashOrder(hash string, size int, ring []RingEntry) []node.NodeData {
@@ -193,29 +262,31 @@ func (c *Cluster) Gossip(i, base_time int) {
 			time.Sleep(time.Duration(base_time + jitter) * time.Second)
 			sl.Info(fmt.Sprintf("node %s pinging %s",c.Myself.Nickname,n.Nickname))
 			resp, err := n.Ping(c.Myself)
+			sl.Info("after ping")
 			if err != nil {
+				sl.Info(fmt.Sprintf("error on node %s pinging %s",c.Myself.Nickname,n.Nickname))
 				continue
 			}
+			sl.Info("here")
 			// UUID and BaseUrl must be the same
 			n.Writeable = resp.Writeable
 			n.Nickname = resp.Nickname
 			n.Location = resp.Location
 			for _, neighbor := range resp.Neighbors {
+				sl.Info(fmt.Sprintf("%v", neighbor))
 				if neighbor.UUID == c.Myself.UUID {
 					// as usual, skip ourself
 					continue
 				}
-				if existing_neighbor, ok := c.FindNeighborByUUID(neighbor.UUID); ok {
-					existing_neighbor.Nickname = neighbor.Nickname
-					existing_neighbor.Location = neighbor.Location
-					existing_neighbor.BaseUrl = neighbor.BaseUrl
-					existing_neighbor.Writeable = neighbor.Writeable
+				if _, ok := c.FindNeighborByUUID(neighbor.UUID); ok {
+					c.UpdateNeighbor(neighbor)
 				} else {
 					// heard about another node second hand
 					fmt.Println("adding neighbor via gossip")
 					c.AddNeighbor(neighbor)
 				}
 			}
+			sl.Info(fmt.Sprintf("node %s done pinging %s",c.Myself.Nickname,n.Nickname))
 		}
 	}
 }
