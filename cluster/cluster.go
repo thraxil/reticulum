@@ -16,6 +16,9 @@ var REPLICAS = 16
 
 // represents what our Node nows about the cluster
 // ie, itself and its neighbors
+// TODO: we do a lot of lookups of neighbors by UUID
+// there should probably be a map for that so we don't
+// have to run through the whole list every time
 type Cluster struct {
 	Myself    node.NodeData
 	Neighbors []node.NodeData
@@ -77,6 +80,19 @@ func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 	}
 	resp := <- r
 	return resp.N, resp.Err
+}
+
+func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
+	c.chF <- func() {
+		for i := range c.Neighbors {
+			if c.Neighbors[i].UUID == neighbor.UUID {
+				c.Neighbors[i].Nickname = neighbor.Nickname
+				c.Neighbors[i].Location = neighbor.Location
+				c.Neighbors[i].BaseUrl = neighbor.BaseUrl
+				c.Neighbors[i].Writeable = neighbor.Writeable
+			}
+		}
+	}
 }
 
 func (c Cluster) NeighborsInclusive() []node.NodeData {
@@ -238,11 +254,8 @@ func (c *Cluster) Gossip(i, base_time int) {
 					// as usual, skip ourself
 					continue
 				}
-				if existing_neighbor, ok := c.FindNeighborByUUID(neighbor.UUID); ok {
-					existing_neighbor.Nickname = neighbor.Nickname
-					existing_neighbor.Location = neighbor.Location
-					existing_neighbor.BaseUrl = neighbor.BaseUrl
-					existing_neighbor.Writeable = neighbor.Writeable
+				if _, ok := c.FindNeighborByUUID(neighbor.UUID); ok {
+					c.UpdateNeighbor(neighbor)
 				} else {
 					// heard about another node second hand
 					fmt.Println("adding neighbor via gossip")
