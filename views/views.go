@@ -215,7 +215,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 		// this node even if it may not be one of the "right" ones
 		// for it to end up on. This isn't optimal, but is easy
 		// and we can just let the verify/balance worker clean it up
-    // at some point in the future.
+		// at some point in the future.
 
 		// now stash it to other nodes in the cluster too
 		nodes := c.Stash(ahash, fullpath, siteconfig.Replication)

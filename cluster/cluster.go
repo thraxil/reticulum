@@ -23,43 +23,50 @@ type Cluster struct {
 }
 
 func NewCluster(myself node.NodeData) *Cluster {
-	n := &Cluster{Myself: myself, chF: make(chan func())}
-	go n.backend()
-	return n
+	c := &Cluster{Myself: myself, chF: make(chan func())}
+	go c.backend()
+	return c
 }
 
-func (n *Cluster) backend() {
-	for f := range n.chF {
+func (c *Cluster) backend() {
+	// TODO: all operations that mutate Neighbors
+	// need to come through this
+	for f := range c.chF {
 		f()
 	}
 }
 
-func (n *Cluster) AddNeighbor(nd node.NodeData) {
-	n.chF <- func() {
-		n.Neighbors = append(n.Neighbors, nd)
+func (c *Cluster) AddNeighbor(nd node.NodeData) {
+	c.chF <- func() {
+		c.Neighbors = append(c.Neighbors, nd)
 	}
 }
 
-func (n Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
-	for i := range n.Neighbors {
-		if n.Neighbors[i].UUID == uuid {
-			return &n.Neighbors[i], true
+func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
+	for i := range c.Neighbors {
+		if c.Neighbors[i].UUID == uuid {
+			// TODO: race condition here
+			// if a node is added/removed in between
+			// the conditional and the next line, we
+			// return the wrong node
+			return &c.Neighbors[i], true
 		}
 	}
 	return nil, false
 }
 
-func (n Cluster) NeighborsInclusive() []node.NodeData {
-	a := make([]node.NodeData, len(n.Neighbors)+1)
-	a[0] = n.Myself
-	for i := range n.Neighbors {
-		a[i+1] = n.Neighbors[i]
+func (c Cluster) NeighborsInclusive() []node.NodeData {
+	a := make([]node.NodeData, len(c.Neighbors)+1)
+	a[0] = c.Myself
+	for i := range c.Neighbors {
+		// same race condition
+		a[i+1] = c.Neighbors[i]
 	}
 	return a
 }
 
-func (n Cluster) WriteableNeighbors() []node.NodeData {
-	var all = n.NeighborsInclusive()
+func (c Cluster) WriteableNeighbors() []node.NodeData {
+	var all = c.NeighborsInclusive()
 	var p []node.NodeData // == nil
 	for _, i := range all {
 		if i.Writeable {
@@ -80,12 +87,14 @@ func (p RingEntryList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 func (p RingEntryList) Len() int           { return len(p) }
 func (p RingEntryList) Less(i, j int) bool { return p[i].Hash < p[j].Hash }
 
-func (n Cluster) Ring() RingEntryList {
-	return neighborsToRing(n.NeighborsInclusive())
+func (c Cluster) Ring() RingEntryList {
+	// TODO: cache the ring so we don't have to regenerate
+	// every time. it only changes when a node joins or leaves
+	return neighborsToRing(c.NeighborsInclusive())
 }
 
-func (n Cluster) WriteRing() RingEntryList {
-	return neighborsToRing(n.WriteableNeighbors())
+func (c Cluster) WriteRing() RingEntryList {
+	return neighborsToRing(c.WriteableNeighbors())
 }
 
 func (cluster *Cluster) Stash(ahash string, filename string, replication int) []string {
@@ -125,14 +134,14 @@ func neighborsToRing(neighbors []node.NodeData) RingEntryList {
 
 // returns the list of all nodes in the order
 // that the given hash will choose to write to them
-func (n Cluster) WriteOrder(hash string) []node.NodeData {
-	return hashOrder(hash, len(n.Neighbors)+1, n.WriteRing())
+func (c Cluster) WriteOrder(hash string) []node.NodeData {
+	return hashOrder(hash, len(c.Neighbors)+1, c.WriteRing())
 }
 
 // returns the list of all nodes in the order
 // that the given hash will choose to try to read from them
-func (n Cluster) ReadOrder(hash string) []node.NodeData {
-	return hashOrder(hash, len(n.Neighbors)+1, n.Ring())
+func (c Cluster) ReadOrder(hash string) []node.NodeData {
+	return hashOrder(hash, len(c.Neighbors)+1, c.Ring())
 }
 
 func hashOrder(hash string, size int, ring []RingEntry) []node.NodeData {
