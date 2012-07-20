@@ -59,21 +59,21 @@ func (c *Cluster) RemoveNeighbor(nd node.NodeData) {
 	}
 }
 
-type FResp struct {
+type fResp struct {
 	N *node.NodeData
 	Err bool
 }
 
 func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
-	r := make(chan FResp)
+	r := make(chan fResp)
 	c.chF <- func() {
 		for i := range c.Neighbors {
 			if c.Neighbors[i].UUID == uuid {
-				r <- FResp{&c.Neighbors[i], true}
+				r <- fResp{&c.Neighbors[i], true}
 				break
 			}
 		}
-		r <- FResp{nil, false}
+		r <- fResp{nil, false}
 	}
 	resp := <- r
 	return resp.N, resp.Err
