@@ -34,6 +34,10 @@
   read-only, then walk its store of images and make sure they are each
   at the desired replication rate on other nodes if possible.
 * node generation boilerplace command (like 'tahoe create')
+* delete image functionality. This must be advisory only since it's
+  always possible that an uploaded image has a replica on a node that
+  is currently unreachable. Permanent delete would require maintaining
+  (and sharing) a blacklist.
 
 == cluster features ==
 
