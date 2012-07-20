@@ -123,7 +123,7 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 	if err != nil {
 		log.Fatal("couldn't log to syslog")
 	}
-
+	sl.Info("in Ping()")
 	params := url.Values{}
 	params.Set("uuid",originator.UUID)
 	params.Set("nickname",originator.Nickname)
@@ -136,13 +136,16 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 	}
 
 	var response AnnounceResponse
+	sl.Info("making request")
+	sl.Info(n.announceUrl())
 	resp, err := http.PostForm(n.announceUrl(), params)
-
+	sl.Info("made request")
 	if err != nil {
 		sl.Info(fmt.Sprintf("node %s returned an error on ping: %s", n.Nickname, err.Error()))
 		n.LastFailed = time.Now()
 		return response, err
 	} else {
+		sl.Info("no error on ping")
 		n.LastSeen = time.Now()
 		// todo, update Writeable, Nickname, etc.
 	}
@@ -150,7 +153,8 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 	defer resp.Body.Close()
 	err = json.Unmarshal(b, &response)
 	if err != nil {
-		fmt.Println("bad json response")
+		sl.Err("bad json response")
 	}
+	sl.Info("done with Ping()")
 	return response, nil
 }

@@ -69,40 +69,60 @@ type fResp struct {
 
 func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 	r := make(chan fResp)
-	c.chF <- func() {
-		for i := range c.Neighbors {
-			if c.Neighbors[i].UUID == uuid {
-				r <- fResp{&c.Neighbors[i], true}
-				break
+	go func() {
+		c.chF <- func() {
+			for i := range c.Neighbors {
+				if c.Neighbors[i].UUID == uuid {
+					r <- fResp{&c.Neighbors[i], true}
+					return
+				}
 			}
+			r <- fResp{nil, false}
 		}
-		r <- fResp{nil, false}
-	}
+	}()
 	resp := <- r
 	return resp.N, resp.Err
 }
 
 func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
+	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
+	if err != nil {
+		log.Fatal("couldn't log to syslog")
+	}
+	sl.Info("outer UpdateNeighbor()")
 	c.chF <- func() {
+		sl.Info("inner UpdateNeighbor()")
 		for i := range c.Neighbors {
 			if c.Neighbors[i].UUID == neighbor.UUID {
 				c.Neighbors[i].Nickname = neighbor.Nickname
 				c.Neighbors[i].Location = neighbor.Location
 				c.Neighbors[i].BaseUrl = neighbor.BaseUrl
 				c.Neighbors[i].Writeable = neighbor.Writeable
+				if neighbor.LastSeen.Sub(c.Neighbors[i].LastSeen) > 0 {
+					c.Neighbors[i].LastSeen = neighbor.LastSeen
+				}
 			}
 		}
+		sl.Info("UpdateNeighbor() done")
 	}
 }
 
+type listResp struct {
+	Ns []node.NodeData
+}
+
 func (c Cluster) NeighborsInclusive() []node.NodeData {
-	a := make([]node.NodeData, len(c.Neighbors)+1)
-	a[0] = c.Myself
-	for i := range c.Neighbors {
-		// same race condition
-		a[i+1] = c.Neighbors[i]
-	}
-	return a
+	r := make(chan listResp)
+	go func() {
+		c.chF <- func() {
+			a := make([]node.NodeData, 1)
+			a[0] = c.Myself
+			a = append(a, c.Neighbors...)
+			r <- listResp{a}
+		}
+	}()
+	resp := <- r
+	return resp.Ns
 }
 
 func (c Cluster) WriteableNeighbors() []node.NodeData {
@@ -242,14 +262,18 @@ func (c *Cluster) Gossip(i, base_time int) {
 			time.Sleep(time.Duration(base_time + jitter) * time.Second)
 			sl.Info(fmt.Sprintf("node %s pinging %s",c.Myself.Nickname,n.Nickname))
 			resp, err := n.Ping(c.Myself)
+			sl.Info("after ping")
 			if err != nil {
+				sl.Info(fmt.Sprintf("error on node %s pinging %s",c.Myself.Nickname,n.Nickname))
 				continue
 			}
+			sl.Info("here")
 			// UUID and BaseUrl must be the same
 			n.Writeable = resp.Writeable
 			n.Nickname = resp.Nickname
 			n.Location = resp.Location
 			for _, neighbor := range resp.Neighbors {
+				sl.Info(fmt.Sprintf("%v", neighbor))
 				if neighbor.UUID == c.Myself.UUID {
 					// as usual, skip ourself
 					continue
@@ -262,6 +286,7 @@ func (c *Cluster) Gossip(i, base_time int) {
 					c.AddNeighbor(neighbor)
 				}
 			}
+			sl.Info(fmt.Sprintf("node %s done pinging %s",c.Myself.Nickname,n.Nickname))
 		}
 	}
 }

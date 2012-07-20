@@ -15,6 +15,8 @@ import (
 	"image/png"
 	"io"
 	"io/ioutil"
+	"log"
+	"log/syslog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -370,10 +372,17 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 	c *cluster.Cluster, siteconfig models.SiteConfig,
 	channels models.SharedChannels) {
 	if r.Method == "POST" {
+		sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
+		if err != nil {
+			log.Fatal("couldn't log to syslog")
+		}
+		sl.Info("in AnnounceHandler(POST)")
+
 		// another node is announcing themselves to us
 		// if they are already in the Neighbors list, update as needed
 		// TODO: this should use channels to make it concurrency safe, like Add
 		if neighbor, ok := c.FindNeighborByUUID(r.FormValue("uuid")); ok {
+			sl.Info("found existing neighbor")
 			if r.FormValue("nickname") != "" {
 				neighbor.Nickname = r.FormValue("nickname")
 			}
@@ -387,6 +396,8 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 				neighbor.Writeable = r.FormValue("writeable") == "true"
 			}
 			neighbor.LastSeen = time.Now()
+			c.UpdateNeighbor(*neighbor)
+			sl.Info("updated existing neighbor")
 			// TODO: gossip enable by accepting the list of neighbors
 			// from the client and merging that data in.
 			// for now, just let it update its own entry
