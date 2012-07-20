@@ -59,17 +59,24 @@ func (c *Cluster) RemoveNeighbor(nd node.NodeData) {
 	}
 }
 
+type FResp struct {
+	N *node.NodeData
+	Err bool
+}
+
 func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
-	for i := range c.Neighbors {
-		if c.Neighbors[i].UUID == uuid {
-			// TODO: race condition here
-			// if a node is added/removed in between
-			// the conditional and the next line, we
-			// return the wrong node
-			return &c.Neighbors[i], true
+	r := make(chan FResp)
+	c.chF <- func() {
+		for i := range c.Neighbors {
+			if c.Neighbors[i].UUID == uuid {
+				r <- FResp{&c.Neighbors[i], true}
+				break
+			}
 		}
+		r <- FResp{nil, false}
 	}
-	return nil, false
+	resp := <- r
+	return resp.N, resp.Err
 }
 
 func (c Cluster) NeighborsInclusive() []node.NodeData {

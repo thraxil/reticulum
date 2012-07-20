@@ -7,7 +7,7 @@ test: reticulum
 	python run_cluster.py
 
 clean:
-	rm reticulum
+	rm -f reticulum
 
 testclean:
 	rm -rf test/uploads*
