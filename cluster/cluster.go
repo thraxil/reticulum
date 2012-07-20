@@ -42,6 +42,23 @@ func (c *Cluster) AddNeighbor(nd node.NodeData) {
 	}
 }
 
+func (c *Cluster) RemoveNeighbor(nd node.NodeData) {
+	// TODO: this compiles and looks about right, 
+	// but has not actually been tested
+	c.chF <- func() {
+		// find the index in the list of neighbors
+		var idx = 0
+		for i := range c.Neighbors {
+			if c.Neighbors[i].UUID == nd.UUID {
+				idx = i
+				break
+			}
+		}
+		// and remove it
+		c.Neighbors = append(c.Neighbors[:idx], c.Neighbors[idx+1:]...) 
+	}
+}
+
 func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 	for i := range c.Neighbors {
 		if c.Neighbors[i].UUID == uuid {
