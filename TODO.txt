@@ -14,9 +14,6 @@
   disks.
 * allow lowercase parameter names in config file
 * enable multicore support
-* make stash/retrieve/add match apomixis API for compatibility
-** stash needs to take the hash in the url (could probably just ignore
-   it?)
 * version API
 * option to write out/serialize config file with updated neighbor list
 * configurable jitter range for gossiper
