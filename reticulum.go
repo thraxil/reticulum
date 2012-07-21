@@ -5,6 +5,7 @@ import (
 	"./models"
 	"./resize_worker"
 	"./views"
+	"./verifier"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -73,6 +74,8 @@ func main() {
 
 	// start our gossiper
 	go c.Gossip(int(f.Port), siteconfig.GossiperSleep)
+
+	go verifier.Verify(c, siteconfig)
 
 	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels))
