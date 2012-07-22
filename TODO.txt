@@ -42,6 +42,8 @@
   do multi-stage resize like apomixis did.
 * listen for a HUP signal to re-read config
 * uuid generation tool
+* read repair: when a node serves up an image, start a background job
+  that runs a verify/rebalance on the image.
 
 
 == cluster features ==

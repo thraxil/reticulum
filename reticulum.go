@@ -82,6 +82,7 @@ func main() {
 	http.HandleFunc("/stash/", makeHandler(views.StashHandler, c, siteconfig, channels))
 	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, c, siteconfig, channels))
 	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, c, siteconfig, channels))
+	http.HandleFunc("/retrieve_info/", makeHandler(views.RetrieveInfoHandler, c, siteconfig, channels))
 	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, c, siteconfig, channels))
 	http.HandleFunc("/status/", makeHandler(views.StatusHandler, c, siteconfig, channels))
 	http.HandleFunc("/favicon.ico", views.FaviconHandler)

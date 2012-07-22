@@ -286,6 +286,43 @@ func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	f.Write(d)
 }
 
+type ImageInfoResponse struct {
+	Hash      string `json:"hash"`
+	Extension string `json:"extension"`
+	Local bool `json:"local"`
+}
+
+func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
+	siteconfig models.SiteConfig, channels models.SharedChannels) {
+	// request will look like /retrieve_info/$hash/$size/$ext/
+	parts := strings.Split(r.URL.String(), "/")
+	if (len(parts) != 6) || (parts[1] != "retrieve_info") {
+		http.Error(w, "bad request", 404)
+		return
+	}
+	ahash := parts[2]
+	extension := parts[4]
+	var local = true
+	if len(ahash) != 40 {
+		http.Error(w, "bad hash", 404)
+		return
+	}
+
+	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
+	path := baseDir + "/full" + "." + extension
+	_, err := ioutil.ReadFile(path)
+	if err != nil {
+		local = false
+	}
+
+	b, err := json.Marshal(ImageInfoResponse{ahash,extension,local})
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
+}
+
 func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
 
@@ -303,6 +340,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 		http.Error(w, "bad hash", 404)
 		return
 	}
+
 	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
 	path := baseDir + "/full" + "." + extension
 	sizedPath := baseDir + "/" + size + "." + extension
