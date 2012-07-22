@@ -42,7 +42,7 @@ func visit(path string, f os.FileInfo, err error) error {
 	if f.IsDir() { return nil }
 	if basename(path) != "full" { return nil }
 
-	fmt.Printf("Visited: %s\n", path)
+	//    VERIFY PHASE
 	hash, err := hashFromPath(path)
 	if err != nil {
 		return nil
@@ -55,9 +55,6 @@ func visit(path string, f os.FileInfo, err error) error {
 	ahash := fmt.Sprintf("%x", h.Sum(nil))
 
 	if hash != ahash {
-		//    if different:
-		//       corruption! 
-		//       log it
 		fmt.Printf("image %s appears to be corrupted!\n", path)
 		//       trust that the hash was correct on upload
 		//       ask other nodes for a copy
@@ -66,10 +63,6 @@ func visit(path string, f os.FileInfo, err error) error {
 		//       delete all the cached sizes too since they
 		//       may have been created off the broken one
 	}
-
-	//    VERIFY PHASE
-	//    calculate hash
-	//    compare to the path
   //    REBALANCE PHASE
 	//    calculate the ring for the image
 	//    check that each of the N nodes at the front of the ring have it
@@ -79,6 +72,10 @@ func visit(path string, f os.FileInfo, err error) error {
 	//      node is not in that first N, delete the local copy
 
 	// TODO: sleep a bit in here
+	var base_time = 1
+	jitter := rand.Intn(5)
+	time.Sleep(time.Duration(base_time + jitter) * time.Second)
+
 	return nil
 } 
 
