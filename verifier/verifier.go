@@ -3,11 +3,22 @@ package verifier
 import (
 	"../cluster"
 	"../models"
+	"path/filepath"
+  "os"
+  "fmt"
 	"log"
 	"log/syslog"
 	"math/rand"
 	"time"
 )
+
+func visit(path string, f os.FileInfo, err error) error {
+	if f.IsDir() { return nil }
+	fmt.Printf("Visited: %s\n", path)
+
+	// TODO: sleep a bit in here
+	return nil
+} 
 
 func Verify (c *cluster.Cluster, s models.SiteConfig) {
 	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
@@ -25,6 +36,10 @@ func Verify (c *cluster.Cluster, s models.SiteConfig) {
 		time.Sleep(time.Duration(base_time + jitter) * time.Second)
 		sl.Info("verifier starting at the top")
 		// get a list of all the images on our node
+
+		root := s.UploadDirectory
+		err := filepath.Walk(root, visit)
+		fmt.Printf("filepath.Walk() returned %v\n", err)
 
 		// for each:
 		//    VERIFY PHASE
