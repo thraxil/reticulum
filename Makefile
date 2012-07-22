@@ -1,6 +1,6 @@
 all: reticulum
 
-reticulum: reticulum.go models/models.go views/views.go resize_worker/worker.go
+reticulum: reticulum.go models/models.go views/views.go resize_worker/worker.go node/node.go cluster/cluster.go verifier/verifier.go
 	go build reticulum.go
 
 test: reticulum
