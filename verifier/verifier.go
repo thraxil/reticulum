@@ -5,13 +5,13 @@ import (
 	"../models"
 	"crypto/sha1"
 	"errors"
-  "fmt"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"log/syslog"
 	"math/rand"
-  "os"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -20,28 +20,32 @@ import (
 func basename(path string) string {
 	filename := filepath.Base(path)
 	ext := filepath.Ext(filename)
-	return filename[:len(filename) - len(ext)]
+	return filename[:len(filename)-len(ext)]
 }
 
 func hashFromPath(path string) (string, error) {
 	dir := filepath.Dir(path)
-	parts := strings.Split(dir,"/")
+	parts := strings.Split(dir, "/")
 	// only want the last 20 parts
 	if len(parts) < 20 {
 		return "", errors.New("not enough parts")
 	}
-	hash := strings.Join(parts[len(parts) - 20:],"")
+	hash := strings.Join(parts[len(parts)-20:], "")
 	if len(hash) != 40 {
 		return "", errors.New("invalid hash")
 	}
 	return hash, nil
 }
 
-func visit(path string, f os.FileInfo, err error, c *cluster.Cluster, 
+func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 	s models.SiteConfig) error {
 	// all we care about is the "full" version of each
-	if f.IsDir() { return nil }
-	if basename(path) != "full" { return nil }
+	if f.IsDir() {
+		return nil
+	}
+	if basename(path) != "full" {
+		return nil
+	}
 
 	//    VERIFY PHASE
 	hash, err := hashFromPath(path)
@@ -75,20 +79,20 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 	// TODO: sleep a bit in here
 	var base_time = 1
 	jitter := rand.Intn(5)
-	time.Sleep(time.Duration(base_time + jitter) * time.Second)
+	time.Sleep(time.Duration(base_time+jitter) * time.Second)
 
 	return nil
-} 
+}
 
 // makes a closure that has access to the cluster and config
 func makeVisitor(fn func(string, os.FileInfo, error, *cluster.Cluster, models.SiteConfig) error,
 	c *cluster.Cluster, s models.SiteConfig) func(path string, f os.FileInfo, err error) error {
-	return func(path string, f os.FileInfo,err error) error {
+	return func(path string, f os.FileInfo, err error) error {
 		return fn(path, f, err, c, s)
 	}
 }
 
-func Verify (c *cluster.Cluster, s models.SiteConfig) {
+func Verify(c *cluster.Cluster, s models.SiteConfig) {
 	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
 	if err != nil {
 		log.Fatal("couldn't log to syslog")
@@ -101,7 +105,7 @@ func Verify (c *cluster.Cluster, s models.SiteConfig) {
 	for {
 		// avoid thundering herd
 		jitter = rand.Intn(5)
-		time.Sleep(time.Duration(base_time + jitter) * time.Second)
+		time.Sleep(time.Duration(base_time+jitter) * time.Second)
 		sl.Info("verifier starting at the top")
 
 		root := s.UploadDirectory

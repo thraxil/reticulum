@@ -25,8 +25,8 @@ type ResizeRequest struct {
 
 type ResizeResponse struct {
 	OutputImage *image.Image
-	Success bool
-	Magick bool
+	Success     bool
+	Magick      bool
 }
 
 var decoders = map[string](func(io.Reader) (image.Image, error)){
@@ -47,23 +47,23 @@ func ResizeWorker(requests chan ResizeRequest) {
 		if err != nil {
 			origFile.Close()
 			sl.Err(fmt.Sprintf("resize worker could not open %s: %s", req.Path, err.Error()))
-			req.Response <- ResizeResponse{nil,false,false}
+			req.Response <- ResizeResponse{nil, false, false}
 			continue
 		}
 		m, err := decoders[req.Extension[1:]](origFile)
 		if err != nil {
 			origFile.Close()
-			sl.Err(fmt.Sprintf("could not find an appropriate decoder for %s (%s): %s",req.Path, req.Extension, err.Error()))
+			sl.Err(fmt.Sprintf("could not find an appropriate decoder for %s (%s): %s", req.Path, req.Extension, err.Error()))
 			// try imagemagick
 			_, err := imageMagickResize(req.Path, req.Size)
 			if err != nil {
 				// imagemagick couldn't handle it either
-				sl.Err(fmt.Sprintf("imagemagick couldn't handle it either: %s",err.Error()))
-				req.Response <- ResizeResponse{nil,false,false}
+				sl.Err(fmt.Sprintf("imagemagick couldn't handle it either: %s", err.Error()))
+				req.Response <- ResizeResponse{nil, false, false}
 			} else {
 				// imagemagick saved the day
 				sl.Info("rescued by imagemagick")
-				req.Response <- ResizeResponse{nil,true,true}
+				req.Response <- ResizeResponse{nil, true, true}
 				t1 := time.Now()
 				sl.Info(fmt.Sprintf("finished resize [%v]", t1.Sub(t0)))
 			}
@@ -72,7 +72,7 @@ func ResizeWorker(requests chan ResizeRequest) {
 		outputImage := resize.Resize(m, req.Size)
 		// send our response
 		origFile.Close()
-		req.Response <- ResizeResponse{&outputImage,true,false}
+		req.Response <- ResizeResponse{&outputImage, true, false}
 		t1 := time.Now()
 		sl.Info(fmt.Sprintf("finished resize [%v]", t1.Sub(t0)))
 	}
@@ -90,19 +90,19 @@ func imageMagickResize(path, size string) (string, error) {
 
 	args := convertArgs(size, path)
 
-  fds := []*os.File{os.Stdin, os.Stdout, os.Stderr}
-  p, err := os.StartProcess(args[0], args, &os.ProcAttr{Files: fds})
-  if err != nil {
+	fds := []*os.File{os.Stdin, os.Stdout, os.Stderr}
+	p, err := os.StartProcess(args[0], args, &os.ProcAttr{Files: fds})
+	if err != nil {
 		sl.Err("imagemagick failed to start")
 		sl.Err(err.Error())
-    return "", err
-  }
-  _, err = p.Wait()
-  if err != nil {
+		return "", err
+	}
+	_, err = p.Wait()
+	if err != nil {
 		sl.Err("imagemagick failed")
 		sl.Err(err.Error())
-    return "", err
-  }
+		return "", err
+	}
 	return resizedPath(path, size), nil
 }
 
@@ -124,25 +124,25 @@ func convertArgs(size, path string) []string {
 	} else {
 		maxDim = s.Height()
 	}
-	
+
 	var args []string
 	if s.IsSquare() {
 		args = []string{
-			convertBin, 
-			"-resize", 
-			fmt.Sprintf("%dx%d^",maxDim,maxDim), 
+			convertBin,
+			"-resize",
+			fmt.Sprintf("%dx%d^", maxDim, maxDim),
 			"-gravity",
 			"center",
 			"-extent",
-			fmt.Sprintf("%dx%d",maxDim,maxDim),
+			fmt.Sprintf("%dx%d", maxDim, maxDim),
 			path,
 			resizedPath(path, size),
 		}
 	} else {
 		args = []string{
-			convertBin, 
-			"-resize", 
-			fmt.Sprintf("%dx%d",maxDim,maxDim), 
+			convertBin,
+			"-resize",
+			fmt.Sprintf("%dx%d", maxDim, maxDim),
 			path,
 			resizedPath(path, size),
 		}

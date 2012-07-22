@@ -30,12 +30,12 @@ type Page struct {
 }
 
 type ImageData struct {
-	Hash      string `json:"hash"`
-	Length    int `json:"length"`
-	Extension string `json:"extension"`
-	FullUrl string `json:"full_url"`
-	Satisfied bool `json:"satisfied"`
-	Nodes []string `json:"nodes"`
+	Hash      string   `json:"hash"`
+	Length    int      `json:"length"`
+	Extension string   `json:"extension"`
+	FullUrl   string   `json:"full_url"`
+	Satisfied bool     `json:"satisfied"`
+	Nodes     []string `json:"nodes"`
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
@@ -63,7 +63,7 @@ func hashStringToPath(h string) string {
 
 var jpeg_options = jpeg.Options{Quality: 90}
 
-func retrieveImage(c *cluster.Cluster, ahash string, size string, extension string) ([]byte, error){
+func retrieveImage(c *cluster.Cluster, ahash string, size string, extension string) ([]byte, error) {
 	// we don't have the full-size, so check the cluster
 	nodes_to_check := c.ReadOrder(ahash)
 	// this is where we go down the list and ask the other
@@ -226,9 +226,9 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 			Hash:      ahash,
 			Length:    n,
 			Extension: ext,
-		  FullUrl: "/image/" + ahash + "/full/image." + ext,
-  	  Satisfied: len(nodes) >= siteconfig.Replication,
-  		Nodes: nodes,
+			FullUrl:   "/image/" + ahash + "/full/image." + ext,
+			Satisfied: len(nodes) >= siteconfig.Replication,
+			Nodes:     nodes,
 		}
 		b, err := json.Marshal(id)
 		if err != nil {
@@ -245,17 +245,17 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 }
 
 type StatusPage struct {
-	Title string
-	Config models.SiteConfig
+	Title   string
+	Config  models.SiteConfig
 	Cluster cluster.Cluster
 }
 
 func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	p := StatusPage{
-	Title:      "Status",
-	Config: siteconfig,
-	Cluster: *c,
+		Title:   "Status",
+		Config:  siteconfig,
+		Cluster: *c,
 	}
 	t, _ := template.ParseFiles("templates/status.html")
 	t.Execute(w, p)
@@ -289,7 +289,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 type ImageInfoResponse struct {
 	Hash      string `json:"hash"`
 	Extension string `json:"extension"`
-	Local bool `json:"local"`
+	Local     bool   `json:"local"`
 }
 
 func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
@@ -315,7 +315,7 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cl
 		local = false
 	}
 
-	b, err := json.Marshal(ImageInfoResponse{ahash,extension,local})
+	b, err := json.Marshal(ImageInfoResponse{ahash, extension, local})
 	if err != nil {
 		fmt.Println("error:", err)
 	}

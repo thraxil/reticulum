@@ -20,11 +20,11 @@ import (
 // what we know about a single node
 // (ourself or another)
 type NodeData struct {
-	Nickname   string `json:"nickname"`
-	UUID       string `json:"uuid"`
-	BaseUrl    string `json:"base_url"`
-	Location   string `json:"location"`
-	Writeable  bool `json:"bool"`
+	Nickname   string    `json:"nickname"`
+	UUID       string    `json:"uuid"`
+	BaseUrl    string    `json:"base_url"`
+	Location   string    `json:"location"`
+	Writeable  bool      `json:"bool"`
 	LastSeen   time.Time `json:"last_seen"`
 	LastFailed time.Time `json:"last_failed"`
 }
@@ -72,21 +72,21 @@ func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]
 	return b, nil
 }
 
-func postFile(filename string, target_url string) (*http.Response, error) { 
-  body_buf := bytes.NewBufferString("")
-  body_writer := multipart.NewWriter(body_buf)
-  file_writer, err := body_writer.CreateFormFile("image", filename)
-  if err != nil {
-    panic(err.Error())
-  }
+func postFile(filename string, target_url string) (*http.Response, error) {
+	body_buf := bytes.NewBufferString("")
+	body_writer := multipart.NewWriter(body_buf)
+	file_writer, err := body_writer.CreateFormFile("image", filename)
+	if err != nil {
+		panic(err.Error())
+	}
 	fh, err := os.Open(filename)
-  if err != nil {
-    panic(err.Error())
-  }
-  io.Copy(file_writer, fh)
-  content_type := body_writer.FormDataContentType()
-  body_writer.Close()
-  return http.Post(target_url, content_type, body_buf)
+	if err != nil {
+		panic(err.Error())
+	}
+	io.Copy(file_writer, fh)
+	content_type := body_writer.FormDataContentType()
+	body_writer.Close()
+	return http.Post(target_url, content_type, body_buf)
 }
 
 func (n *NodeData) Stash(filename string) bool {
@@ -110,11 +110,11 @@ func (n NodeData) announceUrl() string {
 }
 
 type AnnounceResponse struct {
-	Nickname  string `json:"nickname"`
-	UUID      string `json:"uuid"`
-	Location  string `json:"location"`
-	Writeable bool `json:"writeable"`
-	BaseUrl   string `json:"base_url"` 
+	Nickname  string     `json:"nickname"`
+	UUID      string     `json:"uuid"`
+	Location  string     `json:"location"`
+	Writeable bool       `json:"writeable"`
+	BaseUrl   string     `json:"base_url"`
 	Neighbors []NodeData `json:"neighbors"`
 }
 
@@ -125,10 +125,10 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 	}
 	sl.Info("in Ping()")
 	params := url.Values{}
-	params.Set("uuid",originator.UUID)
-	params.Set("nickname",originator.Nickname)
-	params.Set("location",originator.Location)
-	params.Set("base_url",originator.BaseUrl)
+	params.Set("uuid", originator.UUID)
+	params.Set("nickname", originator.Nickname)
+	params.Set("location", originator.Location)
+	params.Set("base_url", originator.BaseUrl)
 	if originator.Writeable {
 		params.Set("writeable", "true")
 	} else {

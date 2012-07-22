@@ -14,3 +14,12 @@ testclean:
 
 run: reticulum
 	./reticulum -config=test/config0.json
+
+fmt:
+	go fmt reticulum.go
+	go fmt views/views.go
+	go fmt verifier/verifier.go
+	go fmt resize_worker/worker.go
+	go fmt models/models.go
+	go fmt cluster/cluster.go
+	go fmt node/node.go

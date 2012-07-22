@@ -18,7 +18,7 @@ type ConfigData struct {
 	UploadKeys       []string
 	UploadDirectory  string
 	Neighbors        []node.NodeData
-  Replication      int
+	Replication      int
 	GossiperSleep    int
 }
 
@@ -55,8 +55,8 @@ func (c ConfigData) MyConfig() SiteConfig {
 		UploadKeys:       c.UploadKeys,
 		UploadDirectory:  c.UploadDirectory,
 		NumResizeWorkers: numWorkers,
-  	Replication: replication,
-	  GossiperSleep: gossiper_sleep,
+		Replication:      replication,
+		GossiperSleep:    gossiper_sleep,
 	}
 }
 
@@ -67,7 +67,7 @@ type SiteConfig struct {
 	UploadKeys       []string
 	UploadDirectory  string
 	NumResizeWorkers int
-  Replication      int
+	Replication      int
 	GossiperSleep    int
 }
 

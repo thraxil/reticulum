@@ -13,7 +13,6 @@ import (
 // TODO: move this to a config
 var REPLICAS = 16
 
-
 // represents what our Node nows about the cluster
 // ie, itself and its neighbors
 // TODO: we do a lot of lookups of neighbors by UUID
@@ -58,12 +57,12 @@ func (c *Cluster) RemoveNeighbor(nd node.NodeData) {
 			}
 		}
 		// and remove it
-		c.Neighbors = append(c.Neighbors[:idx], c.Neighbors[idx+1:]...) 
+		c.Neighbors = append(c.Neighbors[:idx], c.Neighbors[idx+1:]...)
 	}
 }
 
 type fResp struct {
-	N *node.NodeData
+	N   *node.NodeData
 	Err bool
 }
 
@@ -80,7 +79,7 @@ func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 			r <- fResp{nil, false}
 		}
 	}()
-	resp := <- r
+	resp := <-r
 	return resp.N, resp.Err
 }
 
@@ -121,7 +120,7 @@ func (c Cluster) NeighborsInclusive() []node.NodeData {
 			r <- listResp{a}
 		}
 	}()
-	resp := <- r
+	resp := <-r
 	return resp.Ns
 }
 
@@ -174,7 +173,7 @@ func (cluster *Cluster) Stash(ahash string, filename string, replication int) []
 		if save_count >= replication {
 			// got as many as we need
 			break
-  	}
+		}
 	}
 	return saved_to
 }
@@ -259,12 +258,12 @@ func (c *Cluster) Gossip(i, base_time int) {
 			}
 			// avoid thundering herd
 			jitter = rand.Intn(30)
-			time.Sleep(time.Duration(base_time + jitter) * time.Second)
-			sl.Info(fmt.Sprintf("node %s pinging %s",c.Myself.Nickname,n.Nickname))
+			time.Sleep(time.Duration(base_time+jitter) * time.Second)
+			sl.Info(fmt.Sprintf("node %s pinging %s", c.Myself.Nickname, n.Nickname))
 			resp, err := n.Ping(c.Myself)
 			sl.Info("after ping")
 			if err != nil {
-				sl.Info(fmt.Sprintf("error on node %s pinging %s",c.Myself.Nickname,n.Nickname))
+				sl.Info(fmt.Sprintf("error on node %s pinging %s", c.Myself.Nickname, n.Nickname))
 				continue
 			}
 			sl.Info("here")
@@ -286,7 +285,7 @@ func (c *Cluster) Gossip(i, base_time int) {
 					c.AddNeighbor(neighbor)
 				}
 			}
-			sl.Info(fmt.Sprintf("node %s done pinging %s",c.Myself.Nickname,n.Nickname))
+			sl.Info(fmt.Sprintf("node %s done pinging %s", c.Myself.Nickname, n.Nickname))
 		}
 	}
 }
