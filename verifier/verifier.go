@@ -37,7 +37,8 @@ func hashFromPath(path string) (string, error) {
 	return hash, nil
 }
 
-func visit(path string, f os.FileInfo, err error) error {
+func visit(path string, f os.FileInfo, err error, c *cluster.Cluster, 
+	s models.SiteConfig) error {
 	// all we care about is the "full" version of each
 	if f.IsDir() { return nil }
 	if basename(path) != "full" { return nil }
@@ -63,7 +64,7 @@ func visit(path string, f os.FileInfo, err error) error {
 		//       delete all the cached sizes too since they
 		//       may have been created off the broken one
 	}
-  //    REBALANCE PHASE
+	//    REBALANCE PHASE
 	//    calculate the ring for the image
 	//    check that each of the N nodes at the front of the ring have it
 	//    for each:
@@ -78,6 +79,14 @@ func visit(path string, f os.FileInfo, err error) error {
 
 	return nil
 } 
+
+// makes a closure that has access to the cluster and config
+func makeVisitor(fn func(string, os.FileInfo, error, *cluster.Cluster, models.SiteConfig) error,
+	c *cluster.Cluster, s models.SiteConfig) func(path string, f os.FileInfo, err error) error {
+	return func(path string, f os.FileInfo,err error) error {
+		return fn(path, f, err, c, s)
+	}
+}
 
 func Verify (c *cluster.Cluster, s models.SiteConfig) {
 	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
@@ -96,7 +105,7 @@ func Verify (c *cluster.Cluster, s models.SiteConfig) {
 		sl.Info("verifier starting at the top")
 
 		root := s.UploadDirectory
-		err := filepath.Walk(root, visit)
+		err := filepath.Walk(root, makeVisitor(visit, c, s))
 		if err != nil {
 			fmt.Printf("filepath.Walk() returned %v\n", err)
 		}
