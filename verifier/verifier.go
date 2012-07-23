@@ -37,37 +37,17 @@ func hashFromPath(path string) (string, error) {
 	return hash, nil
 }
 
-func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
-	s models.SiteConfig) error {
-	// all we care about is the "full" version of each
-	if f.IsDir() {
-		return nil
-	}
-	if basename(path) != "full" {
-		return nil
-	}
-	extension := filepath.Ext(path)
-	if len(extension) < 2 {
-		return nil
-	}
-
+// checks the image for corruption
+// if it is corrupt, try to repair
+func verify(path string, extension string, hash string, ahash string, c *cluster.Cluster) error {
 	//    VERIFY PHASE
-	hash, err := hashFromPath(path)
-	if err != nil {
-		return nil
-	}
-
-	h := sha1.New()
-	d, _ := ioutil.ReadFile(path)
-	io.WriteString(h, string(d))
-	ahash := fmt.Sprintf("%x", h.Sum(nil))
-	nodes_to_check := c.ReadOrder(hash)
-
 	if hash != ahash {
 		fmt.Printf("image %s appears to be corrupted!\n", path)
 		// trust that the hash was correct on upload
 		// ask other nodes for a copy
 		var repaired = false
+		nodes_to_check := c.ReadOrder(hash)
+
 		for _, n := range nodes_to_check {
 			if n.UUID == c.Myself.UUID {
 				// skip ourself, since we know we are corrupt
@@ -105,36 +85,52 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 			}
 		}
 		if repaired {
-			// cached sizes may have been created off the broken one
-			// and the easiest solution is to take off
-			// and nuke the site from orbit. It's the only way to be sure.
-			files, err := ioutil.ReadDir(filepath.Dir(path))
+			err := clear_cached(path, extension)
 			if err != nil {
-				// can't read the dir?!
 				return err
 			}
-			var successful_purge = true
-			for _, file := range files {
-				if file.IsDir() { continue }
-				if file.Name() == "full" + extension { continue }
-				err := os.Remove(filepath.Join(filepath.Dir(path), file.Name()))
-				successful_purge = successful_purge && (err == nil)
-			}
-			if !successful_purge {
-				// one or more cached sizes were not deleted
-				return errors.New("could not clear potentially corrupted scaled image")
-			}
-		} else {
-			fmt.Printf("could not repair corrupted image: %s\n", path)
-			// return here so we don't try to rebalance a corrupted image
-			return errors.New("unrepairable image")
 		}
+	} else {
+		fmt.Printf("could not repair corrupted image: %s\n", path)
+		// return here so we don't try to rebalance a corrupted image
+		return errors.New("unrepairable image")
 	}
+	return nil
+}
 
+func clear_cached(path string, extension string) error {
+	// cached sizes may have been created off the broken one
+	// and the easiest solution is to take off
+	// and nuke the site from orbit. It's the only way to be sure.
+	files, err := ioutil.ReadDir(filepath.Dir(path))
+	if err != nil {
+		// can't read the dir?!
+		return err
+	}
+	var successful_purge = true
+	for _, file := range files {
+		if file.IsDir() { continue }
+		if file.Name() == "full" + extension { continue }
+		err := os.Remove(filepath.Join(filepath.Dir(path), file.Name()))
+		successful_purge = successful_purge && (err == nil)
+	}
+	if !successful_purge {
+		// one or more cached sizes were not deleted
+		return errors.New("could not clear potentially corrupted scaled image")
+	}
+	return nil
+}
+
+// check that the image is stored in at least Replication nodes
+// and, if at all possible, those should be the ones at the front
+// of the list
+func rebalance(path string, extension string, hash string, c *cluster.Cluster,
+	s models.SiteConfig) error {
 	//    REBALANCE PHASE
 	var delete_local = true
 	var satisfied = false
 	var found_replicas = 0
+	nodes_to_check := c.ReadOrder(hash)
 	// TODO: parallelize this
 	for _, n := range nodes_to_check {
 		if n.UUID == c.Myself.UUID {
@@ -183,6 +179,41 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 		} else {
 			fmt.Printf("cleared excess replica: %s\n", path)
 		}
+	}
+	return nil
+}
+
+func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
+	s models.SiteConfig) error {
+	// all we care about is the "full" version of each
+	if f.IsDir() {
+		return nil
+	}
+	if basename(path) != "full" {
+		return nil
+	}
+	extension := filepath.Ext(path)
+	if len(extension) < 2 {
+		return nil
+	}
+
+	hash, err := hashFromPath(path)
+	if err != nil {
+		return nil
+	}
+
+	h := sha1.New()
+	d, _ := ioutil.ReadFile(path)
+	io.WriteString(h, string(d))
+	ahash := fmt.Sprintf("%x", h.Sum(nil))
+
+	err = verify(path, extension, hash, ahash, c)
+	if err != nil {
+		return err
+	}
+	err = rebalance(path, extension, hash, c, s)
+	if err != nil {
+		return err
 	}
 
 	// slow things down a little to keep server load down
