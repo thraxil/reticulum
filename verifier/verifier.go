@@ -89,11 +89,11 @@ func verify(path string, extension string, hash string, ahash string, c *cluster
 			if err != nil {
 				return err
 			}
+		} else {
+			fmt.Printf("could not repair corrupted image: %s\n", path)
+			// return here so we don't try to rebalance a corrupted image
+			return errors.New("unrepairable image")
 		}
-	} else {
-		fmt.Printf("could not repair corrupted image: %s\n", path)
-		// return here so we don't try to rebalance a corrupted image
-		return errors.New("unrepairable image")
 	}
 	return nil
 }
