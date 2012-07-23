@@ -49,10 +49,6 @@
 == cluster features ==
 
 * shared secret for security
-* Verification job. Runs regularly, walks the directory of images on
-  the node, recalculates the hashes of the images, compares to the
-  hashes they were stored as and repairs and/or rebalances them as
-  necessary.
 * location aware replication. Ie, you've got multiple datacenters
   where nodes run and you want to make sure that uploaded images
   always get stored to each datacenter in addition to the basic
