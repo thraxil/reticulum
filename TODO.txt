@@ -44,7 +44,9 @@
 * uuid generation tool
 * read repair: when a node serves up an image, start a background job
   that runs a verify/rebalance on the image.
-
+* memcached caching of scaled images (for front-line nodes)
+* recover() panics on requests (ie, don't let a 500 error crash the
+  server or a worker)
 
 == cluster features ==
 
