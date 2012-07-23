@@ -17,12 +17,14 @@ import (
 	"time"
 )
 
+// part of the path that's not a directory or extension
 func basename(path string) string {
 	filename := filepath.Base(path)
 	ext := filepath.Ext(filename)
 	return filename[:len(filename)-len(ext)]
 }
 
+// convert some/base/12/34/45/56/67/.../file.jpg to 1234455667
 func hashFromPath(path string) (string, error) {
 	dir := filepath.Dir(path)
 	parts := strings.Split(dir, "/")
@@ -39,50 +41,16 @@ func hashFromPath(path string) (string, error) {
 
 // checks the image for corruption
 // if it is corrupt, try to repair
-func verify(path string, extension string, hash string, ahash string, c *cluster.Cluster) error {
+func verify(path string, extension string, hash string, ahash string,
+	c *cluster.Cluster) error {
 	//    VERIFY PHASE
 	if hash != ahash {
 		fmt.Printf("image %s appears to be corrupted!\n", path)
 		// trust that the hash was correct on upload
 		// ask other nodes for a copy
-		var repaired = false
-		nodes_to_check := c.ReadOrder(hash)
-
-		for _, n := range nodes_to_check {
-			if n.UUID == c.Myself.UUID {
-				// skip ourself, since we know we are corrupt
-				continue
-			}
-			img, err := n.RetrieveImage(hash, "full", extension)
-			if err != nil {
-				// doesn't have it
-				fmt.Printf("node %s does not have a copy of the desired image\n", n.Nickname)
-				continue
-			} else {
-				// double check that what we get is indeed right
-				hn := sha1.New()
-				io.WriteString(hn, string(img))
-				nhash := fmt.Sprintf("%x", hn.Sum(nil))
-				if nhash != hash {
-					// this is not the correct one either!
-					continue
-				}
-				// replace the full-size with a corrected one
-				f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
-				if err != nil {
-					// can't open for writing!
-					fmt.Printf("could not open for writing: %s, %s\n",path,err)
-					return err
-				}
-				defer f.Close()
-				_, err = f.Write(img)
-				if err != nil {
-					fmt.Printf("could not write: %s, %s\n",path,err)
-					return err
-				}
-				repaired = true
-				break
-			}
+		repaired, err := repair_image(path, extension, hash, c)
+		if err != nil {
+			return err
 		}
 		if repaired {
 			err := clear_cached(path, extension)
@@ -98,10 +66,55 @@ func verify(path string, extension string, hash string, ahash string, c *cluster
 	return nil
 }
 
+// do our best to repair the image
+func repair_image(path string, extension string, hash string,
+	c *cluster.Cluster) (bool, error) {
+	nodes_to_check := c.ReadOrder(hash)
+	for _, n := range nodes_to_check {
+		if n.UUID == c.Myself.UUID {
+			// skip ourself, since we know we are corrupt
+			continue
+		}
+		img, err := n.RetrieveImage(hash, "full", extension)
+		if err != nil {
+			// doesn't have it
+			fmt.Printf("node %s does not have a copy of the desired image\n", n.Nickname)
+			continue
+		} else {
+			if !doublecheck_replica(img, hash) {
+				// the copy from that node isn't right either
+				continue
+			}
+			// replace the full-size with a corrected one
+			f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
+			if err != nil {
+				// can't open for writing!
+				fmt.Printf("could not open for writing: %s, %s\n",path,err)
+				return false, err
+			}
+			defer f.Close()
+			_, err = f.Write(img)
+			if err != nil {
+				fmt.Printf("could not write: %s, %s\n",path,err)
+				return false, err
+			}
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func doublecheck_replica(img []byte, hash string) bool {
+	hn := sha1.New()
+	io.WriteString(hn, string(img))
+	nhash := fmt.Sprintf("%x", hn.Sum(nil))
+	return nhash == hash
+}
+
+// cached sizes may have been created off the broken one
+// and the easiest solution is to take off
+// and nuke the site from orbit. It's the only way to be sure.
 func clear_cached(path string, extension string) error {
-	// cached sizes may have been created off the broken one
-	// and the easiest solution is to take off
-	// and nuke the site from orbit. It's the only way to be sure.
 	files, err := ioutil.ReadDir(filepath.Dir(path))
 	if err != nil {
 		// can't read the dir?!
@@ -152,6 +165,7 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 					// couldn't stash to that node. not writeable perhaps.
 					// not really our problem to deal with, but we do want
 					// to make sure that another node gets a copy
+					// so we don't increment found_replicas
 				}
 			}
 		}
@@ -168,19 +182,22 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 	} else {
 		fmt.Printf("%s has full replica set\n", path)
 	}
-
 	if delete_local {
-		// our node is not at the front of the list, so 
-		// we have an excess copy. clean that up and make room!
-		err := os.RemoveAll(filepath.Dir(path))
-		if err != nil {
-			fmt.Printf("could not clear out excess replica: %s\n", path)
-			fmt.Println(err.Error())
-		} else {
-			fmt.Printf("cleared excess replica: %s\n", path)
-		}
+		clean_up_excess_replica(path)
 	}
 	return nil
+}
+
+// our node is not at the front of the list, so 
+// we have an excess copy. clean that up and make room!
+func clean_up_excess_replica(path string) {
+	err := os.RemoveAll(filepath.Dir(path))
+	if err != nil {
+		fmt.Printf("could not clear out excess replica: %s\n", path)
+		fmt.Println(err.Error())
+	} else {
+		fmt.Printf("cleared excess replica: %s\n", path)
+	}
 }
 
 func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
