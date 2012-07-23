@@ -68,6 +68,8 @@
   (or just apply a circuit breaker pattern and ping them less and less
   frequently)
 * weight nodes (is this a good idea?)
+* timeouts EVERYWHERE. if a node doesn't respond within a set time,
+	consider it dead.
 
 == R&D ==
 

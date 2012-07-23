@@ -286,12 +286,6 @@ func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	f.Write(d)
 }
 
-type ImageInfoResponse struct {
-	Hash      string `json:"hash"`
-	Extension string `json:"extension"`
-	Local     bool   `json:"local"`
-}
-
 func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
 	siteconfig models.SiteConfig, channels models.SharedChannels) {
 	// request will look like /retrieve_info/$hash/$size/$ext/
@@ -315,7 +309,7 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cl
 		local = false
 	}
 
-	b, err := json.Marshal(ImageInfoResponse{ahash, extension, local})
+	b, err := json.Marshal(node.ImageInfoResponse{ahash, extension, local})
 	if err != nil {
 		fmt.Println("error:", err)
 	}

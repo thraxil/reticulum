@@ -53,16 +53,20 @@ func (n NodeData) retrieveUrl(hash string, size string, extension string) string
 	return "http://" + n.BaseUrl + "/retrieve/" + hash + "/" + size + "/" + extension + "/"
 }
 
+func (n NodeData) retrieveInfoUrl(hash string, size string, extension string) string {
+	return "http://" + n.BaseUrl + "/retrieve_info/" + hash + "/" + size + "/" + extension + "/"
+}
+
 func (n NodeData) stashUrl() string {
 	return "http://" + n.BaseUrl + "/stash/"
 }
 
 func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]byte, error) {
-	resp, err := http.Get(n.retrieveUrl(hash, size, extension))
+	resp, err := http.Get(n.retrieveInfoUrl(hash, size, extension))
 	if err != nil {
 		n.LastFailed = time.Now()
 		return nil, err
-	} // otherwise, we go the image
+	} // otherwise, we got the image
 	n.LastSeen = time.Now()
 	if resp.Status != "200 OK" {
 		return nil, errors.New("404, probably")
@@ -71,6 +75,34 @@ func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]
 	resp.Body.Close()
 	return b, nil
 }
+
+type ImageInfoResponse struct {
+	Hash      string `json:"hash"`
+	Extension string `json:"extension"`
+	Local bool `json:"local"`
+}
+
+func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string) (*ImageInfoResponse, error) {
+	resp, err := http.Get(n.retrieveInfoUrl(hash, size, extension))
+	if err != nil {
+		n.LastFailed = time.Now()
+		return nil, err
+	}
+	// otherwise, we got the info
+	n.LastSeen = time.Now()
+	if resp.Status != "200 OK" {
+		return nil, errors.New("404, probably")
+	}
+	var response ImageInfoResponse
+	b, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	err = json.Unmarshal(b, &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response, nil
+}
+
 
 func postFile(filename string, target_url string) (*http.Response, error) {
 	body_buf := bytes.NewBufferString("")
