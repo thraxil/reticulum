@@ -186,7 +186,7 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 	}
 
 	// slow things down a little to keep server load down
-	var base_time = 1
+	var base_time = s.VerifierSleep
 	jitter := rand.Intn(5)
 	time.Sleep(time.Duration(base_time+jitter) * time.Second)
 
@@ -210,7 +210,7 @@ func Verify(c *cluster.Cluster, s models.SiteConfig) {
 
 	rand.Seed(int64(time.Now().Unix()) + int64(int(s.Port)))
 	var jitter int
-	var base_time = 1
+	var base_time = s.VerifierSleep
 	for {
 		// avoid thundering herd
 		jitter = rand.Intn(5)

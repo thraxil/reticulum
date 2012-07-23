@@ -20,6 +20,7 @@ type ConfigData struct {
 	Neighbors        []node.NodeData
 	Replication      int
 	GossiperSleep    int
+	VerifierSleep    int
 }
 
 func (c ConfigData) MyNode() node.NodeData {
@@ -50,6 +51,10 @@ func (c ConfigData) MyConfig() SiteConfig {
 		// default to 60 seconds
 		gossiper_sleep = 60
 	}
+	verifier_sleep := c.VerifierSleep
+	if verifier_sleep < 1 {
+		verifier_sleep = 300
+	}
 	return SiteConfig{
 		Port:             c.Port,
 		UploadKeys:       c.UploadKeys,
@@ -57,6 +62,7 @@ func (c ConfigData) MyConfig() SiteConfig {
 		NumResizeWorkers: numWorkers,
 		Replication:      replication,
 		GossiperSleep:    gossiper_sleep,
+ 	VerifierSleep:      verifier_sleep,
 	}
 }
 
@@ -69,6 +75,7 @@ type SiteConfig struct {
 	NumResizeWorkers int
 	Replication      int
 	GossiperSleep    int
+	VerifierSleep    int
 }
 
 func (s SiteConfig) KeyRequired() bool {
