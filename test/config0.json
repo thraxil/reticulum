@@ -5,6 +5,7 @@
 "NumResizeWorkers" : 4,
 "Replication" : 3,
 "GossiperSleep" : 10,
+"VerifierSleep" : 60,
 "Writeable" : true,
 "Neighbors": [
 	     {"Nickname": "node1",
