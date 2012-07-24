@@ -3,6 +3,11 @@ title: Reticulum TODO
 layout: layout
 ---
 
+## TODO
+
+Eventually, I'll move all of these (except maybe the "R&D" section) to
+github issues.
+
 ### single node features
 
 * https support
@@ -46,6 +51,11 @@ layout: layout
 * timeouts EVERYWHERE. if a node doesn't respond within a set time, consider it dead.
 
 ### R&D
+
+These are all things that I'd like to look into as possible
+improvements. Many of them potentially are not improvements. Just
+interesting things I want to look into when I have time. I'd
+appreciate hearing thoughts from knowledgable folks.
 
 * experiment with just using Riak for image storing via its luwak file storage. The problem with this is probably that resizing again requires downloading via HTTP, resizing, then re-uploading.
 * is an external imagemagick process faster or does it use less memory?

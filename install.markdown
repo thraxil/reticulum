@@ -3,11 +3,29 @@ title: Reticulum Install
 layout: layout
 ---
 
-`go install github.com/thraxil/reticulum` should do it.
+### Compile from source
+
+Assuming you have a Go compiler installed and set up (I've only tested
+with the main Go compiler but I see no reason that `gccgo` wouldn't
+also work). 
+
+There's a good chance that:
+
+    go get github.com/thraxil/reticulum
+
+Will do it.
 
 Otherwise clone it and do
 
     make
 
-and that will create a `reticulum` binary for your platform. (assuming
-you have a Go 1.0 compiler)
+and that will create a `reticulum` binary for your platform.
+
+The only non standard library dependency it has is `resize` available
+with 
+
+    go get github.com/thraxil/reticulum
+
+### Download Binaries
+
+TODO
