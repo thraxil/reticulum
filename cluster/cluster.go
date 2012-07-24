@@ -277,7 +277,7 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 					c.UpdateNeighbor(neighbor)
 				} else {
 					// heard about another node second hand
-					fmt.Println("adding neighbor via gossip")
+					sl.Info("adding neighbor via gossip")
 					c.AddNeighbor(neighbor)
 				}
 			}
