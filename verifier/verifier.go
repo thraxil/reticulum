@@ -201,6 +201,12 @@ func clean_up_excess_replica(path string, sl *syslog.Writer) {
 
 func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 	s models.SiteConfig, sl *syslog.Writer) error {
+	defer func() {
+		if r := recover(); r != nil {
+			sl.Err(fmt.Sprintf("Error in verifier.visit() [%s] %s", c.Myself.Nickname, path))
+			sl.Err(fmt.Sprintf("%v", r))
+		}
+	}()
 	// all we care about is the "full" version of each
 	if f.IsDir() {
 		return nil

@@ -27,6 +27,12 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *cluster.Cluster,
 
 func Log(handler http.Handler, logger *syslog.Writer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rc := recover(); rc != nil {
+				fmt.Println("Server Error", rc)
+				logger.Err(fmt.Sprintf("%s",r.URL))
+			}
+		}()
 		t0 := time.Now()
 		handler.ServeHTTP(w, r)
 		t1 := time.Now()
