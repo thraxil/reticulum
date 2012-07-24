@@ -69,7 +69,7 @@ func main() {
 	}
 
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
-		go resize_worker.ResizeWorker(channels.ResizeQueue)
+		go resize_worker.ResizeWorker(channels.ResizeQueue, sl)
 	}
 
 	// start our gossiper

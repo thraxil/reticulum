@@ -8,7 +8,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"log"
 	"log/syslog"
 	"os"
 	"path/filepath"
@@ -35,11 +34,7 @@ var decoders = map[string](func(io.Reader) (image.Image, error)){
 	"png": png.Decode,
 }
 
-func ResizeWorker(requests chan ResizeRequest) {
-	sl, err := syslog.New(syslog.LOG_INFO, "reticulum.resize-worker")
-	if err != nil {
-		log.Fatal("couldn't log to syslog")
-	}
+func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer) {
 	for req := range requests {
 		sl.Info("handling a resize request")
 		t0 := time.Now()
@@ -55,7 +50,7 @@ func ResizeWorker(requests chan ResizeRequest) {
 			origFile.Close()
 			sl.Err(fmt.Sprintf("could not find an appropriate decoder for %s (%s): %s", req.Path, req.Extension, err.Error()))
 			// try imagemagick
-			_, err := imageMagickResize(req.Path, req.Size)
+			_, err := imageMagickResize(req.Path, req.Size, sl)
 			if err != nil {
 				// imagemagick couldn't handle it either
 				sl.Err(fmt.Sprintf("imagemagick couldn't handle it either: %s", err.Error()))
@@ -82,12 +77,7 @@ func ResizeWorker(requests chan ResizeRequest) {
 // so sometimes we need to bail and have imagemagick do the work
 // this sucks, is redundant, and i'd rather not have this external dependency
 // so this will be removed as soon as Go can handle it all itself
-func imageMagickResize(path, size string) (string, error) {
-	sl, err := syslog.New(syslog.LOG_INFO, "reticulum.resize-worker")
-	if err != nil {
-		log.Fatal("couldn't log to syslog")
-	}
-
+func imageMagickResize(path, size string, sl *syslog.Writer) (string, error) {
 	args := convertArgs(size, path)
 
 	fds := []*os.File{os.Stdin, os.Stdout, os.Stderr}
