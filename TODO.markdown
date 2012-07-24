@@ -3,7 +3,7 @@ title: Reticulum TODO
 layout: layout
 ---
 
-## TODO
+# TODO
 
 Eventually, I'll move all of these (except maybe the "R&D" section) to
 github issues.

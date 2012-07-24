@@ -3,7 +3,9 @@ title: Reticulum Install
 layout: layout
 ---
 
-### Compile from source
+# Install
+
+## Compile from source
 
 Assuming you have a Go compiler installed and set up (I've only tested
 with the main Go compiler but I see no reason that `gccgo` wouldn't
@@ -26,6 +28,6 @@ with
 
     go get github.com/thraxil/reticulum
 
-### Download Binaries
+## Download Binaries
 
 TODO
