@@ -75,7 +75,7 @@ func main() {
 	// start our gossiper
 	go c.Gossip(int(f.Port), siteconfig.GossiperSleep, sl)
 
-	go verifier.Verify(c, siteconfig)
+	go verifier.Verify(c, siteconfig, sl)
 
 	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels))

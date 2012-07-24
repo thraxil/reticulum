@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"log/syslog"
 	"math/rand"
 	"os"
@@ -42,13 +41,13 @@ func hashFromPath(path string) (string, error) {
 // checks the image for corruption
 // if it is corrupt, try to repair
 func verify(path string, extension string, hash string, ahash string,
-	c *cluster.Cluster) error {
+	c *cluster.Cluster, sl *syslog.Writer) error {
 	//    VERIFY PHASE
 	if hash != ahash {
-		fmt.Printf("image %s appears to be corrupted!\n", path)
+		sl.Warning(fmt.Sprintf("image %s appears to be corrupted!\n", path))
 		// trust that the hash was correct on upload
 		// ask other nodes for a copy
-		repaired, err := repair_image(path, extension, hash, c)
+		repaired, err := repair_image(path, extension, hash, c, sl)
 		if err != nil {
 			return err
 		}
@@ -58,7 +57,7 @@ func verify(path string, extension string, hash string, ahash string,
 				return err
 			}
 		} else {
-			fmt.Printf("could not repair corrupted image: %s\n", path)
+			sl.Err(fmt.Sprintf("could not repair corrupted image: %s\n", path))
 			// return here so we don't try to rebalance a corrupted image
 			return errors.New("unrepairable image")
 		}
@@ -68,7 +67,7 @@ func verify(path string, extension string, hash string, ahash string,
 
 // do our best to repair the image
 func repair_image(path string, extension string, hash string,
-	c *cluster.Cluster) (bool, error) {
+	c *cluster.Cluster, sl *syslog.Writer) (bool, error) {
 	nodes_to_check := c.ReadOrder(hash)
 	for _, n := range nodes_to_check {
 		if n.UUID == c.Myself.UUID {
@@ -78,7 +77,7 @@ func repair_image(path string, extension string, hash string,
 		img, err := n.RetrieveImage(hash, "full", extension)
 		if err != nil {
 			// doesn't have it
-			fmt.Printf("node %s does not have a copy of the desired image\n", n.Nickname)
+			sl.Info(fmt.Sprintf("node %s does not have a copy of the desired image\n", n.Nickname))
 			continue
 		} else {
 			if !doublecheck_replica(img, hash) {
@@ -89,13 +88,13 @@ func repair_image(path string, extension string, hash string,
 			f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
 			if err != nil {
 				// can't open for writing!
-				fmt.Printf("could not open for writing: %s, %s\n",path,err)
+				sl.Err(fmt.Sprintf("could not open for writing: %s, %s\n",path,err))
 				return false, err
 			}
 			defer f.Close()
 			_, err = f.Write(img)
 			if err != nil {
-				fmt.Printf("could not write: %s, %s\n",path,err)
+				sl.Err(fmt.Sprintf("could not write: %s, %s\n",path,err))
 				return false, err
 			}
 			return true, nil
@@ -138,7 +137,7 @@ func clear_cached(path string, extension string) error {
 // and, if at all possible, those should be the ones at the front
 // of the list
 func rebalance(path string, extension string, hash string, c *cluster.Cluster,
-	s models.SiteConfig) error {
+	s models.SiteConfig, sl *syslog.Writer) error {
 	//    REBALANCE PHASE
 	var delete_local = true
 	var satisfied = false
@@ -159,7 +158,7 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 			} else {
 				// that node should have a copy, but doesn't so stash it
 				if n.Stash(path) {
-					fmt.Printf("replicated %s\n", path)
+					sl.Info(fmt.Sprintf("replicated %s\n", path))
 					found_replicas++
 				} else {
 					// couldn't stash to that node. not writeable perhaps.
@@ -178,30 +177,30 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 		}
 	}
 	if !satisfied {
-		fmt.Printf("could not replicate %s to %d nodes",path,s.Replication)
+		sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes",path,s.Replication))
 	} else {
-		fmt.Printf("%s has full replica set\n", path)
+		sl.Info(fmt.Sprintf("%s has full replica set\n", path))
 	}
 	if delete_local {
-		clean_up_excess_replica(path)
+		clean_up_excess_replica(path, sl)
 	}
 	return nil
 }
 
 // our node is not at the front of the list, so 
 // we have an excess copy. clean that up and make room!
-func clean_up_excess_replica(path string) {
+func clean_up_excess_replica(path string, sl *syslog.Writer) {
 	err := os.RemoveAll(filepath.Dir(path))
 	if err != nil {
-		fmt.Printf("could not clear out excess replica: %s\n", path)
-		fmt.Println(err.Error())
+		sl.Err(fmt.Sprintf("could not clear out excess replica: %s\n", path))
+		sl.Err(err.Error())
 	} else {
-		fmt.Printf("cleared excess replica: %s\n", path)
+		sl.Info(fmt.Sprintf("cleared excess replica: %s\n", path))
 	}
 }
 
 func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
-	s models.SiteConfig) error {
+	s models.SiteConfig, sl *syslog.Writer) error {
 	// all we care about is the "full" version of each
 	if f.IsDir() {
 		return nil
@@ -224,11 +223,11 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 	io.WriteString(h, string(d))
 	ahash := fmt.Sprintf("%x", h.Sum(nil))
 
-	err = verify(path, extension, hash, ahash, c)
+	err = verify(path, extension, hash, ahash, c, sl)
 	if err != nil {
 		return err
 	}
-	err = rebalance(path, extension, hash, c, s)
+	err = rebalance(path, extension, hash, c, s, sl)
 	if err != nil {
 		return err
 	}
@@ -242,18 +241,14 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 }
 
 // makes a closure that has access to the cluster and config
-func makeVisitor(fn func(string, os.FileInfo, error, *cluster.Cluster, models.SiteConfig) error,
-	c *cluster.Cluster, s models.SiteConfig) func(path string, f os.FileInfo, err error) error {
+func makeVisitor(fn func(string, os.FileInfo, error, *cluster.Cluster, models.SiteConfig, *syslog.Writer) error,
+	c *cluster.Cluster, s models.SiteConfig, sl *syslog.Writer) func(path string, f os.FileInfo, err error) error {
 	return func(path string, f os.FileInfo, err error) error {
-		return fn(path, f, err, c, s)
+		return fn(path, f, err, c, s, sl)
 	}
 }
 
-func Verify(c *cluster.Cluster, s models.SiteConfig) {
-	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
-	if err != nil {
-		log.Fatal("couldn't log to syslog")
-	}
+func Verify(c *cluster.Cluster, s models.SiteConfig, sl *syslog.Writer) {
 	sl.Info("starting verifier")
 
 	rand.Seed(int64(time.Now().Unix()) + int64(int(s.Port)))
@@ -266,9 +261,9 @@ func Verify(c *cluster.Cluster, s models.SiteConfig) {
 		sl.Info("verifier starting at the top")
 
 		root := s.UploadDirectory
-		err := filepath.Walk(root, makeVisitor(visit, c, s))
+		err := filepath.Walk(root, makeVisitor(visit, c, s, sl))
 		if err != nil {
-			fmt.Printf("filepath.Walk() returned %v\n", err)
+			sl.Info(fmt.Sprintf("filepath.Walk() returned %v\n", err))
 		}
 	}
 }
