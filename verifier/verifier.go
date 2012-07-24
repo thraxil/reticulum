@@ -207,6 +207,11 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 			sl.Err(fmt.Sprintf("%v", r))
 		}
 	}()
+	if err != nil {
+		sl.Err(fmt.Sprintf("verifier.visit was handed an error: %s", err.Error()))
+		return err
+	}
+
 	// all we care about is the "full" version of each
 	if f.IsDir() {
 		return nil
