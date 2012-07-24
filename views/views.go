@@ -15,7 +15,6 @@ import (
 	"image/png"
 	"io"
 	"io/ioutil"
-	"log"
 	"log/syslog"
 	"net/http"
 	"os"
@@ -85,7 +84,7 @@ func retrieveImage(c *cluster.Cluster, ahash string, size string, extension stri
 }
 
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels) {
+	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -192,7 +191,7 @@ var extmimes = map[string]string{
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels) {
+	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 	if r.Method == "POST" {
 		if siteconfig.KeyRequired() {
 			if !siteconfig.ValidKey(r.FormValue("key")) {
@@ -232,7 +231,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 		}
 		b, err := json.Marshal(id)
 		if err != nil {
-			fmt.Println("error:", err)
+			sl.Err(err.Error())
 		}
 		w.Write(b)
 	} else {
@@ -251,7 +250,7 @@ type StatusPage struct {
 }
 
 func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels) {
+	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 	p := StatusPage{
 		Title:   "Status",
 		Config:  siteconfig,
@@ -262,7 +261,7 @@ func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 }
 
 func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels) {
+	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 	if r.Method != "POST" {
 		http.Error(w, "POST only", 400)
 		return
@@ -287,7 +286,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 }
 
 func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels) {
+	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 	// request will look like /retrieve_info/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) != 6) || (parts[1] != "retrieve_info") {
@@ -311,14 +310,14 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cl
 
 	b, err := json.Marshal(node.ImageInfoResponse{ahash, extension, local})
 	if err != nil {
-		fmt.Println("error:", err)
+		sl.Err(err.Error())
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 }
 
 func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels) {
+	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 
 	// request will look like /retrieve/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
@@ -402,12 +401,8 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 	c *cluster.Cluster, siteconfig models.SiteConfig,
-	channels models.SharedChannels) {
+	channels models.SharedChannels, sl *syslog.Writer) {
 	if r.Method == "POST" {
-		sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
-		if err != nil {
-			log.Fatal("couldn't log to syslog")
-		}
 		sl.Info("in AnnounceHandler(POST)")
 
 		// another node is announcing themselves to us
@@ -436,7 +431,7 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 
 		} else {
 			// otherwise, add them to the Neighbors list
-			fmt.Println("adding neighbor")
+			sl.Info("adding neighbor")
 			nd := node.NodeData{
 				Nickname: r.FormValue("nickname"),
 				UUID:     r.FormValue("uuid"),
@@ -462,7 +457,7 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {
-		fmt.Println("error:", err)
+		sl.Err(err.Error())
 	}
 	w.Write(b)
 }

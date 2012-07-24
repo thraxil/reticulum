@@ -16,11 +16,12 @@ import (
 	"time"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *cluster.Cluster, models.SiteConfig, models.SharedChannels),
+func makeHandler(fn func(http.ResponseWriter, *http.Request, *cluster.Cluster,
+	models.SiteConfig, models.SharedChannels, *syslog.Writer),
 	c *cluster.Cluster, siteconfig models.SiteConfig,
-	channels models.SharedChannels) http.HandlerFunc {
+	channels models.SharedChannels, sl *syslog.Writer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, c, siteconfig, channels)
+		fn(w, r, c, siteconfig, channels, sl)
 	}
 }
 
@@ -78,13 +79,13 @@ func main() {
 	go verifier.Verify(c, siteconfig, sl)
 
 	// set up HTTP Handlers
-	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels))
-	http.HandleFunc("/stash/", makeHandler(views.StashHandler, c, siteconfig, channels))
-	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, c, siteconfig, channels))
-	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, c, siteconfig, channels))
-	http.HandleFunc("/retrieve_info/", makeHandler(views.RetrieveInfoHandler, c, siteconfig, channels))
-	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, c, siteconfig, channels))
-	http.HandleFunc("/status/", makeHandler(views.StatusHandler, c, siteconfig, channels))
+	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels, sl))
+	http.HandleFunc("/stash/", makeHandler(views.StashHandler, c, siteconfig, channels, sl))
+	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, c, siteconfig, channels, sl))
+	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, c, siteconfig, channels, sl))
+	http.HandleFunc("/retrieve_info/", makeHandler(views.RetrieveInfoHandler, c, siteconfig, channels, sl))
+	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, c, siteconfig, channels, sl))
+	http.HandleFunc("/status/", makeHandler(views.StatusHandler, c, siteconfig, channels, sl))
 	http.HandleFunc("/favicon.ico", views.FaviconHandler)
 
 	// everything is ready, let's go
