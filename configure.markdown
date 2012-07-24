@@ -42,19 +42,52 @@ to have a format something like that.
 
 ### Port
 
+The TCP port to listen on. 
+
 ### UploadDirectory
+
+Directory to store uploaded images. If it does not start with `/`, it
+will be relative to the directory that reticulum is started from. You
+probably want to give it an absolute path though.
 
 ### NumResizeWorkers
 
+Maximum number of simultaneous resize operations to allow. If this is
+the only node on a system, you probably want it somewhere around as
+many CPU cores as you have. Experiment and benchmark for best results
+though. 
+
 ### Replication
+
+Number of copies of each uploaded image it will try to maintain. Make
+sure this is the same for every node in your cluster. Otherwise, they
+will eternally replicate and clean up after each other. 
 
 ### GossiperSleep
 
+How many seconds to sleep in between gossip pings. 
+
 ### VerifierSleep
+
+How many seconds to sleep in between the verification of each image in
+the uploads directory. Increase this if reticulum is wasting too much
+time and CPU verifying and rebalancing your images.
 
 ### Writeable
 
+Will this node accept images? You can potentially run a read-only node
+that will accept new images but will still serve the ones that it
+has. This is appropriate if you've got a full disk or want to serve
+from a read-only data store. 
+
 ### Neighbors
+
+List of known neighbors to start with. Each has `Nickname`, `UUID`,
+`BaseUrl`, and `Writeable` fields. `Nickname` and `Writeable` are
+advisory only. `UUID` and `BaseUrl` are necessary to bootstrap the
+cluster. It doesn't need to know about the entire cluster here since
+the gossiper will eventually find out about everyone, but this lets
+the node start participating as soon as it starts up. 
 
 ## Example Config
 
