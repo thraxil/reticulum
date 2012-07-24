@@ -3,7 +3,6 @@ package cluster
 import (
 	"../node"
 	"fmt"
-	"log"
 	"log/syslog"
 	"math/rand"
 	"sort"
@@ -84,13 +83,7 @@ func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 }
 
 func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
-	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
-	if err != nil {
-		log.Fatal("couldn't log to syslog")
-	}
-	sl.Info("outer UpdateNeighbor()")
 	c.chF <- func() {
-		sl.Info("inner UpdateNeighbor()")
 		for i := range c.Neighbors {
 			if c.Neighbors[i].UUID == neighbor.UUID {
 				c.Neighbors[i].Nickname = neighbor.Nickname
@@ -102,7 +95,6 @@ func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
 				}
 			}
 		}
-		sl.Info("UpdateNeighbor() done")
 	}
 }
 
@@ -257,18 +249,15 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 			time.Sleep(time.Duration(base_time+jitter) * time.Second)
 			sl.Info(fmt.Sprintf("node %s pinging %s", c.Myself.Nickname, n.Nickname))
 			resp, err := n.Ping(c.Myself)
-			sl.Info("after ping")
 			if err != nil {
 				sl.Info(fmt.Sprintf("error on node %s pinging %s", c.Myself.Nickname, n.Nickname))
 				continue
 			}
-			sl.Info("here")
 			// UUID and BaseUrl must be the same
 			n.Writeable = resp.Writeable
 			n.Nickname = resp.Nickname
 			n.Location = resp.Location
 			for _, neighbor := range resp.Neighbors {
-				sl.Info(fmt.Sprintf("%v", neighbor))
 				if neighbor.UUID == c.Myself.UUID {
 					// as usual, skip ourself
 					continue

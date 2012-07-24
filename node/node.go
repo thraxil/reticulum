@@ -155,7 +155,6 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 	if err != nil {
 		log.Fatal("couldn't log to syslog")
 	}
-	sl.Info("in Ping()")
 	params := url.Values{}
 	params.Set("uuid", originator.UUID)
 	params.Set("nickname", originator.Nickname)
@@ -186,7 +185,7 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 	err = json.Unmarshal(b, &response)
 	if err != nil {
 		sl.Err("bad json response")
+		sl.Err(fmt.Sprintf("%s", b))
 	}
-	sl.Info("done with Ping()")
 	return response, nil
 }

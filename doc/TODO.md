@@ -1,4 +1,5 @@
-== single node features ==
+single node features
+====================
 
 * https support
 * specify file upload permissions other than default 755/644
@@ -45,10 +46,9 @@
 * read repair: when a node serves up an image, start a background job
   that runs a verify/rebalance on the image.
 * memcached caching of scaled images (for front-line nodes)
-* recover() panics on requests (ie, don't let a 500 error crash the
-  server or a worker)
 
-== cluster features ==
+cluster features
+================
 
 * shared secret for security
 * location aware replication. Ie, you've got multiple datacenters
@@ -69,7 +69,8 @@
 * timeouts EVERYWHERE. if a node doesn't respond within a set time,
 	consider it dead.
 
-== R&D ==
+R&D
+===
 
 * experiment with just using Riak for image storing via its luwak file
   storage. The problem with this is probably that resizing again
