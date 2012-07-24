@@ -240,11 +240,7 @@ func hashOrder(hash string, size int, ring []RingEntry) []node.NodeData {
 
 // periodically pings all the known neighbors to gossip
 // run this as a goroutine
-func (c *Cluster) Gossip(i, base_time int) {
-	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
-	if err != nil {
-		log.Fatal("couldn't log to syslog")
-	}
+func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 	sl.Info("starting gossiper")
 
 	rand.Seed(int64(time.Now().Unix()) + int64(i))

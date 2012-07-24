@@ -73,7 +73,7 @@ func main() {
 	}
 
 	// start our gossiper
-	go c.Gossip(int(f.Port), siteconfig.GossiperSleep)
+	go c.Gossip(int(f.Port), siteconfig.GossiperSleep, sl)
 
 	go verifier.Verify(c, siteconfig)
 
