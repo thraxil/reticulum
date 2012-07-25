@@ -10,17 +10,10 @@ github issues.
 
 ### single node features
 
-* https support
-* specify file upload permissions other than default 755/644
 * include hash-type in exposed hashes. eg: "sha1-0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"
 * secure url "drm" options
-* allow suggested image sizes upon upload. Ie, a client knows that particular sizes are likely to be requested in the future so it might as well create them beforehand.
-* more flexible/robust handling of BaseUrls (http:// optional, trailing slashes optional, default to port 80, etc) 
-* look at available disk space and automatically switch to non-writeable when past a configured threshold to avoid filling disks.
-* allow lowercase parameter names in config file
 * enable multicore support
 * version API
-* option to write out/serialize config file with updated neighbor list
 * configurable jitter range for gossiper
 * configurable path to convert (until image/jpeg supports progressive jpgs)
 * entropy based cropping (find the part of the image with the most entropy and crop so that ends up in the center)
