@@ -36,6 +36,33 @@ This section documents how nodes talk to each other.
 
 ### Image Stash
 
+What an image is uploaded (or the verifier rebalances), replicas are
+handed off to other nodes via a stash. This is very similar to the
+regular client upload. Just a POST request to `/stash/` with the
+image. Response is just success/failure.
+
 ### Image Retrieval
 
+When a node has a request for an image and doesn't have it locally, it
+will ask one or more other nodes for the image (using the ring to make
+an educated guess about which node(s) are likeliest to have a
+copy). It does this by making a `GET` request to
+`/retrieve/<hash>/<size>/<ext>/`. Response will be either a 404 or the
+desired image. 
+
 ### Gossip
+
+Each node periodically goes through it's list of known neighbors and
+pings each one. This ping is a two-way street. When node A pings node
+B, it sends its own info as well as the list of neighbors that it
+knows about. Node B will update its neighbor list based on that
+(updating the LastSeen timestamp for Node A and adding any neighbors
+from A's list that were not already in its own list). Node B responds
+to the ping with its info and its list of known neighbors and A
+handles that information similarly, updating LastSeen for B, and
+merging in the neighbor list from B. 
+
+The mechanism is just a `POST` request from A to B's `/announce/`
+URL. The `POST` parameters are the basic info about node A (UUID,
+BaseUrl, Writeable, etc) and the response is JSON with B's info and
+neighbor list. 
