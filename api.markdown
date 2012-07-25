@@ -7,6 +7,8 @@ layout: layout
 
 ## Public API
 
+### Upload
+
 To add an image to the cluster make a `POST` request to `/`. The only
 required parameter is `image` and it should be
 `multipart/form-data`. A sample `curl`:
@@ -25,6 +27,43 @@ retrieve the image from the cluster), the path to the full-size image
 (redundant since you get the hash, but handy for manual testing), and
 a list of the nodes that the image was stored to (again, mostly for
 manual testing).
+
+### Get an Image
+
+You need the hash of image (which Reticulum gives you when you
+upload), the extension, and the specification of the size you
+want. Then just make a `GET` request like: 
+
+			GET http://reticulum.example.com/image/<hash>/<size>/image.<extension>
+
+The "image.<extension>" part can also be changed. Any string can be
+used as the base of the filename. Reticulum doesn't keep track of what
+the original filename was, but if your client does, that might be a
+good place to put it. The only real advantage to doing that is if
+there are reticulum served images in a page and you want to let users
+right-click and download them, you can make it so they don't end up
+with `image.jpg`, `image (1).jpg`, `image (2).jpg`, etc.
+
+#### Sizes
+
+Sizes are specified in a simple way. There are three different
+parameters: `width`, `height`, and `square`. Width and height can be
+specified individually or together. If `square` is specified, any
+`width` or `height` specs are ignored.
+
+Each parameter has a one-letter code (`w`, `h`, and `s`, respectively)
+and an integer value. They are put together with the with number
+first, then the code. Examples should make this very clear:
+
+    100w = scale the image so it's at most 100px wide
+    200h = scale the image so it's at most 200px tall
+    600s = crop and scale the image to a square that's at most 600px
+    100w100h = scale the image so it's at most 100px on a side (no cropping)
+
+If specifying both `w` and `h`, always specify `w` first. This isn't
+enforced currently, but may be in the future (via 301 redirects).
+
+### Cluster Status
 
 There is also a `/status` URL available on each node that gives a
 rough, human-readable summary of the node's status and what it knows
