@@ -34,9 +34,9 @@ You need the hash of image (which Reticulum gives you when you
 upload), the extension, and the specification of the size you
 want. Then just make a `GET` request like: 
 
-			GET http://reticulum.example.com/image/<hash>/<size>/image.<extension>
+    GET http://reticulum.example.com/image/<hash>/<size>/image.<extension>
 
-The "image.<extension>" part can also be changed. Any string can be
+The `image.<extension>` part can also be changed. Any string can be
 used as the base of the filename. Reticulum doesn't keep track of what
 the original filename was, but if your client does, that might be a
 good place to put it. The only real advantage to doing that is if
