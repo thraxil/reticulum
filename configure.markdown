@@ -108,6 +108,16 @@ need to have imagemagick installed. Reticulum defaults to
 `/usr/bin/convert` as the path to the `convert` program. If that is
 not the case on your system, change the path here.
 
+### MemcacheServers
+
+It's a very good idea to set up your front-line node(s) to use
+memcached so images that have been served up recently will be
+available directly in RAM. This will make a huge difference in almost
+any setup. This field just takes a list of strings of memcache
+"IP:PORT" servers. See the
+[gomemcache](https://github.com/bradfitz/gomemcache/) for more
+info. This just gets passed directly to `memcache.New()`. 
+
 ### Neighbors
 
 List of known neighbors to start with. Each has `Nickname`, `UUID`,
@@ -130,6 +140,7 @@ This is just an example from the `test` directory:
     "GossiperSleep" : 10,
     "VerifierSleep" : 60,
     "Writeable" : true,
+    "MemcacheServers" : ["127.0.0.1:11211"],
     "Neighbors": [
                  {"Nickname": "node1",
                  "UUID": "uuid-node-1",

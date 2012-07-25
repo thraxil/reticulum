@@ -23,10 +23,14 @@ Otherwise clone it and do
 
 and that will create a `reticulum` binary for your platform.
 
-The only non standard library dependency it has is `resize` available
+The only non standard library dependencies it has is `resize` available
 with 
 
     go get github.com/thraxil/reticulum
+
+And `memcache`: 
+
+    go get github.com/bradfitz/gomemcache/memcache
 
 ## Download Binaries
 
