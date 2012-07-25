@@ -88,13 +88,13 @@ func repair_image(path string, extension string, hash string,
 			f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
 			if err != nil {
 				// can't open for writing!
-				sl.Err(fmt.Sprintf("could not open for writing: %s, %s\n",path,err))
+				sl.Err(fmt.Sprintf("could not open for writing: %s, %s\n", path, err))
 				return false, err
 			}
 			defer f.Close()
 			_, err = f.Write(img)
 			if err != nil {
-				sl.Err(fmt.Sprintf("could not write: %s, %s\n",path,err))
+				sl.Err(fmt.Sprintf("could not write: %s, %s\n", path, err))
 				return false, err
 			}
 			return true, nil
@@ -121,8 +121,12 @@ func clear_cached(path string, extension string) error {
 	}
 	var successful_purge = true
 	for _, file := range files {
-		if file.IsDir() { continue }
-		if file.Name() == "full" + extension { continue }
+		if file.IsDir() {
+			continue
+		}
+		if file.Name() == "full"+extension {
+			continue
+		}
 		err := os.Remove(filepath.Join(filepath.Dir(path), file.Name()))
 		successful_purge = successful_purge && (err == nil)
 	}
@@ -177,7 +181,7 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 		}
 	}
 	if !satisfied {
-		sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes",path,s.Replication))
+		sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes", path, s.Replication))
 	} else {
 		sl.Info(fmt.Sprintf("%s has full replica set\n", path))
 	}

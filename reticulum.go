@@ -30,7 +30,7 @@ func Log(handler http.Handler, logger *syslog.Writer) http.Handler {
 		defer func() {
 			if rc := recover(); rc != nil {
 				fmt.Println("Server Error", rc)
-				logger.Err(fmt.Sprintf("%s",r.URL))
+				logger.Err(fmt.Sprintf("%s", r.URL))
 			}
 		}()
 		t0 := time.Now()

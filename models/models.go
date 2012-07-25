@@ -62,7 +62,7 @@ func (c ConfigData) MyConfig() SiteConfig {
 		NumResizeWorkers: numWorkers,
 		Replication:      replication,
 		GossiperSleep:    gossiper_sleep,
- 	VerifierSleep:      verifier_sleep,
+		VerifierSleep:    verifier_sleep,
 	}
 }
 

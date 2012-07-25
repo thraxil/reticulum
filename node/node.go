@@ -79,7 +79,7 @@ func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]
 type ImageInfoResponse struct {
 	Hash      string `json:"hash"`
 	Extension string `json:"extension"`
-	Local bool `json:"local"`
+	Local     bool   `json:"local"`
 }
 
 func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string) (*ImageInfoResponse, error) {
@@ -102,7 +102,6 @@ func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string)
 	}
 	return &response, nil
 }
-
 
 func postFile(filename string, target_url string) (*http.Response, error) {
 	body_buf := bytes.NewBufferString("")
