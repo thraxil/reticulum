@@ -59,9 +59,27 @@ though.
 
 ### Replication
 
-Number of copies of each uploaded image it will try to maintain. Make
-sure this is the same for every node in your cluster. Otherwise, they
-will eternally replicate and clean up after each other. 
+Number of copies of each uploaded image it will try to maintain. 
+
+### MinReplication
+
+Number of replicas created on upload to consider "success". In the
+future, once a node has confirmed that at least MinReplication nodes
+have stored an image, it will return a success value to the client and
+allow any other stashing (to fully satisfy `Replication`) to happen in
+the background.
+
+### MaxReplication
+
+When the verifier runs, for each image, it checks to see how many
+nodes have copies. Ideally, this is `Replication`. With nodes joining
+and leaving, there can sometimes be more replicas in the cluster than
+you wanted. `MaxReplication` sets the threshold at which the verifier
+starts cleaning up excess replicas. You generally want to set this
+equal to or a little bit higher than `Replication`. Overall, your
+entire cluster should basically agree on `Replication`,
+`MinReplication`, and `MaxReplication` values to avoid unnecessary
+churn. 
 
 ### GossiperSleep
 
@@ -79,6 +97,16 @@ Will this node accept images? You can potentially run a read-only node
 that will accept new images but will still serve the ones that it
 has. This is appropriate if you've got a full disk or want to serve
 from a read-only data store. 
+
+### ImageMagickConvertPath
+
+Reticulum grudgingly uses imagemagick's `convert` program to scale
+progressive JPEGs since Go's included `image/jpeg` library cannot read
+or write them. This is something that we hope to change in the future
+once Go's standard library fills in that void. In the meantime, you
+need to have imagemagick installed. Reticulum defaults to
+`/usr/bin/convert` as the path to the `convert` program. If that is
+not the case on your system, change the path here.
 
 ### Neighbors
 
