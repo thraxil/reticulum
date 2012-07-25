@@ -14,34 +14,15 @@ github issues.
 * secure url "drm" options
 * enable multicore support
 * version API
-* configurable jitter range for gossiper
-* configurable path to convert (until image/jpeg supports progressive jpgs)
 * entropy based cropping (find the part of the image with the most entropy and crop so that ends up in the center)
-* pull an image from a URL as an alternative to uploading
-* handle etags + if-modified-since headers
 * send image dimensions in HTTP headers
-* detect noop resizes and 301 redirect to an existing one (ie, if they ask for a scaled image that's larger than the full-size)
-* background goroutines for stashing replicas
-* safe removal of node from cluster. It would mark itself as read-only, then walk its store of images and make sure they are each at the desired replication rate on other nodes if possible.
 * node generation boilerplace command (like 'tahoe create')
-* delete image functionality. This must be advisory only since it's always possible that an uploaded image has a replica on a node that is currently unreachable. Permanent delete would require maintaining (and sharing) a blacklist.
 * the resize library should support a fast vs good toggle to allow it
 * to resize via google's graphics-go (fast) or the better looking, but significantly slower resize algo. Then the node can make executive decisions like "a 50px thumbnail does not need to look that good" or do multi-stage resize like apomixis did.
 * listen for a HUP signal to re-read config 
 * uuid generation tool
 * read repair: when a node serves up an image, start a background job that runs a verify/rebalance on the image.
-* memcached caching of scaled images (for front-line nodes)
-* recover() panics on requests (ie, don't let a 500 error crash the server or a worker)
 
-### cluster features
-
-* shared secret for security
-* location aware replication. Ie, you've got multiple datacenters where nodes run and you want to make sure that uploaded images always get stored to each datacenter in addition to the basic replication level. This provides basic disaster recovery support. 
-* bloom filters on 404s. Currently, when a node gets a request for an image it doesn't have, it will go through all its neighbors looking for a copy. In the case of a 'true' 404 where the image isn't in the cluster at all, that's expensive. A bloom filter tracking all images that the cluster has seen could let us cut our losses quicker and give the user a 404 without having to poll every single node.
-* full gossip: get neighbor list from neighbors and merge
-* expunge a non-responding neighbor from the list after some period (or just apply a circuit breaker pattern and ping them less and less frequently)
-* weight nodes (is this a good idea?)
-* timeouts EVERYWHERE. if a node doesn't respond within a set time, consider it dead.
 
 ### R&D
 
