@@ -161,22 +161,26 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 				found_replicas++
 			} else {
 				// that node should have a copy, but doesn't so stash it
-				if n.Stash(path) {
-					sl.Info(fmt.Sprintf("replicated %s\n", path))
-					found_replicas++
-				} else {
-					// couldn't stash to that node. not writeable perhaps.
-					// not really our problem to deal with, but we do want
-					// to make sure that another node gets a copy
-					// so we don't increment found_replicas
+				if !satisfied {
+					if n.Stash(path) {
+						sl.Info(fmt.Sprintf("replicated %s\n", path))
+						found_replicas++
+					} else {
+						// couldn't stash to that node. not writeable perhaps.
+						// not really our problem to deal with, but we do want
+						// to make sure that another node gets a copy
+						// so we don't increment found_replicas
+					}
 				}
 			}
 		}
 		if found_replicas >= s.Replication {
+			satisfied = true
+		}
+		if found_replicas >= s.MaxReplication {
 			// nothing more to do. other nodes that have excess
 			// copies are responsible for deletion. Our job
 			// is just to make sure the first N nodes have a copy
-			satisfied = true
 			break
 		}
 	}

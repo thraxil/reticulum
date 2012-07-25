@@ -148,7 +148,7 @@ func (c Cluster) WriteRing() RingEntryList {
 	return neighborsToRing(c.WriteableNeighbors())
 }
 
-func (cluster *Cluster) Stash(ahash string, filename string, replication int) []string {
+func (cluster *Cluster) Stash(ahash string, filename string, replication int, min_replication int) []string {
 	// we don't have the full-size, so check the cluster
 	nodes_to_check := cluster.WriteOrder(ahash)
 	saved_to := make([]string, replication)
@@ -161,6 +161,9 @@ func (cluster *Cluster) Stash(ahash string, filename string, replication int) []
 			saved_to[save_count] = n.Nickname
 			save_count++
 		}
+		// TODO: if we've hit min_replication, we can return
+		// immediately and leave any additional stash attempts
+		// as background processes
 		// that node didn't have it so we keep going
 		if save_count >= replication {
 			// got as many as we need

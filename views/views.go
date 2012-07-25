@@ -219,14 +219,14 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 		// at some point in the future.
 
 		// now stash it to other nodes in the cluster too
-		nodes := c.Stash(ahash, fullpath, siteconfig.Replication)
+		nodes := c.Stash(ahash, fullpath, siteconfig.Replication, siteconfig.MinReplication)
 
 		id := ImageData{
 			Hash:      ahash,
 			Length:    n,
 			Extension: ext,
 			FullUrl:   "/image/" + ahash + "/full/image." + ext,
-			Satisfied: len(nodes) >= siteconfig.Replication,
+			Satisfied: len(nodes) >= siteconfig.MinReplication,
 			Nodes:     nodes,
 		}
 		b, err := json.Marshal(id)

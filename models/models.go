@@ -19,6 +19,8 @@ type ConfigData struct {
 	UploadDirectory  string
 	Neighbors        []node.NodeData
 	Replication      int
+  MinReplication   int
+	MaxReplication   int
 	GossiperSleep    int
 	VerifierSleep    int
 }
@@ -46,6 +48,15 @@ func (c ConfigData) MyConfig() SiteConfig {
 	if replication < 1 {
 		replication = 1
 	}
+	// these default to replication if not set
+	min_replication := c.MinReplication
+	if min_replication < 1 {
+		min_replication = replication
+	}
+	max_replication := c.MaxReplication
+	if max_replication < 1 {
+		max_replication = replication
+	}
 	gossiper_sleep := c.GossiperSleep
 	if gossiper_sleep < 1 {
 		// default to 60 seconds
@@ -61,6 +72,8 @@ func (c ConfigData) MyConfig() SiteConfig {
 		UploadDirectory:  c.UploadDirectory,
 		NumResizeWorkers: numWorkers,
 		Replication:      replication,
+	  MinReplication:   min_replication,
+		MaxReplication:   max_replication,
 		GossiperSleep:    gossiper_sleep,
 		VerifierSleep:    verifier_sleep,
 	}
@@ -74,6 +87,8 @@ type SiteConfig struct {
 	UploadDirectory  string
 	NumResizeWorkers int
 	Replication      int
+	MinReplication   int
+	MaxReplication   int
 	GossiperSleep    int
 	VerifierSleep    int
 }
