@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/bradfitz/gomemcache/memcache"
 	"html/template"
 	"image/jpeg"
 	"image/png"
@@ -85,7 +86,7 @@ func retrieveImage(c *cluster.Cluster, ahash string, size string, extension stri
 }
 
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -103,12 +104,23 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 		return
 	}
 
+	memcache_key := ahash + "/" + size + "/image" + extension
+	// check memcached first
+	item, err := mc.Get(memcache_key)
+	if err == nil {
+		sl.Info("Cache Hit")
+		w.Header().Set("Content-Type", extmimes[extension[1:]])
+		w.Write(item.Value)
+		return
+	}
+
 	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
 	path := baseDir + "/full" + extension
 	sizedPath := baseDir + "/" + size + extension
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
+		mc.Set(&memcache.Item{Key: memcache_key, Value: contents})
 		// we've got it, so serve it directly
 		w.Header().Set("Content-Type", extmimes[extension[1:]])
 		w.Write(contents)
@@ -124,6 +136,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
 		} else {
+			mc.Set(&memcache.Item{Key: memcache_key, Value: img_data})
 			w.Header().Set("Content-Type", extmimes[extension[1:]])
 			w.Write(img_data)
 		}
@@ -145,6 +158,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 		// the sized file
 		w.Header().Set("Content-Type", extmimes[extension])
 		img_contents, _ := ioutil.ReadFile(sizedPath)
+		mc.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 		w.Write(img_contents)
 		return
 	}
@@ -161,6 +175,8 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 	if extension == ".jpg" {
 		jpeg.Encode(wFile, outputImage, &jpeg_options)
 		jpeg.Encode(w, outputImage, &jpeg_options)
+		img_contents, _ := ioutil.ReadFile(sizedPath)
+		mc.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 		return
 	}
 	if extension == ".gif" {
@@ -169,11 +185,15 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 		// :(
 		png.Encode(wFile, outputImage)
 		png.Encode(w, outputImage)
+		img_contents, _ := ioutil.ReadFile(sizedPath)
+		mc.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 		return
 	}
 	if extension == ".png" {
 		png.Encode(wFile, outputImage)
 		png.Encode(w, outputImage)
+		img_contents, _ := ioutil.ReadFile(sizedPath)
+		mc.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 		return
 	}
 
@@ -192,7 +212,7 @@ var extmimes = map[string]string{
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
 	if r.Method == "POST" {
 		if siteconfig.KeyRequired() {
 			if !siteconfig.ValidKey(r.FormValue("key")) {
@@ -251,7 +271,7 @@ type StatusPage struct {
 }
 
 func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
 	p := StatusPage{
 		Title:   "Status",
 		Config:  siteconfig,
@@ -262,7 +282,7 @@ func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 }
 
 func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
 	if r.Method != "POST" {
 		http.Error(w, "POST only", 400)
 		return
@@ -287,7 +307,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 }
 
 func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
 	// request will look like /retrieve_info/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) != 6) || (parts[1] != "retrieve_info") {
@@ -318,7 +338,7 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cl
 }
 
 func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
 
 	// request will look like /retrieve/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
@@ -402,7 +422,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 	c *cluster.Cluster, siteconfig config.SiteConfig,
-	channels models.SharedChannels, sl *syslog.Writer) {
+	channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
 	if r.Method == "POST" {
 		sl.Info("in AnnounceHandler(POST)")
 

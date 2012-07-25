@@ -23,6 +23,7 @@ type ConfigData struct {
 	GossiperSleep          int
 	VerifierSleep          int
 	ImageMagickConvertPath string
+	MemcacheServers        []string
 }
 
 func (c ConfigData) MyNode() node.NodeData {
@@ -83,6 +84,7 @@ func (c ConfigData) MyConfig() SiteConfig {
 		GossiperSleep:          gossiper_sleep,
 		VerifierSleep:          verifier_sleep,
 		ImageMagickConvertPath: convert_path,
+		MemcacheServers:        c.MemcacheServers,
 	}
 }
 
@@ -99,6 +101,7 @@ type SiteConfig struct {
 	GossiperSleep          int
 	VerifierSleep          int
 	ImageMagickConvertPath string
+	MemcacheServers        []string
 }
 
 func (s SiteConfig) KeyRequired() bool {

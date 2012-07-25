@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/bradfitz/gomemcache/memcache"
 	"io/ioutil"
 	"log"
 	"log/syslog"
@@ -18,11 +19,11 @@ import (
 )
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, *cluster.Cluster,
-	config.SiteConfig, models.SharedChannels, *syslog.Writer),
+	config.SiteConfig, models.SharedChannels, *syslog.Writer, *memcache.Client),
 	c *cluster.Cluster, siteconfig config.SiteConfig,
-	channels models.SharedChannels, sl *syslog.Writer) http.HandlerFunc {
+	channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, c, siteconfig, channels, sl)
+		fn(w, r, c, siteconfig, channels, sl, mc)
 	}
 }
 
@@ -85,14 +86,15 @@ func main() {
 
 	go verifier.Verify(c, siteconfig, sl)
 
+	mc := memcache.New(siteconfig.MemcacheServers...)
 	// set up HTTP Handlers
-	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels, sl))
-	http.HandleFunc("/stash/", makeHandler(views.StashHandler, c, siteconfig, channels, sl))
-	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, c, siteconfig, channels, sl))
-	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, c, siteconfig, channels, sl))
-	http.HandleFunc("/retrieve_info/", makeHandler(views.RetrieveInfoHandler, c, siteconfig, channels, sl))
-	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, c, siteconfig, channels, sl))
-	http.HandleFunc("/status/", makeHandler(views.StatusHandler, c, siteconfig, channels, sl))
+	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels, sl, mc))
+	http.HandleFunc("/stash/", makeHandler(views.StashHandler, c, siteconfig, channels, sl, mc))
+	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, c, siteconfig, channels, sl, mc))
+	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, c, siteconfig, channels, sl, mc))
+	http.HandleFunc("/retrieve_info/", makeHandler(views.RetrieveInfoHandler, c, siteconfig, channels, sl, mc))
+	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, c, siteconfig, channels, sl, mc))
+	http.HandleFunc("/status/", makeHandler(views.StatusHandler, c, siteconfig, channels, sl, mc))
 	http.HandleFunc("/favicon.ico", views.FaviconHandler)
 
 	// everything is ready, let's go

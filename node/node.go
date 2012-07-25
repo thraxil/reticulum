@@ -62,7 +62,7 @@ func (n NodeData) stashUrl() string {
 }
 
 func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]byte, error) {
-	resp, err := http.Get(n.retrieveInfoUrl(hash, size, extension))
+	resp, err := http.Get(n.retrieveUrl(hash, size, extension))
 	if err != nil {
 		n.LastFailed = time.Now()
 		return nil, err
