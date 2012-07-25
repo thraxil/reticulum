@@ -1,6 +1,6 @@
 all: reticulum
 
-reticulum: reticulum.go models/models.go views/views.go resize_worker/worker.go node/node.go cluster/cluster.go verifier/verifier.go
+reticulum: reticulum.go models/models.go views/views.go resize_worker/worker.go node/node.go cluster/cluster.go verifier/verifier.go config/config.go
 	go build reticulum.go
 
 test: reticulum
@@ -23,3 +23,4 @@ fmt:
 	go fmt models/models.go
 	go fmt cluster/cluster.go
 	go fmt node/node.go
+	go fmt config/config.go

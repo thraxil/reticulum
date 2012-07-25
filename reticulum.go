@@ -2,6 +2,7 @@ package main
 
 import (
 	"./cluster"
+	"./config"
 	"./models"
 	"./resize_worker"
 	"./verifier"
@@ -17,8 +18,8 @@ import (
 )
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, *cluster.Cluster,
-	models.SiteConfig, models.SharedChannels, *syslog.Writer),
-	c *cluster.Cluster, siteconfig models.SiteConfig,
+	config.SiteConfig, models.SharedChannels, *syslog.Writer),
+	c *cluster.Cluster, siteconfig config.SiteConfig,
 	channels models.SharedChannels, sl *syslog.Writer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, c, siteconfig, channels, sl)
@@ -48,16 +49,16 @@ func main() {
 	sl.Info("starting up")
 
 	// read the config file
-	var config string
-	flag.StringVar(&config, "config", "./config.json", "JSON config file")
+	var configfile string
+	flag.StringVar(&configfile, "config", "./config.json", "JSON config file")
 	flag.Parse()
 
-	file, err := ioutil.ReadFile(config)
+	file, err := ioutil.ReadFile(configfile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	f := models.ConfigData{}
+	f := config.ConfigData{}
 	err = json.Unmarshal(file, &f)
 	if err != nil {
 		log.Fatal(err)
@@ -76,7 +77,7 @@ func main() {
 	}
 
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
-		go resize_worker.ResizeWorker(channels.ResizeQueue, sl)
+		go resize_worker.ResizeWorker(channels.ResizeQueue, sl, &siteconfig)
 	}
 
 	// start our gossiper

@@ -1,6 +1,7 @@
 package resize_worker
 
 import (
+	"../config"
 	"fmt"
 	"github.com/thraxil/resize"
 	"image"
@@ -34,7 +35,7 @@ var decoders = map[string](func(io.Reader) (image.Image, error)){
 	"png": png.Decode,
 }
 
-func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer) {
+func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer, s *config.SiteConfig) {
 	for req := range requests {
 		sl.Info("handling a resize request")
 		t0 := time.Now()
@@ -50,7 +51,7 @@ func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer) {
 			origFile.Close()
 			sl.Err(fmt.Sprintf("could not find an appropriate decoder for %s (%s): %s", req.Path, req.Extension, err.Error()))
 			// try imagemagick
-			_, err := imageMagickResize(req.Path, req.Size, sl)
+			_, err := imageMagickResize(req.Path, req.Size, sl, s)
 			if err != nil {
 				// imagemagick couldn't handle it either
 				sl.Err(fmt.Sprintf("imagemagick couldn't handle it either: %s", err.Error()))
@@ -77,8 +78,9 @@ func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer) {
 // so sometimes we need to bail and have imagemagick do the work
 // this sucks, is redundant, and i'd rather not have this external dependency
 // so this will be removed as soon as Go can handle it all itself
-func imageMagickResize(path, size string, sl *syslog.Writer) (string, error) {
-	args := convertArgs(size, path)
+func imageMagickResize(path, size string, sl *syslog.Writer,
+	s *config.SiteConfig) (string, error) {
+	args := convertArgs(size, path, s)
 
 	fds := []*os.File{os.Stdin, os.Stdout, os.Stderr}
 	p, err := os.StartProcess(args[0], args, &os.ProcAttr{Files: fds})
@@ -102,8 +104,8 @@ func resizedPath(path, size string) string {
 	return d + "/" + size + extension
 }
 
-func convertArgs(size, path string) []string {
-	convertBin := "/usr/bin/convert"
+func convertArgs(size, path string, c *config.SiteConfig) []string {
+	convertBin := c.ImageMagickConvertPath
 	// need to convert our size spec to what convert expects
 	// we can ignore 'full' since that will never trigger
 	// a resize_worker request

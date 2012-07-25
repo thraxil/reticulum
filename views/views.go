@@ -2,6 +2,7 @@ package views
 
 import (
 	"../cluster"
+	"../config"
 	"../models"
 	"../node"
 	"../resize_worker"
@@ -84,7 +85,7 @@ func retrieveImage(c *cluster.Cluster, ahash string, size string, extension stri
 }
 
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -191,7 +192,7 @@ var extmimes = map[string]string{
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 	if r.Method == "POST" {
 		if siteconfig.KeyRequired() {
 			if !siteconfig.ValidKey(r.FormValue("key")) {
@@ -245,12 +246,12 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 
 type StatusPage struct {
 	Title   string
-	Config  models.SiteConfig
+	Config  config.SiteConfig
 	Cluster cluster.Cluster
 }
 
 func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 	p := StatusPage{
 		Title:   "Status",
 		Config:  siteconfig,
@@ -261,7 +262,7 @@ func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 }
 
 func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 	if r.Method != "POST" {
 		http.Error(w, "POST only", 400)
 		return
@@ -286,7 +287,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 }
 
 func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 	// request will look like /retrieve_info/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) != 6) || (parts[1] != "retrieve_info") {
@@ -317,7 +318,7 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cl
 }
 
 func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig models.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
+	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer) {
 
 	// request will look like /retrieve/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
@@ -400,7 +401,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 }
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request,
-	c *cluster.Cluster, siteconfig models.SiteConfig,
+	c *cluster.Cluster, siteconfig config.SiteConfig,
 	channels models.SharedChannels, sl *syslog.Writer) {
 	if r.Method == "POST" {
 		sl.Info("in AnnounceHandler(POST)")

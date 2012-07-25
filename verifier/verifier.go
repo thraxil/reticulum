@@ -2,7 +2,7 @@ package verifier
 
 import (
 	"../cluster"
-	"../models"
+	"../config"
 	"crypto/sha1"
 	"errors"
 	"fmt"
@@ -141,7 +141,7 @@ func clear_cached(path string, extension string) error {
 // and, if at all possible, those should be the ones at the front
 // of the list
 func rebalance(path string, extension string, hash string, c *cluster.Cluster,
-	s models.SiteConfig, sl *syslog.Writer) error {
+	s config.SiteConfig, sl *syslog.Writer) error {
 	//    REBALANCE PHASE
 	var delete_local = true
 	var satisfied = false
@@ -208,7 +208,7 @@ func clean_up_excess_replica(path string, sl *syslog.Writer) {
 }
 
 func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
-	s models.SiteConfig, sl *syslog.Writer) error {
+	s config.SiteConfig, sl *syslog.Writer) error {
 	defer func() {
 		if r := recover(); r != nil {
 			sl.Err(fmt.Sprintf("Error in verifier.visit() [%s] %s", c.Myself.Nickname, path))
@@ -260,14 +260,14 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 }
 
 // makes a closure that has access to the cluster and config
-func makeVisitor(fn func(string, os.FileInfo, error, *cluster.Cluster, models.SiteConfig, *syslog.Writer) error,
-	c *cluster.Cluster, s models.SiteConfig, sl *syslog.Writer) func(path string, f os.FileInfo, err error) error {
+func makeVisitor(fn func(string, os.FileInfo, error, *cluster.Cluster, config.SiteConfig, *syslog.Writer) error,
+	c *cluster.Cluster, s config.SiteConfig, sl *syslog.Writer) func(path string, f os.FileInfo, err error) error {
 	return func(path string, f os.FileInfo, err error) error {
 		return fn(path, f, err, c, s, sl)
 	}
 }
 
-func Verify(c *cluster.Cluster, s models.SiteConfig, sl *syslog.Writer) {
+func Verify(c *cluster.Cluster, s config.SiteConfig, sl *syslog.Writer) {
 	sl.Info("starting verifier")
 
 	rand.Seed(int64(time.Now().Unix()) + int64(int(s.Port)))
