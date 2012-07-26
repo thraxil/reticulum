@@ -24,3 +24,6 @@ fmt:
 	go fmt cluster/cluster.go
 	go fmt node/node.go
 	go fmt config/config.go
+
+install: reticulum
+	cp -f reticulum /usr/local/bin/reticulum
