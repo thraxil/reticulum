@@ -23,6 +23,13 @@ Otherwise clone it and do
 
 and that will create a `reticulum` binary for your platform.
 
+There is an 'install' target for make too that will plop it into
+`/usr/local/bin/`:
+
+    sudo make install
+
+### dependencies 
+
 The only non standard library dependencies it has is `resize` available
 with 
 
@@ -35,3 +42,33 @@ And `memcache`:
 ## Download Binaries
 
 TODO
+
+## Running
+
+The way I run it on my systems is via Ubuntu's `upstart` system. I
+make a file in `/etc/init/` called `reticulum.conf` with contents
+like:
+
+    description "start/stop reticulum"
+    version "1.0"
+    author "Anders Pearson"
+    
+    expect fork
+    script
+    exec sudo -u anders /usr/local/bin/reticulum -config=/mnt/sata1/reticulum/config.json &
+    end script
+
+And then do:
+
+    # start reticulum
+    # stop reticulum
+    # restart reticulum
+
+etc. Add it to default runlevels, whatever.
+
+See Ubuntu's [Upstart Cookbook](http://upstart.ubuntu.com/cookbook/)
+for more information on that whole system. Supervisord or SysV init or
+anything similar would also work fine. Recipe contributions are welcome.
+
+See the [configuration](configure.html) section for more info on what
+to put in the config.json. 
