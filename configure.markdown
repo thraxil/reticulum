@@ -132,62 +132,32 @@ the node start participating as soon as it starts up.
 This is just an example from the `test` directory:
 
 {% highlight javascript %}
-    {"Nickname": "node0",
-    "UUID" : "216ce54c-3555-4769-a34b-1085bc4cf042",
-    "Port" : 8080,
-    "UploadDirectory" : "test/uploads0/",
-    "NumResizeWorkers" : 4,
-    "Replication" : 3,
-    "GossiperSleep" : 10,
-    "VerifierSleep" : 60,
-    "Writeable" : true,
-    "MemcacheServers" : ["127.0.0.1:11211"],
-    "Neighbors": [
-                 {"Nickname": "node1",
-                 "UUID": "uuid-node-1",
-                 "BaseUrl": "localhost:8081",
-                 "Writeable": true
-                 },
-                 {"Nickname": "node2",
-                 "UUID": "uuid-node-2",
-                 "BaseUrl": "localhost:8082",
-                 "Writeable": true
-                 },
-                 {"Nickname": "node3",
-                 "UUID": "uuid-node-3",
-                 "BaseUrl": "localhost:8083",
-                 "Writeable": true
-                 },
-                 {"Nickname": "node4",
-                 "UUID": "uuid-node-4",
-                 "BaseUrl": "localhost:8084",
-                 "Writeable": true
-                 },
-                 {"Nickname": "node5",
-                 "UUID": "uuid-node-5",
-                 "BaseUrl": "localhost:8085",
-                 "Writeable": true
-                 },
-                 {"Nickname": "node6",
-                 "UUID": "uuid-node-6",
-                 "BaseUrl": "localhost:8086",
-                 "Writeable": true
-                 },
-                 {"Nickname": "node7",
-                 "UUID": "uuid-node-7",
-                 "BaseUrl": "localhost:8087",
-                 "Writeable": true
-                 },
-                 {"Nickname": "node8",
-                 "UUID": "uuid-node-8",
-                 "BaseUrl": "localhost:8088",
-                 "Writeable": true
-                 },
-                 {"Nickname": "node9",
-                 "UUID": "uuid-node-9",
-                 "BaseUrl": "localhost:8089",
-                 "Writeable": true
-                 }
-      ]
-    }
+{"Nickname": "node0",
+"UUID" : "216ce54c-3555-4769-a34b-1085bc4cf042",
+"Port" : 8080,
+"UploadDirectory" : "test/uploads0/",
+"NumResizeWorkers" : 4,
+"Replication" : 3,
+"GossiperSleep" : 10,
+"VerifierSleep" : 60,
+"Writeable" : true,
+"MemcacheServers" : ["127.0.0.1:11211"],
+"Neighbors": [
+    {"Nickname": "node1",
+     "UUID": "uuid-node-1",
+     "BaseUrl": "localhost:8081",
+     "Writeable": true
+    },
+    {"Nickname": "node2",
+     "UUID": "uuid-node-2",
+     "BaseUrl": "localhost:8082",
+     "Writeable": true
+    },
+    {"Nickname": "node3",
+     "UUID": "uuid-node-3",
+     "BaseUrl": "localhost:8083",
+     "Writeable": true
+    },
+    ]
+}
 {% endhighlight %}
