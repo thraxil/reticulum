@@ -424,13 +424,10 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 	c *cluster.Cluster, siteconfig config.SiteConfig,
 	channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
 	if r.Method == "POST" {
-		sl.Info("in AnnounceHandler(POST)")
-
 		// another node is announcing themselves to us
 		// if they are already in the Neighbors list, update as needed
 		// TODO: this should use channels to make it concurrency safe, like Add
 		if neighbor, ok := c.FindNeighborByUUID(r.FormValue("uuid")); ok {
-			sl.Info("found existing neighbor")
 			if r.FormValue("nickname") != "" {
 				neighbor.Nickname = r.FormValue("nickname")
 			}

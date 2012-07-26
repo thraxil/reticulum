@@ -166,7 +166,6 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 	}
 
 	var response AnnounceResponse
-	sl.Info("making request")
 	sl.Info(n.announceUrl())
 	resp, err := http.PostForm(n.announceUrl(), params)
 	sl.Info("made request")
@@ -175,7 +174,6 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 		n.LastFailed = time.Now()
 		return response, err
 	} else {
-		sl.Info("no error on ping")
 		n.LastSeen = time.Now()
 		// todo, update Writeable, Nickname, etc.
 	}

@@ -273,7 +273,6 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 					c.AddNeighbor(neighbor)
 				}
 			}
-			sl.Info(fmt.Sprintf("node %s done pinging %s", c.Myself.Nickname, n.Nickname))
 		}
 	}
 }
