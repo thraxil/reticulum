@@ -393,12 +393,12 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 	outputImage := *result.OutputImage
 
 	wFile, err := os.OpenFile(sizedPath, os.O_CREATE|os.O_RDWR, 0644)
-	defer wFile.Close()
 	if err != nil {
 		// what do we do if we can't write?
 		// we still have the resized image, so we can serve the response
 		// we just can't cache it. 
 	}
+	defer wFile.Close()
 	w.Header().Set("Content-Type", extmimes[extension])
 	if extension == "jpg" {
 		jpeg.Encode(wFile, outputImage, &jpeg_options)

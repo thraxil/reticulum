@@ -139,6 +139,7 @@ func postFile(filename string, target_url string) (*http.Response, error) {
 		panic(err.Error())
 	}
 	fh, err := os.Open(filename)
+	defer fh.Close()
 	if err != nil {
 		panic(err.Error())
 	}
