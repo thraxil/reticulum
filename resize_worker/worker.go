@@ -84,6 +84,7 @@ func imageMagickResize(path, size string, sl *syslog.Writer,
 
 	fds := []*os.File{os.Stdin, os.Stdout, os.Stderr}
 	p, err := os.StartProcess(args[0], args, &os.ProcAttr{Files: fds})
+	defer p.Release()
 	if err != nil {
 		sl.Err("imagemagick failed to start")
 		sl.Err(err.Error())
