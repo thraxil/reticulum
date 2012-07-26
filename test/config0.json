@@ -8,6 +8,7 @@
 "VerifierSleep" : 60,
 "Writeable" : true,
 "MemcacheServers": ["127.0.0.1:11211"],
+"GoMaxProcs": 7,
 "Neighbors": [
 	     {"Nickname": "node1",
 	     "UUID": "uuid-node-1",

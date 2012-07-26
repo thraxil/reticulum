@@ -24,6 +24,7 @@ type ConfigData struct {
 	VerifierSleep          int
 	ImageMagickConvertPath string
 	MemcacheServers        []string
+	GoMaxProcs             int
 }
 
 func (c ConfigData) MyNode() node.NodeData {
@@ -73,6 +74,11 @@ func (c ConfigData) MyConfig() SiteConfig {
 		convert_path = "/usr/bin/convert"
 	}
 
+	go_max_procs := c.GoMaxProcs
+	if go_max_procs < 1 {
+		go_max_procs = 1
+	}
+
 	return SiteConfig{
 		Port:                   c.Port,
 		UploadKeys:             c.UploadKeys,
@@ -85,6 +91,7 @@ func (c ConfigData) MyConfig() SiteConfig {
 		VerifierSleep:          verifier_sleep,
 		ImageMagickConvertPath: convert_path,
 		MemcacheServers:        c.MemcacheServers,
+		GoMaxProcs:             c.GoMaxProcs,
 	}
 }
 
@@ -102,6 +109,7 @@ type SiteConfig struct {
 	VerifierSleep          int
 	ImageMagickConvertPath string
 	MemcacheServers        []string
+	GoMaxProcs             int
 }
 
 func (s SiteConfig) KeyRequired() bool {

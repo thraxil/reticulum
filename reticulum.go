@@ -15,6 +15,7 @@ import (
 	"log"
 	"log/syslog"
 	"net/http"
+	"runtime"
 	"time"
 )
 
@@ -71,6 +72,8 @@ func main() {
 	}
 
 	siteconfig := f.MyConfig()
+
+	runtime.GOMAXPROCS(siteconfig.GoMaxProcs)
 
 	// start our resize worker goroutines
 	var channels = models.SharedChannels{
