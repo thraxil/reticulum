@@ -131,6 +131,7 @@ the node start participating as soon as it starts up.
 
 This is just an example from the `test` directory:
 
+    :::javascript
     {"Nickname": "node0",
     "UUID" : "216ce54c-3555-4769-a34b-1085bc4cf042",
     "Port" : 8080,
