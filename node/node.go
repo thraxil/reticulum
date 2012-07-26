@@ -49,16 +49,44 @@ func (n NodeData) IsCurrent() bool {
 	return n.LastSeen.Unix() > n.LastFailed.Unix()
 }
 
+// I come from Python, what can I say?
+func startswith(s, prefix string) bool {
+	if len(s) < len(prefix) {
+		return false
+	}
+	return s[:len(prefix)] == prefix
+}
+
+func endswith(s, suffix string) bool {
+	if len(s) < len(suffix) {
+		return false
+	}
+	return s[len(s)-len(suffix):] == suffix
+}
+
+// returns version of the BaseUrl that we know
+// starts with 'http://' and does not end with '/'
+func (n NodeData) goodBaseUrl() string {
+	url := n.BaseUrl
+	if !startswith(n.BaseUrl, "http://") {
+		url = "http://" + url
+	}
+	if endswith(url, "/") {
+		url = url[:len(url)-1]
+	}
+	return url
+}
+
 func (n NodeData) retrieveUrl(hash string, size string, extension string) string {
-	return "http://" + n.BaseUrl + "/retrieve/" + hash + "/" + size + "/" + extension + "/"
+	return n.goodBaseUrl() + "/retrieve/" + hash + "/" + size + "/" + extension + "/"
 }
 
 func (n NodeData) retrieveInfoUrl(hash string, size string, extension string) string {
-	return "http://" + n.BaseUrl + "/retrieve_info/" + hash + "/" + size + "/" + extension + "/"
+	return n.goodBaseUrl() + "/retrieve_info/" + hash + "/" + size + "/" + extension + "/"
 }
 
 func (n NodeData) stashUrl() string {
-	return "http://" + n.BaseUrl + "/stash/"
+	return n.goodBaseUrl() + "/stash/"
 }
 
 func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]byte, error) {
