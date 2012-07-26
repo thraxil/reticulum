@@ -39,8 +39,8 @@ type ImageData struct {
 	Nodes     []string `json:"nodes"`
 }
 
-func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-	t, _ := template.ParseFiles("templates/" + tmpl + ".html")
+func renderTemplate(w http.ResponseWriter, tmpl string, p *Page, s config.SiteConfig) {
+	t, _ := template.ParseFiles(s.TemplateDirectory + "/" + tmpl + ".html")
 	t.Execute(w, p)
 }
 
@@ -260,7 +260,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 			Title:      "upload image",
 			RequireKey: siteconfig.KeyRequired(),
 		}
-		renderTemplate(w, "add", &p)
+		renderTemplate(w, "add", &p, siteconfig)
 	}
 }
 
@@ -277,7 +277,7 @@ func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 		Config:  siteconfig,
 		Cluster: *c,
 	}
-	t, _ := template.ParseFiles("templates/status.html")
+	t, _ := template.ParseFiles(siteconfig.TemplateDirectory + "/status.html")
 	t.Execute(w, p)
 }
 

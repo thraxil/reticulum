@@ -1,7 +1,7 @@
 {"Nickname": "node0",
 "UUID" : "uuid-node-0",
 "Port" : 8080,
-"UploadDirectory" : "test/uploads0/",
+"UploadDirectory" : "/tmp/test/uploads0/",
 "NumResizeWorkers" : 4,
 "Replication" : 3,
 "GossiperSleep" : 10,
@@ -9,6 +9,7 @@
 "Writeable" : true,
 "MemcacheServers": ["127.0.0.1:11211"],
 "GoMaxProcs": 7,
+"TemplateDirectory": "/home/anders/code/go/reticulum/templates",
 "Neighbors": [
 	     {"Nickname": "node1",
 	     "UUID": "uuid-node-1",

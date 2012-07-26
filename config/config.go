@@ -25,6 +25,7 @@ type ConfigData struct {
 	ImageMagickConvertPath string
 	MemcacheServers        []string
 	GoMaxProcs             int
+	TemplateDirectory      string
 }
 
 func (c ConfigData) MyNode() node.NodeData {
@@ -79,6 +80,11 @@ func (c ConfigData) MyConfig() SiteConfig {
 		go_max_procs = 1
 	}
 
+	template_directory := c.TemplateDirectory
+	if template_directory == "" {
+		template_directory = "templates"
+	}
+
 	return SiteConfig{
 		Port:                   c.Port,
 		UploadKeys:             c.UploadKeys,
@@ -92,6 +98,7 @@ func (c ConfigData) MyConfig() SiteConfig {
 		ImageMagickConvertPath: convert_path,
 		MemcacheServers:        c.MemcacheServers,
 		GoMaxProcs:             c.GoMaxProcs,
+		TemplateDirectory:      c.TemplateDirectory,
 	}
 }
 
@@ -110,6 +117,7 @@ type SiteConfig struct {
 	ImageMagickConvertPath string
 	MemcacheServers        []string
 	GoMaxProcs             int
+	TemplateDirectory      string
 }
 
 func (s SiteConfig) KeyRequired() bool {
