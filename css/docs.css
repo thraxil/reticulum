@@ -12,7 +12,6 @@ body {
   position: relative;
   padding-top: 90px;
   background-color: #fff;
-  /*background-image: url(http://subtlepatterns.com/patterns/rockywall.png);*/
   background-repeat: repeat-x;
   background-position: 0 40px;
 }
@@ -777,4 +776,10 @@ form.well {
     width: 1168px; /* 2px less to account for left/right borders being removed when in fixed mode */
   }
 
+}
+
+
+h2 {
+		border-bottom: #ddd solid 1px;
+		margin-bottom: 20px;
 }
