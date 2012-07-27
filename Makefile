@@ -29,4 +29,4 @@ install: reticulum
 	cp -f reticulum /usr/local/bin/reticulum
 
 test: reticulum
-	go test ./node
+	go test ./node ./cluster
