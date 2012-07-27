@@ -239,7 +239,7 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 
 	h := sha1.New()
 	imgfile, _ := os.Open(path)
-	defer f.Close()
+	defer imgfile.Close()
 
 	io.Copy(h, imgfile)
 	ahash := fmt.Sprintf("%x", h.Sum(nil))

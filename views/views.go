@@ -221,9 +221,9 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 			}
 		}
 		i, fh, _ := r.FormFile("image")
+		defer i.Close()
 		h := sha1.New()
-		d, _ := ioutil.ReadAll(i)
-		io.WriteString(h, string(d))
+		io.Copy(h, i)
 		ahash := fmt.Sprintf("%x", h.Sum(nil))
 		path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
 		os.MkdirAll(path, 0755)
@@ -232,7 +232,8 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 		fullpath := path + "full." + ext
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 		defer f.Close()
-		n, _ := f.Write(d)
+		i.Seek(0, 0)
+		io.Copy(f, i)
 		// yes, the full-size for this image gets written to disk on
 		// this node even if it may not be one of the "right" ones
 		// for it to end up on. This isn't optimal, but is easy
@@ -244,7 +245,6 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 
 		id := ImageData{
 			Hash:      ahash,
-			Length:    n,
 			Extension: ext,
 			FullUrl:   "/image/" + ahash + "/full/image." + ext,
 			Satisfied: len(nodes) >= siteconfig.MinReplication,
@@ -291,19 +291,20 @@ func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 		http.Error(w, "non-writeable node", 400)
 		return
 	}
+
 	i, fh, _ := r.FormFile("image")
+	defer i.Close()
 	h := sha1.New()
-	d, _ := ioutil.ReadAll(i)
-	io.WriteString(h, string(d))
+	io.Copy(h, i)
+
 	path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
 	os.MkdirAll(path, 0755)
 	ext := filepath.Ext(fh.Filename)
-
 	fullpath := path + "full" + ext
-	// TODO: if target file already exists, no need to overwrite
 	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 	defer f.Close()
-	f.Write(d)
+	i.Seek(0, 0)
+	io.Copy(f, i)
 }
 
 func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
@@ -324,7 +325,7 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cl
 
 	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
 	path := baseDir + "/full" + "." + extension
-	_, err := ioutil.ReadFile(path)
+	_, err := os.Open(path)
 	if err != nil {
 		local = false
 	}
