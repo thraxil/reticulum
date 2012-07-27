@@ -111,8 +111,7 @@ func Test_SmallCluster(t *testing.T) {
 	c.AddNeighbor(n4)
 
 	if len(c.GetNeighbors()) != 4 {
-		t.Error(fmt.Sprintf("%d",len(c.GetNeighbors())))
-		t.Error(fmt.Sprintf("%v",c.GetNeighbors()))
-//		t.Error("wrong number of neighbors")
+		t.Error(fmt.Sprintf("wrong number of neighbors: %d", len(c.GetNeighbors())))
 	}
+	
 }
