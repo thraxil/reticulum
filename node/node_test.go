@@ -59,6 +59,9 @@ func Test_Urls(t *testing.T) {
 	if n.stashUrl() != "http://localhost:8080/stash/" {
 		t.Error("bad stash url")
 	}
+	if n.announceUrl() != "http://localhost:8080/announce/" {
+		t.Error("bad announce url")
+	}
 
 	n.BaseUrl = "localhost:8080/"
 	if n.retrieveUrl(hash,"full","jpg") != "http://localhost:8080/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
@@ -69,6 +72,9 @@ func Test_Urls(t *testing.T) {
 	}
 	if n.stashUrl() != "http://localhost:8080/stash/" {
 		t.Error("bad stash url")
+	}
+	if n.announceUrl() != "http://localhost:8080/announce/" {
+		t.Error("bad announce url")
 	}
 
 	n.BaseUrl = "http://localhost:8081/"
@@ -81,6 +87,9 @@ func Test_Urls(t *testing.T) {
 	if n.stashUrl() != "http://localhost:8081/stash/" {
 		t.Error("bad stash url")
 	}
+	if n.announceUrl() != "http://localhost:8081/announce/" {
+		t.Error("bad announce url")
+	}
 
 	n.BaseUrl = "http://localhost:8081"
 	if n.retrieveUrl(hash,"full","jpg") != "http://localhost:8081/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
@@ -91,6 +100,9 @@ func Test_Urls(t *testing.T) {
 	}
 	if n.stashUrl() != "http://localhost:8081/stash/" {
 		t.Error("bad stash url")
+	}
+	if n.announceUrl() != "http://localhost:8081/announce/" {
+		t.Error("bad announce url")
 	}
 
 }
