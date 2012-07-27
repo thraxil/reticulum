@@ -43,6 +43,21 @@ func (c *Cluster) AddNeighbor(nd node.NodeData) {
 	}
 }
 
+type gnresp struct {
+	N []node.NodeData
+}
+
+func (c *Cluster) GetNeighbors() []node.NodeData{
+	r := make(chan gnresp)
+	go func() {
+		c.chF <- func() {
+			r <- gnresp{c.Neighbors}
+		}
+	}()
+	resp := <- r
+	return resp.N
+}
+
 func (c *Cluster) RemoveNeighbor(nd node.NodeData) {
 	// TODO: this compiles and looks about right, 
 	// but has not actually been tested
@@ -189,13 +204,13 @@ func neighborsToRing(neighbors []node.NodeData) RingEntryList {
 // returns the list of all nodes in the order
 // that the given hash will choose to write to them
 func (c Cluster) WriteOrder(hash string) []node.NodeData {
-	return hashOrder(hash, len(c.Neighbors)+1, c.WriteRing())
+	return hashOrder(hash, len(c.GetNeighbors())+1, c.WriteRing())
 }
 
 // returns the list of all nodes in the order
 // that the given hash will choose to try to read from them
 func (c Cluster) ReadOrder(hash string) []node.NodeData {
-	return hashOrder(hash, len(c.Neighbors)+1, c.Ring())
+	return hashOrder(hash, len(c.GetNeighbors())+1, c.Ring())
 }
 
 func hashOrder(hash string, size int, ring []RingEntry) []node.NodeData {
@@ -242,7 +257,7 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 	var jitter int
 	for {
 		// run forever
-		for _, n := range c.Neighbors {
+		for _, n := range c.GetNeighbors() {
 			if n.UUID == c.Myself.UUID {
 				// don't ping ourself
 				continue
