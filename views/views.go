@@ -1,11 +1,11 @@
 package views
 
 import (
-	"../cluster"
-	"../config"
-	"../models"
-	"../node"
-	"../resize_worker"
+	"github.com/thraxil/reticulum/cluster"
+	"github.com/thraxil/reticulum/config"
+	"github.com/thraxil/reticulum/models"
+	"github.com/thraxil/reticulum/node"
+	"github.com/thraxil/reticulum/resize_worker"
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"

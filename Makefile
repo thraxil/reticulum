@@ -29,9 +29,9 @@ install: reticulum
 	cp -f reticulum /usr/local/bin/reticulum
 
 test: reticulum
-	go test ./node ./cluster
+	go test github.com/thraxil/reticulum/node github.com/thraxil/reticulum/cluster
 
 coverage: reticulum
-	../go/bin/gocov test ./node | ../go/bin/gocov report
-	../go/bin/gocov test ./cluster ../go/bin/gocov report
+	${GOROOT}/bin/gocov test github.com/thraxil/reticulum/node | ${GOROOT}/bin/gocov report
+	${GOROOT}/bin/gocov test github.com/thraxil/reticulum/cluster ${GOROOT}/bin/gocov report
 

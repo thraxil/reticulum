@@ -1,7 +1,7 @@
 package resize_worker
 
 import (
-	"../config"
+	"github.com/thraxil/reticulum/config"
 	"fmt"
 	"github.com/thraxil/resize"
 	"image"
@@ -12,7 +12,6 @@ import (
 	"log/syslog"
 	"os"
 	"path/filepath"
-	//  "../../resize"
 	"time"
 )
 

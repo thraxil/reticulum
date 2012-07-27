@@ -3,7 +3,7 @@ package cluster
 import (
 	_ "fmt"
 	"testing"
-	"../node"
+	"github.com/thraxil/reticulum/node"
 )
 
 func Test_ClusterOfOne(t *testing.T) {

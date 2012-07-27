@@ -1,9 +1,9 @@
 package verifier
 
 import (
-	"../cluster"
-	"../node"
-	"../config"
+	"github.com/thraxil/reticulum/cluster"
+	"github.com/thraxil/reticulum/node"
+	"github.com/thraxil/reticulum/config"
 	"crypto/sha1"
 	"errors"
 	"fmt"

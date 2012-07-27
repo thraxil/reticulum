@@ -1,7 +1,7 @@
 package models
 
 import (
-	"../resize_worker"
+	"github.com/thraxil/reticulum/resize_worker"
 )
 
 type SharedChannels struct {

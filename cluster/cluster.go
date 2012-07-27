@@ -1,7 +1,7 @@
 package cluster
 
 import (
-	"../node"
+	"github.com/thraxil/reticulum/node"
 	"fmt"
 	"log/syslog"
 	"math/rand"

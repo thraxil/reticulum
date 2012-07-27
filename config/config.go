@@ -1,7 +1,7 @@
 package config
 
 import (
-	"../node"
+	"github.com/thraxil/reticulum/node"
 )
 
 // the structure of the config.json file
