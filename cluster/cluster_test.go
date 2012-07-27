@@ -16,7 +16,7 @@ func Test_ClusterOfOne(t *testing.T) {
 	}
 
 	c := NewCluster(myself)
-	if len(c.Neighbors) != 0 {
+	if len(c.GetNeighbors()) != 0 {
 		t.Error("should not have any neighbors yet")
 	}
 

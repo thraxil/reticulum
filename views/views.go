@@ -471,7 +471,7 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 		Location:  c.Myself.Location,
 		Writeable: c.Myself.Writeable,
 		BaseUrl:   c.Myself.BaseUrl,
-		Neighbors: c.Neighbors,
+		Neighbors: c.GetNeighbors(),
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {

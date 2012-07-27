@@ -19,7 +19,7 @@ var REPLICAS = 16
 // have to run through the whole list every time
 type Cluster struct {
 	Myself    node.NodeData
-	Neighbors []node.NodeData
+	neighbors []node.NodeData
 	chF       chan func()
 }
 
@@ -39,7 +39,7 @@ func (c *Cluster) backend() {
 
 func (c *Cluster) AddNeighbor(nd node.NodeData) {
 	c.chF <- func() {
-		c.Neighbors = append(c.Neighbors, nd)
+		c.neighbors = append(c.neighbors, nd)
 	}
 }
 
@@ -51,7 +51,7 @@ func (c *Cluster) GetNeighbors() []node.NodeData{
 	r := make(chan gnresp)
 	go func() {
 		c.chF <- func() {
-			r <- gnresp{c.Neighbors}
+			r <- gnresp{c.neighbors}
 		}
 	}()
 	resp := <- r
@@ -64,14 +64,14 @@ func (c *Cluster) RemoveNeighbor(nd node.NodeData) {
 	c.chF <- func() {
 		// find the index in the list of neighbors
 		var idx = 0
-		for i := range c.Neighbors {
-			if c.Neighbors[i].UUID == nd.UUID {
+		for i := range c.neighbors {
+			if c.neighbors[i].UUID == nd.UUID {
 				idx = i
 				break
 			}
 		}
 		// and remove it
-		c.Neighbors = append(c.Neighbors[:idx], c.Neighbors[idx+1:]...)
+		c.neighbors = append(c.neighbors[:idx], c.neighbors[idx+1:]...)
 	}
 }
 
@@ -84,9 +84,9 @@ func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 	r := make(chan fResp)
 	go func() {
 		c.chF <- func() {
-			for i := range c.Neighbors {
-				if c.Neighbors[i].UUID == uuid {
-					r <- fResp{&c.Neighbors[i], true}
+			for i := range c.neighbors {
+				if c.neighbors[i].UUID == uuid {
+					r <- fResp{&c.neighbors[i], true}
 					return
 				}
 			}
@@ -99,14 +99,14 @@ func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 
 func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
 	c.chF <- func() {
-		for i := range c.Neighbors {
-			if c.Neighbors[i].UUID == neighbor.UUID {
-				c.Neighbors[i].Nickname = neighbor.Nickname
-				c.Neighbors[i].Location = neighbor.Location
-				c.Neighbors[i].BaseUrl = neighbor.BaseUrl
-				c.Neighbors[i].Writeable = neighbor.Writeable
-				if neighbor.LastSeen.Sub(c.Neighbors[i].LastSeen) > 0 {
-					c.Neighbors[i].LastSeen = neighbor.LastSeen
+		for i := range c.neighbors {
+			if c.neighbors[i].UUID == neighbor.UUID {
+				c.neighbors[i].Nickname = neighbor.Nickname
+				c.neighbors[i].Location = neighbor.Location
+				c.neighbors[i].BaseUrl = neighbor.BaseUrl
+				c.neighbors[i].Writeable = neighbor.Writeable
+				if neighbor.LastSeen.Sub(c.neighbors[i].LastSeen) > 0 {
+					c.neighbors[i].LastSeen = neighbor.LastSeen
 				}
 			}
 		}
@@ -123,7 +123,7 @@ func (c Cluster) NeighborsInclusive() []node.NodeData {
 		c.chF <- func() {
 			a := make([]node.NodeData, 1)
 			a[0] = c.Myself
-			a = append(a, c.Neighbors...)
+			a = append(a, c.neighbors...)
 			r <- listResp{a}
 		}
 	}()
