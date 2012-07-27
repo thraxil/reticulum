@@ -54,10 +54,16 @@ func Test_ClusterOfOne(t *testing.T) {
 	if len(ro) != 1 {
 		t.Error("only one node, should only be one result in the list")
 	}
+	if ro[0].UUID != myself.UUID {
+		t.Error("it's not me!")
+	}
 
 	wo := c.WriteOrder("anyhash")
 	if len(wo) != 1 {
 		t.Error("only one node, should only be one result in the list")
+	}
+	if wo[0].UUID != myself.UUID {
+		t.Error("it's not me!")
 	}
 
 }
