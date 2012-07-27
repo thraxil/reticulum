@@ -3,13 +3,13 @@ all: reticulum
 reticulum: reticulum.go models/models.go views/views.go resize_worker/worker.go node/node.go cluster/cluster.go verifier/verifier.go config/config.go
 	go build reticulum.go
 
-test: reticulum
+cluster: reticulum
 	python run_cluster.py
 
 clean:
 	rm -f reticulum
 
-testclean:
+clusterclean:
 	rm -rf test/uploads*
 
 run: reticulum
@@ -27,3 +27,6 @@ fmt:
 
 install: reticulum
 	cp -f reticulum /usr/local/bin/reticulum
+
+test: reticulum
+	go test ./node
