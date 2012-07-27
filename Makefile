@@ -30,3 +30,8 @@ install: reticulum
 
 test: reticulum
 	go test ./node ./cluster
+
+coverage: reticulum
+	../go/bin/gocov test ./node | ../go/bin/gocov report
+	../go/bin/gocov test ./cluster ../go/bin/gocov report
+

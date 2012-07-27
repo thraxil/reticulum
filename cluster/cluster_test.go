@@ -50,6 +50,15 @@ func Test_ClusterOfOne(t *testing.T) {
 		t.Error("wrong number of write ring entries")
 	}
 
+	ro := c.ReadOrder("anyhash")
+	if len(ro) != 1 {
+		t.Error("only one node, should only be one result in the list")
+	}
+
+	wo := c.WriteOrder("anyhash")
+	if len(wo) != 1 {
+		t.Error("only one node, should only be one result in the list")
+	}
 
 }
 
