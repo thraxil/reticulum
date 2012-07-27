@@ -167,7 +167,7 @@ func (n *NodeData) Stash(filename string) bool {
 }
 
 func (n NodeData) announceUrl() string {
-	return "http://" + n.BaseUrl + "/announce/"
+	return n.goodBaseUrl() + "/announce/"
 }
 
 type AnnounceResponse struct {
