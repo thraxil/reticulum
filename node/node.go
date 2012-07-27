@@ -37,10 +37,11 @@ func (n NodeData) String() string {
 
 func (n NodeData) HashKeys() []string {
 	keys := make([]string, REPLICAS)
+	h := sha1.New()
 	for i := range keys {
-		h := sha1.New()
+		h.Reset()
 		io.WriteString(h, fmt.Sprintf("%s%d", n.UUID, i))
-		keys[i] = string(fmt.Sprintf("%x", h.Sum(nil)))
+		keys[i] = fmt.Sprintf("%x", h.Sum(nil))
 	}
 	return keys
 }
