@@ -2,6 +2,7 @@ package verifier
 
 import (
 	"../cluster"
+	"../node"
 	"../config"
 	"crypto/sha1"
 	"errors"
@@ -89,10 +90,11 @@ func repair_image(path string, extension string, hash string,
 			if err != nil {
 				// can't open for writing!
 				sl.Err(fmt.Sprintf("could not open for writing: %s, %s\n", path, err))
+				f.Close()
 				return false, err
 			}
-			defer f.Close()
 			_, err = f.Write(img)
+			f.Close()
 			if err != nil {
 				sl.Err(fmt.Sprintf("could not write: %s, %s\n", path, err))
 				return false, err
@@ -154,25 +156,8 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 			delete_local = false
 			found_replicas++
 		} else {
-			img_info, err := n.RetrieveImageInfo(hash, "full", extension[1:])
-
-			if err == nil && img_info.Local {
-				// node should have it. node has it. cool.
-				found_replicas++
-			} else {
-				// that node should have a copy, but doesn't so stash it
-				if !satisfied {
-					if n.Stash(path) {
-						sl.Info(fmt.Sprintf("replicated %s\n", path))
-						found_replicas++
-					} else {
-						// couldn't stash to that node. not writeable perhaps.
-						// not really our problem to deal with, but we do want
-						// to make sure that another node gets a copy
-						// so we don't increment found_replicas
-					}
-				}
-			}
+			found_replicas = found_replicas + retrieveReplica(n, hash, extension, path, 
+				satisfied, sl)
 		}
 		if found_replicas >= s.Replication {
 			satisfied = true
@@ -189,10 +174,34 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 	} else {
 		sl.Info(fmt.Sprintf("%s has full replica set\n", path))
 	}
-	if delete_local {
+	if satisfied && delete_local {
 		clean_up_excess_replica(path, sl)
 	}
 	return nil
+}
+
+func retrieveReplica(n node.NodeData, hash string, extension string, path string, satisfied bool,
+	sl *syslog.Writer) int {
+	img_info, err := n.RetrieveImageInfo(hash, "full", extension[1:])
+
+	if err == nil && img_info.Local {
+		// node should have it. node has it. cool.
+		return 1
+	} else {
+		// that node should have a copy, but doesn't so stash it
+		if !satisfied {
+			if n.Stash(path) {
+				sl.Info(fmt.Sprintf("replicated %s\n", path))
+				return 1
+			} else {
+				// couldn't stash to that node. not writeable perhaps.
+				// not really our problem to deal with, but we do want
+				// to make sure that another node gets a copy
+				// so we don't increment found_replicas
+			}
+		}
+	}
+	return 0
 }
 
 // our node is not at the front of the list, so 

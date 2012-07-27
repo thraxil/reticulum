@@ -281,13 +281,12 @@ func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	t.Execute(w, p)
 }
 
-func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
+func StashHandler(w http.ResponseWriter, r *http.Request, n node.NodeData, upload_dir string) {
 	if r.Method != "POST" {
 		http.Error(w, "POST only", 400)
 		return
 	}
-	if !c.Myself.Writeable {
+	if !n.Writeable {
 		http.Error(w, "non-writeable node", 400)
 		return
 	}
@@ -297,7 +296,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	h := sha1.New()
 	io.Copy(h, i)
 
-	path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
+	path := upload_dir + hashToPath(h.Sum(nil))
 	os.MkdirAll(path, 0755)
 	ext := filepath.Ext(fh.Filename)
 	fullpath := path + "full" + ext

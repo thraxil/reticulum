@@ -4,6 +4,7 @@ import (
 	"./cluster"
 	"./config"
 	"./models"
+	"./node"
 	"./resize_worker"
 	"./verifier"
 	"./views"
@@ -27,6 +28,16 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *cluster.Cluster,
 		fn(w, r, c, siteconfig, channels, sl, mc)
 	}
 }
+
+func makeLightHandler(fn func(http.ResponseWriter, *http.Request, node.NodeData,
+	string),
+	n node.NodeData, upload_dir string,
+	) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fn(w, r, n, upload_dir)
+	}
+}
+
 
 func Log(handler http.Handler, logger *syslog.Writer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +103,7 @@ func main() {
 	mc := memcache.New(siteconfig.MemcacheServers...)
 	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels, sl, mc))
-	http.HandleFunc("/stash/", makeHandler(views.StashHandler, c, siteconfig, channels, sl, mc))
+	http.HandleFunc("/stash/", makeLightHandler(views.StashHandler, c.Myself, siteconfig.UploadDirectory))
 	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, c, siteconfig, channels, sl, mc))
 	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, c, siteconfig, channels, sl, mc))
 	http.HandleFunc("/retrieve_info/", makeHandler(views.RetrieveInfoHandler, c, siteconfig, channels, sl, mc))
