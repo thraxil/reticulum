@@ -238,8 +238,10 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 	}
 
 	h := sha1.New()
-	d, _ := ioutil.ReadFile(path)
-	io.WriteString(h, string(d))
+	imgfile, _ := os.Open(path)
+	defer f.Close()
+
+	io.Copy(h, imgfile)
 	ahash := fmt.Sprintf("%x", h.Sum(nil))
 
 	err = verify(path, extension, hash, ahash, c, sl)
