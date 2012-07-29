@@ -92,6 +92,7 @@ func (n NodeData) stashUrl() string {
 
 func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]byte, error) {
 	resp, err := http.Get(n.retrieveUrl(hash, size, extension))
+	defer resp.Body.Close()
 	if err != nil {
 		n.LastFailed = time.Now()
 		return nil, err
@@ -101,7 +102,6 @@ func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]
 		return nil, errors.New("404, probably")
 	}
 	b, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
 	return b, nil
 }
 
@@ -113,6 +113,7 @@ type ImageInfoResponse struct {
 
 func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string) (*ImageInfoResponse, error) {
 	resp, err := http.Get(n.retrieveInfoUrl(hash, size, extension))
+	defer resp.Body.Close()
 	if err != nil {
 		n.LastFailed = time.Now()
 		return nil, err
@@ -124,7 +125,6 @@ func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string)
 	}
 	var response ImageInfoResponse
 	b, _ := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
 	err = json.Unmarshal(b, &response)
 	if err != nil {
 		return nil, err
@@ -140,10 +140,11 @@ func postFile(filename string, target_url string) (*http.Response, error) {
 		panic(err.Error())
 	}
 	fh, err := os.Open(filename)
-	defer fh.Close()
 	if err != nil {
-		panic(err.Error())
+		body_writer.Close()
+		return nil, err
 	}
+	defer fh.Close()
 	io.Copy(file_writer, fh)
 	// .Close() finishes setting it up
 	// do not defer this or it will make and empty POST request
@@ -157,11 +158,11 @@ func (n *NodeData) Stash(filename string) bool {
 	if err != nil {
 		return false
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return false
 	}
 	b, _ := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
 	return string(b) == "ok"
 }
 

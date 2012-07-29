@@ -183,7 +183,6 @@ func (cluster *Cluster) Stash(ahash string, filename string, replication int, mi
 	for _, n := range nodes_to_check {
 		// TODO: detect when the node to stash to is the current one
 		// and just save directly instead of doing a POST to ourself
-		fmt.Printf("%d/%d\n", save_count, replication)
 		if n.Stash(filename) {
 			saved_to[save_count] = n.Nickname
 			save_count++
