@@ -152,19 +152,6 @@ func postFile(filename string, target_url string) (*http.Response, error) {
 
 func (n *NodeData) Stash(filename string) bool {
 	_, err := postFile(filename, n.stashUrl())
-	if err != nil {
-		// this node failed us, so take them out of
-		// the write ring until we hear otherwise from them
-		// TODO: look more closely at the response to 
-		//       possibly act differently in specific cases
-		//       ie, allow them to specify a temporary failure
-		// TODO: these updates to the node fail.
-		// they need to go through the cluster
-		n.LastFailed = time.Now()
-		n.Writeable = false
-	} else {
-		n.LastSeen = time.Now()
-	}
 	return err == nil
 }
 

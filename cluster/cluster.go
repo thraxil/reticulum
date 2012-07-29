@@ -175,7 +175,12 @@ func (cluster *Cluster) Stash(ahash string, filename string, replication int, mi
 		if n.Stash(filename) {
 			saved_to[save_count] = n.Nickname
 			save_count++
+			n.LastSeen = time.Now()
+		} else {
+			n.Writeable = false
+			n.LastFailed = time.Now()
 		}
+		cluster.UpdateNeighbor(n)
 		// TODO: if we've hit min_replication, we can return
 		// immediately and leave any additional stash attempts
 		// as background processes
