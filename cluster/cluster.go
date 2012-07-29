@@ -275,6 +275,7 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 			n.Writeable = resp.Writeable
 			n.Nickname = resp.Nickname
 			n.Location = resp.Location
+			c.UpdateNeighbor(n)
 			for _, neighbor := range resp.Neighbors {
 				if neighbor.UUID == c.Myself.UUID {
 					// as usual, skip ourself
