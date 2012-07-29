@@ -4,7 +4,7 @@
 "UploadDirectory" : "/tmp/test/uploads0/",
 "NumResizeWorkers" : 4,
 "Replication" : 3,
-"GossiperSleep" : 50000,
+"GossiperSleep" : 5,
 "VerifierSleep" : 1,
 "Writeable" : true,
 "MemcacheServers": ["127.0.0.1:11211"],
