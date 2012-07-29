@@ -291,7 +291,6 @@ func StashHandler(w http.ResponseWriter, r *http.Request, n node.NodeData, uploa
 
 	i, fh, err := r.FormFile("image")
 	if err != nil {
-		fmt.Println(err.Error())
 		http.Error(w, "no image uploaded", 400)
 		return
 	}

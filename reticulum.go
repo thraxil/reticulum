@@ -40,16 +40,17 @@ func makeLightHandler(fn func(http.ResponseWriter, *http.Request, node.NodeData,
 
 func Log(handler http.Handler, logger *syslog.Writer, node_name string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//		defer func() {
-		//			if rc := recover(); rc != nil {
-		//				fmt.Println("Server Error", rc)
-		//				logger.Err(fmt.Sprintf("%s", r.URL))
-		//			}
-		//		}()
+		defer func() {
+			if rc := recover(); rc != nil {
+				fmt.Println("Server Error", rc)
+				logger.Err(fmt.Sprintf("%s", r.URL))
+			}
+		}()
 		t0 := time.Now()
 		handler.ServeHTTP(w, r)
 		t1 := time.Now()
-		logger.Info(fmt.Sprintf("%s: %s %s %s [%v]", node_name, r.RemoteAddr, r.Method, r.URL, t1.Sub(t0)))
+		logger.Info(fmt.Sprintf("%s: %s %s %s [%v]", node_name, r.RemoteAddr, r.Method,
+			r.URL, t1.Sub(t0)))
 	})
 }
 

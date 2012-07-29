@@ -186,7 +186,6 @@ func retrieveReplica(n node.NodeData, hash string, extension string, path string
 
 	if err == nil && img_info.Local {
 		// node should have it. node has it. cool.
-		fmt.Printf("node %s has image\n", n.Nickname)
 		return 1
 	} else {
 		// that node should have a copy, but doesn't so stash it

@@ -162,7 +162,7 @@ func (n *NodeData) Stash(filename string) bool {
 	}
 	b, _ := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
-	return string(b) != "ok"
+	return string(b) == "ok"
 }
 
 func (n NodeData) announceUrl() string {
