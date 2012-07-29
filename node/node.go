@@ -135,7 +135,6 @@ func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string)
 func postFile(filename string, target_url string) (*http.Response, error) {
 	body_buf := bytes.NewBufferString("")
 	body_writer := multipart.NewWriter(body_buf)
-	defer body_writer.Close()
 	file_writer, err := body_writer.CreateFormFile("image", filename)
 	if err != nil {
 		panic(err.Error())
@@ -146,6 +145,9 @@ func postFile(filename string, target_url string) (*http.Response, error) {
 		panic(err.Error())
 	}
 	io.Copy(file_writer, fh)
+	// .Close() finishes setting it up
+	// do not defer this or it will make and empty POST request
+	body_writer.Close()
 	content_type := body_writer.FormDataContentType()
 	return http.Post(target_url, content_type, body_buf)
 }
