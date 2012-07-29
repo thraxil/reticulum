@@ -158,6 +158,8 @@ func (n *NodeData) Stash(filename string) bool {
 		// TODO: look more closely at the response to 
 		//       possibly act differently in specific cases
 		//       ie, allow them to specify a temporary failure
+		// TODO: these updates to the node fail.
+		// they need to go through the cluster
 		n.LastFailed = time.Now()
 		n.Writeable = false
 	} else {

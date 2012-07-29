@@ -1,17 +1,17 @@
 package views
 
 import (
-	"github.com/thraxil/reticulum/cluster"
-	"github.com/thraxil/reticulum/config"
-	"github.com/thraxil/reticulum/models"
-	"github.com/thraxil/reticulum/node"
-	"github.com/thraxil/reticulum/resize_worker"
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/thraxil/reticulum/cluster"
+	"github.com/thraxil/reticulum/config"
+	"github.com/thraxil/reticulum/models"
+	"github.com/thraxil/reticulum/node"
+	"github.com/thraxil/reticulum/resize_worker"
 	"html/template"
 	"image/jpeg"
 	"image/png"
@@ -261,18 +261,19 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 }
 
 type StatusPage struct {
-	Title   string
-	Config  config.SiteConfig
-	Cluster cluster.Cluster
+	Title     string
+	Config    config.SiteConfig
+	Cluster   *cluster.Cluster
+	Neighbors []node.NodeData
 }
-
 
 func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
 	p := StatusPage{
-		Title:   "Status",
-		Config:  siteconfig,
-		Cluster: *c,
+		Title:     "Status",
+		Config:    siteconfig,
+		Cluster:   c,
+		Neighbors: c.GetNeighbors(),
 	}
 	t, _ := template.New("status").Parse(status_template)
 	t.Execute(w, p)
@@ -546,7 +547,7 @@ var status_template = `
 		<th>LastFailed</th>
 	</tr>
 
-{{ range .Cluster.Neighbors }}
+{{ range .Neighbors }}
 
 	<tr>
 		<th>{{ .Nickname }}</th>

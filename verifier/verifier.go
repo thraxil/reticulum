@@ -1,12 +1,12 @@
 package verifier
 
 import (
-	"github.com/thraxil/reticulum/cluster"
-	"github.com/thraxil/reticulum/node"
-	"github.com/thraxil/reticulum/config"
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	"github.com/thraxil/reticulum/cluster"
+	"github.com/thraxil/reticulum/config"
+	"github.com/thraxil/reticulum/node"
 	"io"
 	"io/ioutil"
 	"log/syslog"
@@ -156,7 +156,7 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 			delete_local = false
 			found_replicas++
 		} else {
-			found_replicas = found_replicas + retrieveReplica(n, hash, extension, path, 
+			found_replicas = found_replicas + retrieveReplica(n, hash, extension, path,
 				satisfied, sl)
 		}
 		if found_replicas >= s.Replication {

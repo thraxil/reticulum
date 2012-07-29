@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"github.com/thraxil/reticulum/node"
 	"fmt"
+	"github.com/thraxil/reticulum/node"
 	"log/syslog"
 	"math/rand"
 	"sort"
@@ -47,14 +47,14 @@ type gnresp struct {
 	N []node.NodeData
 }
 
-func (c *Cluster) GetNeighbors() []node.NodeData{
+func (c *Cluster) GetNeighbors() []node.NodeData {
 	r := make(chan gnresp)
 	go func() {
 		c.chF <- func() {
 			r <- gnresp{c.neighbors}
 		}
 	}()
-	resp := <- r
+	resp := <-r
 	return resp.N
 }
 
