@@ -151,8 +151,16 @@ func postFile(filename string, target_url string) (*http.Response, error) {
 }
 
 func (n *NodeData) Stash(filename string) bool {
-	_, err := postFile(filename, n.stashUrl())
-	return err == nil
+	resp, err := postFile(filename, n.stashUrl())
+	if err != nil {
+		return false
+	}
+	if resp.StatusCode != 200 {
+		return false
+	}
+	b, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	return string(b) != "ok"
 }
 
 func (n NodeData) announceUrl() string {

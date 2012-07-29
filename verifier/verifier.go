@@ -172,7 +172,7 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 	if !satisfied {
 		sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes", path, s.Replication))
 	} else {
-		sl.Info(fmt.Sprintf("%s has full replica set\n", path))
+		sl.Info(fmt.Sprintf("%s has full replica set (%d of %d)\n", path, found_replicas, s.Replication))
 	}
 	if satisfied && delete_local {
 		clean_up_excess_replica(path, sl)
@@ -186,6 +186,7 @@ func retrieveReplica(n node.NodeData, hash string, extension string, path string
 
 	if err == nil && img_info.Local {
 		// node should have it. node has it. cool.
+		fmt.Printf("node %s has image\n", n.Nickname)
 		return 1
 	} else {
 		// that node should have a copy, but doesn't so stash it

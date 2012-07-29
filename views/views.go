@@ -289,7 +289,12 @@ func StashHandler(w http.ResponseWriter, r *http.Request, n node.NodeData, uploa
 		return
 	}
 
-	i, fh, _ := r.FormFile("image")
+	i, fh, err := r.FormFile("image")
+	if err != nil {
+		fmt.Println(err.Error())
+		http.Error(w, "no image uploaded", 400)
+		return
+	}
 	defer i.Close()
 	h := sha1.New()
 	io.Copy(h, i)
@@ -302,6 +307,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, n node.NodeData, uploa
 	defer f.Close()
 	i.Seek(0, 0)
 	io.Copy(f, i)
+	fmt.Fprint(w, "ok")
 }
 
 func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
