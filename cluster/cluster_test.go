@@ -75,43 +75,89 @@ func Test_SmallCluster(t *testing.T) {
 		Location:  "test",
 		Writeable: true,
 	}
-	n1 := node.NodeData{
-		Nickname:  "neighbor-1",
-		UUID:      "neighbor-1-uuid",
-		BaseUrl:   "localhost:8081",
-		Location:  "test",
-		Writeable: true,
-	}
-	n2 := node.NodeData{
-		Nickname:  "neighbor-2",
-		UUID:      "neighbor-2-uuid",
-		BaseUrl:   "localhost:8082",
-		Location:  "test",
-		Writeable: true,
-	}
-	n3 := node.NodeData{
-		Nickname:  "neighbor-3",
-		UUID:      "neighbor-3-uuid",
-		BaseUrl:   "localhost:8083",
-		Location:  "test",
-		Writeable: true,
-	}
-	n4 := node.NodeData{
-		Nickname:  "neighbor-4",
-		UUID:      "neighbor-4-uuid",
-		BaseUrl:   "localhost:8084",
-		Location:  "test",
-		Writeable: true,
+	var neighbors = []node.NodeData{
+		node.NodeData{
+			Nickname:  "neighbor-1",
+			UUID:      "neighbor-1-uuid",
+			BaseUrl:   "localhost:8081",
+			Location:  "test",
+			Writeable: true,
+		},
+		node.NodeData{
+			Nickname:  "neighbor-2",
+			UUID:      "neighbor-2-uuid",
+			BaseUrl:   "localhost:8082",
+			Location:  "test",
+			Writeable: true,
+		},
+		node.NodeData{
+			Nickname:  "neighbor-3",
+			UUID:      "neighbor-3-uuid",
+			BaseUrl:   "localhost:8083",
+			Location:  "test",
+			Writeable: true,
+		},
+		node.NodeData{
+			Nickname:  "neighbor-4",
+			UUID:      "neighbor-4-uuid",
+			BaseUrl:   "localhost:8084",
+			Location:  "test",
+			Writeable: true,
+		},
 	}
 
 	c := NewCluster(myself)
-	c.AddNeighbor(n1)
-	c.AddNeighbor(n2)
-	c.AddNeighbor(n3)
-	c.AddNeighbor(n4)
+	c.AddNeighbor(neighbors[0])
+	c.AddNeighbor(neighbors[1])
+	c.AddNeighbor(neighbors[2])
+	c.AddNeighbor(neighbors[3])
 
 	if len(c.GetNeighbors()) != 4 {
 		t.Error(fmt.Sprintf("wrong number of neighbors: %d", len(c.GetNeighbors())))
 	}
-	
+	if len(c.NeighborsInclusive()) != 5 {
+		t.Error(fmt.Sprintf("wrong number of inclusive neighbors: %d",
+			len(c.NeighborsInclusive())))
+	}
+
+	for _, n := range neighbors {
+		rn, found := c.FindNeighborByUUID(n.UUID)
+		if !found {
+			t.Error(fmt.Sprintf("couldn't find %s by UUID", n.UUID))
+		}
+		if rn.Nickname != n.Nickname {
+			t.Error("not the same nickname")
+		}
+	}
+
+	c.RemoveNeighbor(neighbors[2])
+	if len(c.GetNeighbors()) != 3 {
+		t.Error(fmt.Sprintf("wrong number of neighbors: %d", len(c.GetNeighbors())))
+	}
+	if len(c.NeighborsInclusive()) != 4 {
+		t.Error(fmt.Sprintf("wrong number of inclusive neighbors: %d",
+			len(c.NeighborsInclusive())))
+	}
+
+	for i, n := range neighbors {
+		rn, found := c.FindNeighborByUUID(n.UUID)
+		if i == 2 {
+			// the one that was removed
+			if found {
+				t.Error("found the one we removed")
+			}
+		} else {
+			if !found {
+				t.Error(fmt.Sprintf("couldn't find %s by UUID", n.UUID))
+			}
+			if rn.Nickname != n.Nickname {
+				t.Error("not the same nickname")
+			}
+		}
+	}
+	// remove the last one, just to check for off-by-ones
+	c.RemoveNeighbor(neighbors[3])
+	// same for the first
+	c.RemoveNeighbor(neighbors[0])
+
 }
