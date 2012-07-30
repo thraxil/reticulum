@@ -1,17 +1,17 @@
 package views
 
 import (
-	"github.com/thraxil/reticulum/cluster"
-	"github.com/thraxil/reticulum/config"
-	"github.com/thraxil/reticulum/models"
-	"github.com/thraxil/reticulum/node"
-	"github.com/thraxil/reticulum/resize_worker"
 	"bytes"
 	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/thraxil/reticulum/cluster"
+	"github.com/thraxil/reticulum/config"
+	"github.com/thraxil/reticulum/models"
+	"github.com/thraxil/reticulum/node"
+	"github.com/thraxil/reticulum/resize_worker"
 	"html/template"
 	"image/jpeg"
 	"image/png"
@@ -37,11 +37,6 @@ type ImageData struct {
 	FullUrl   string   `json:"full_url"`
 	Satisfied bool     `json:"satisfied"`
 	Nodes     []string `json:"nodes"`
-}
-
-func renderTemplate(w http.ResponseWriter, tmpl string, p *Page, s config.SiteConfig) {
-	t, _ := template.ParseFiles(s.TemplateDirectory + "/" + tmpl + ".html")
-	t.Execute(w, p)
 }
 
 func hashToPath(h []byte) string {
@@ -260,24 +255,27 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 			Title:      "upload image",
 			RequireKey: siteconfig.KeyRequired(),
 		}
-		renderTemplate(w, "add", &p, siteconfig)
+		t, _ := template.New("add").Parse(add_template)
+		t.Execute(w, &p)
 	}
 }
 
 type StatusPage struct {
-	Title   string
-	Config  config.SiteConfig
-	Cluster cluster.Cluster
+	Title     string
+	Config    config.SiteConfig
+	Cluster   *cluster.Cluster
+	Neighbors []node.NodeData
 }
 
 func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
 	p := StatusPage{
-		Title:   "Status",
-		Config:  siteconfig,
-		Cluster: *c,
+		Title:     "Status",
+		Config:    siteconfig,
+		Cluster:   c,
+		Neighbors: c.GetNeighbors(),
 	}
-	t, _ := template.ParseFiles(siteconfig.TemplateDirectory + "/status.html")
+	t, _ := template.New("status").Parse(status_template)
 	t.Execute(w, p)
 }
 
@@ -291,7 +289,11 @@ func StashHandler(w http.ResponseWriter, r *http.Request, n node.NodeData, uploa
 		return
 	}
 
-	i, fh, _ := r.FormFile("image")
+	i, fh, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, "no image uploaded", 400)
+		return
+	}
 	defer i.Close()
 	h := sha1.New()
 	io.Copy(h, i)
@@ -304,6 +306,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, n node.NodeData, uploa
 	defer f.Close()
 	i.Seek(0, 0)
 	io.Copy(f, i)
+	fmt.Fprint(w, "ok")
 }
 
 func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
@@ -484,3 +487,88 @@ func FaviconHandler(w http.ResponseWriter, r *http.Request) {
 	// just give it nothing to make it go away
 	w.Write(nil)
 }
+
+var add_template = `
+<html>
+<head>
+<title>{{.Title}}</title>
+</head>
+
+<body>
+<h1>{{.Title}}</h1>
+
+<form action="." method="post" enctype="multipart/form-data" >
+{{if .RequireKey}}
+<p>Upload key is required: <input type="text" name="key" /></p>
+{{end}}
+<input type="file" name="image" /><br />
+<input type="submit" value="upload image" />
+</form>
+
+</body>
+</html>
+`
+
+var status_template = `
+<html>
+<head>
+<title>{{.Title}}</title>
+</head>
+
+<body>
+<h1>{{.Title}}</h1>
+
+<h2>Config</h2>
+
+<table>
+	<tr><th>Port</th><td>{{ .Config.Port }}</td></tr>
+	<tr><th>Replication</th><td>{{ .Config.Replication }}</td></tr>
+	<tr><th>MinReplication</th><td>{{ .Config.MinReplication }}</td></tr>
+	<tr><th>MaxReplication</th><td>{{ .Config.MaxReplication }}</td></tr>
+	<tr><th># Resize Workers</th><td>{{ .Config.NumResizeWorkers }}</td></tr>
+	<tr><th>Gossip sleep duration</th><td>{{ .Config.GossiperSleep }}</td></tr>
+</table>
+
+<h2>This Node</h2>
+
+<table>
+	<tr><th>Nickname</th><td>{{ .Cluster.Myself.Nickname }}</td></tr>
+	<tr><th>UUID</th><td>{{ .Cluster.Myself.UUID }}</td></tr>
+	<tr><th>Location</th><td>{{ .Cluster.Myself.Location }}</td></tr>
+	<tr><th>Writeable</th><td>{{ .Cluster.Myself.Writeable }}</td></tr>
+	<tr><th>Base URL</th><td>{{ .Cluster.Myself.BaseUrl }}</td></tr>
+</table>
+
+<h2>Neighbors</h2>
+
+<table>
+	<tr>
+		<th>Nickname</th>
+		<th>UUID</th>
+		<th>BaseUrl</th>
+		<th>Location</th>
+		<th>Writeable</th>
+		<th>LastSeen</th>
+		<th>LastFailed</th>
+	</tr>
+
+{{ range .Neighbors }}
+
+	<tr>
+		<th>{{ .Nickname }}</th>
+		<td>{{ .UUID }}</td>
+		<td>{{ .BaseUrl }}</td>
+		<td>{{ .Location }}</td>
+		<td>{{ .Writeable }}</td>
+		<td>{{ .LastSeen }}</td>
+		<td>{{ .LastFailed }}</td>
+	</tr>
+	
+{{ end }}
+
+</table>
+
+
+</body>
+</html>
+`

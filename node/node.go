@@ -92,6 +92,7 @@ func (n NodeData) stashUrl() string {
 
 func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]byte, error) {
 	resp, err := http.Get(n.retrieveUrl(hash, size, extension))
+	defer resp.Body.Close()
 	if err != nil {
 		n.LastFailed = time.Now()
 		return nil, err
@@ -101,7 +102,6 @@ func (n *NodeData) RetrieveImage(hash string, size string, extension string) ([]
 		return nil, errors.New("404, probably")
 	}
 	b, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
 	return b, nil
 }
 
@@ -113,6 +113,7 @@ type ImageInfoResponse struct {
 
 func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string) (*ImageInfoResponse, error) {
 	resp, err := http.Get(n.retrieveInfoUrl(hash, size, extension))
+	defer resp.Body.Close()
 	if err != nil {
 		n.LastFailed = time.Now()
 		return nil, err
@@ -124,7 +125,6 @@ func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string)
 	}
 	var response ImageInfoResponse
 	b, _ := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
 	err = json.Unmarshal(b, &response)
 	if err != nil {
 		return nil, err
@@ -135,35 +135,35 @@ func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string)
 func postFile(filename string, target_url string) (*http.Response, error) {
 	body_buf := bytes.NewBufferString("")
 	body_writer := multipart.NewWriter(body_buf)
-	defer body_writer.Close()
 	file_writer, err := body_writer.CreateFormFile("image", filename)
 	if err != nil {
 		panic(err.Error())
 	}
 	fh, err := os.Open(filename)
-	defer fh.Close()
 	if err != nil {
-		panic(err.Error())
+		body_writer.Close()
+		return nil, err
 	}
+	defer fh.Close()
 	io.Copy(file_writer, fh)
+	// .Close() finishes setting it up
+	// do not defer this or it will make and empty POST request
+	body_writer.Close()
 	content_type := body_writer.FormDataContentType()
 	return http.Post(target_url, content_type, body_buf)
 }
 
 func (n *NodeData) Stash(filename string) bool {
-	_, err := postFile(filename, n.stashUrl())
+	resp, err := postFile(filename, n.stashUrl())
 	if err != nil {
-		// this node failed us, so take them out of
-		// the write ring until we hear otherwise from them
-		// TODO: look more closely at the response to 
-		//       possibly act differently in specific cases
-		//       ie, allow them to specify a temporary failure
-		n.LastFailed = time.Now()
-		n.Writeable = false
-	} else {
-		n.LastSeen = time.Now()
+		return false
 	}
-	return err == nil
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return false
+	}
+	b, _ := ioutil.ReadAll(resp.Body)
+	return string(b) == "ok"
 }
 
 func (n NodeData) announceUrl() string {

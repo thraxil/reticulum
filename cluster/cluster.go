@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"github.com/thraxil/reticulum/node"
 	"fmt"
+	"github.com/thraxil/reticulum/node"
 	"log/syslog"
 	"math/rand"
 	"sort"
@@ -47,14 +47,14 @@ type gnresp struct {
 	N []node.NodeData
 }
 
-func (c *Cluster) GetNeighbors() []node.NodeData{
+func (c *Cluster) GetNeighbors() []node.NodeData {
 	r := make(chan gnresp)
 	go func() {
 		c.chF <- func() {
 			r <- gnresp{c.neighbors}
 		}
 	}()
-	resp := <- r
+	resp := <-r
 	return resp.N
 }
 
@@ -106,6 +106,17 @@ func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
 				if neighbor.LastSeen.Sub(c.neighbors[i].LastSeen) > 0 {
 					c.neighbors[i].LastSeen = neighbor.LastSeen
 				}
+			}
+		}
+	}
+}
+
+func (c *Cluster) FailedNeighbor(neighbor node.NodeData) {
+	c.chF <- func() {
+		for i := range c.neighbors {
+			if c.neighbors[i].UUID == neighbor.UUID {
+				c.neighbors[i].Writeable = false
+				c.neighbors[i].LastFailed = time.Now()
 			}
 		}
 	}
@@ -173,6 +184,10 @@ func (cluster *Cluster) Stash(ahash string, filename string, replication int, mi
 		if n.Stash(filename) {
 			saved_to[save_count] = n.Nickname
 			save_count++
+			n.LastSeen = time.Now()
+			cluster.UpdateNeighbor(n)
+		} else {
+			cluster.FailedNeighbor(n)
 		}
 		// TODO: if we've hit min_replication, we can return
 		// immediately and leave any additional stash attempts
@@ -267,12 +282,15 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 			resp, err := n.Ping(c.Myself)
 			if err != nil {
 				sl.Info(fmt.Sprintf("error on node %s pinging %s", c.Myself.Nickname, n.Nickname))
+				c.FailedNeighbor(n)
 				continue
 			}
 			// UUID and BaseUrl must be the same
 			n.Writeable = resp.Writeable
 			n.Nickname = resp.Nickname
 			n.Location = resp.Location
+			n.LastSeen = time.Now()
+			c.UpdateNeighbor(n)
 			for _, neighbor := range resp.Neighbors {
 				if neighbor.UUID == c.Myself.UUID {
 					// as usual, skip ourself

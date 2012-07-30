@@ -35,3 +35,6 @@ coverage: reticulum
 	${GOROOT}/bin/gocov test github.com/thraxil/reticulum/node | ${GOROOT}/bin/gocov report
 	${GOROOT}/bin/gocov test github.com/thraxil/reticulum/cluster ${GOROOT}/bin/gocov report
 
+install_deps:
+	go get github.com/thraxil/resize
+	go get github.com/bradfitz/gomemcache/memcache

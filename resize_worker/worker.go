@@ -1,9 +1,9 @@
 package resize_worker
 
 import (
-	"github.com/thraxil/reticulum/config"
 	"fmt"
 	"github.com/thraxil/resize"
+	"github.com/thraxil/reticulum/config"
 	"image"
 	"image/gif"
 	"image/jpeg"

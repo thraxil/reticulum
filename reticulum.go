@@ -1,6 +1,10 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
+	"fmt"
+	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/thraxil/reticulum/cluster"
 	"github.com/thraxil/reticulum/config"
 	"github.com/thraxil/reticulum/models"
@@ -8,10 +12,6 @@ import (
 	"github.com/thraxil/reticulum/resize_worker"
 	"github.com/thraxil/reticulum/verifier"
 	"github.com/thraxil/reticulum/views"
-	"encoding/json"
-	"flag"
-	"fmt"
-	"github.com/bradfitz/gomemcache/memcache"
 	"io/ioutil"
 	"log"
 	"log/syslog"
@@ -32,25 +32,25 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, *cluster.Cluster,
 func makeLightHandler(fn func(http.ResponseWriter, *http.Request, node.NodeData,
 	string),
 	n node.NodeData, upload_dir string,
-	) http.HandlerFunc {
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, n, upload_dir)
 	}
 }
 
-
-func Log(handler http.Handler, logger *syslog.Writer) http.Handler {
+func Log(handler http.Handler, logger *syslog.Writer, node_name string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if rc := recover(); rc != nil {
-				fmt.Println("Server Error", rc)
-				logger.Err(fmt.Sprintf("%s", r.URL))
-			}
-		}()
+//		defer func() {
+//			if rc := recover(); rc != nil {
+//				fmt.Println("Server Error", rc)
+//				logger.Err(fmt.Sprintf("%s", r.URL))
+//			}
+//		}()
 		t0 := time.Now()
 		handler.ServeHTTP(w, r)
 		t1 := time.Now()
-		logger.Info(fmt.Sprintf("%s %s %s [%v]", r.RemoteAddr, r.Method, r.URL, t1.Sub(t0)))
+		logger.Info(fmt.Sprintf("%s: %s %s %s [%v]", node_name, r.RemoteAddr, r.Method,
+			r.URL, t1.Sub(t0)))
 	})
 }
 
@@ -112,5 +112,5 @@ func main() {
 	http.HandleFunc("/favicon.ico", views.FaviconHandler)
 
 	// everything is ready, let's go
-	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, sl))
+	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, sl, c.Myself.Nickname))
 }
