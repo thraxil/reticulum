@@ -19,12 +19,16 @@ var REPLICAS = 16
 // have to run through the whole list every time
 type Cluster struct {
 	Myself    node.NodeData
-	neighbors []node.NodeData
+	neighbors map[string]node.NodeData
 	chF       chan func()
 }
 
 func NewCluster(myself node.NodeData) *Cluster {
-	c := &Cluster{Myself: myself, chF: make(chan func())}
+	c := &Cluster{
+		Myself:    myself,
+		neighbors: make(map[string]node.NodeData),
+		chF:       make(chan func()),
+	}
 	go c.backend()
 	return c
 }
@@ -39,7 +43,7 @@ func (c *Cluster) backend() {
 
 func (c *Cluster) AddNeighbor(nd node.NodeData) {
 	c.chF <- func() {
-		c.neighbors = append(c.neighbors, nd)
+		c.neighbors[nd.UUID] = nd
 	}
 }
 
@@ -51,7 +55,13 @@ func (c *Cluster) GetNeighbors() []node.NodeData {
 	r := make(chan gnresp)
 	go func() {
 		c.chF <- func() {
-			r <- gnresp{c.neighbors}
+			neighbs := make([]node.NodeData, len(c.neighbors))
+			var i = 0
+			for _, value := range c.neighbors {
+				neighbs[i] = value
+				i++
+			}
+			r <- gnresp{neighbs}
 		}
 	}()
 	resp := <-r
@@ -61,15 +71,7 @@ func (c *Cluster) GetNeighbors() []node.NodeData {
 func (c *Cluster) RemoveNeighbor(nd node.NodeData) {
 	c.chF <- func() {
 		// find the index in the list of neighbors
-		var idx = 0
-		for i := range c.neighbors {
-			if c.neighbors[i].UUID == nd.UUID {
-				idx = i
-				break
-			}
-		}
-		// and remove it
-		c.neighbors = append(c.neighbors[:idx], c.neighbors[idx+1:]...)
+		delete(c.neighbors, nd.UUID)
 	}
 }
 
@@ -82,13 +84,8 @@ func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 	r := make(chan fResp)
 	go func() {
 		c.chF <- func() {
-			for i := range c.neighbors {
-				if c.neighbors[i].UUID == uuid {
-					r <- fResp{&c.neighbors[i], true}
-					return
-				}
-			}
-			r <- fResp{nil, false}
+			n, ok := c.neighbors[uuid]
+			r <- fResp{&n, ok}
 		}
 	}()
 	resp := <-r
@@ -97,27 +94,27 @@ func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 
 func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
 	c.chF <- func() {
-		for i := range c.neighbors {
-			if c.neighbors[i].UUID == neighbor.UUID {
-				c.neighbors[i].Nickname = neighbor.Nickname
-				c.neighbors[i].Location = neighbor.Location
-				c.neighbors[i].BaseUrl = neighbor.BaseUrl
-				c.neighbors[i].Writeable = neighbor.Writeable
-				if neighbor.LastSeen.Sub(c.neighbors[i].LastSeen) > 0 {
-					c.neighbors[i].LastSeen = neighbor.LastSeen
-				}
+		n, ok := c.neighbors[neighbor.UUID]
+		if ok {
+			n.Nickname = neighbor.Nickname
+			n.Location = neighbor.Location
+			n.BaseUrl = neighbor.BaseUrl
+			n.Writeable = neighbor.Writeable
+			if neighbor.LastSeen.Sub(n.LastSeen) > 0 {
+				n.LastSeen = neighbor.LastSeen
 			}
+			c.neighbors[neighbor.UUID] = n
 		}
 	}
 }
 
 func (c *Cluster) FailedNeighbor(neighbor node.NodeData) {
 	c.chF <- func() {
-		for i := range c.neighbors {
-			if c.neighbors[i].UUID == neighbor.UUID {
-				c.neighbors[i].Writeable = false
-				c.neighbors[i].LastFailed = time.Now()
-			}
+		n, ok := c.neighbors[neighbor.UUID]
+		if ok {
+			n.Writeable = false
+			n.LastFailed = time.Now()
+			c.neighbors[neighbor.UUID] = n
 		}
 	}
 }
@@ -132,7 +129,15 @@ func (c Cluster) NeighborsInclusive() []node.NodeData {
 		c.chF <- func() {
 			a := make([]node.NodeData, 1)
 			a[0] = c.Myself
-			a = append(a, c.neighbors...)
+
+			neighbs := make([]node.NodeData, len(c.neighbors))
+			var i = 0
+			for _, value := range c.neighbors {
+				neighbs[i] = value
+				i++
+			}
+
+			a = append(a, neighbs...)
 			r <- listResp{a}
 		}
 	}()
