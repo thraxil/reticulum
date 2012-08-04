@@ -70,7 +70,6 @@ func (c *Cluster) GetNeighbors() []node.NodeData {
 
 func (c *Cluster) RemoveNeighbor(nd node.NodeData) {
 	c.chF <- func() {
-		// find the index in the list of neighbors
 		delete(c.neighbors, nd.UUID)
 	}
 }
@@ -94,8 +93,7 @@ func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 
 func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
 	c.chF <- func() {
-		n, ok := c.neighbors[neighbor.UUID]
-		if ok {
+		if n, ok := c.neighbors[neighbor.UUID]; ok {
 			n.Nickname = neighbor.Nickname
 			n.Location = neighbor.Location
 			n.BaseUrl = neighbor.BaseUrl
@@ -110,8 +108,7 @@ func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
 
 func (c *Cluster) FailedNeighbor(neighbor node.NodeData) {
 	c.chF <- func() {
-		n, ok := c.neighbors[neighbor.UUID]
-		if ok {
+		if n, ok := c.neighbors[neighbor.UUID]; ok {
 			n.Writeable = false
 			n.LastFailed = time.Now()
 			c.neighbors[neighbor.UUID] = n
@@ -301,6 +298,8 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 					// as usual, skip ourself
 					continue
 				}
+				// TODO: convert these to a single atomic
+				// UpdateOrAddNeighbor type operation
 				if _, ok := c.FindNeighborByUUID(neighbor.UUID); ok {
 					c.UpdateNeighbor(neighbor)
 				} else {
