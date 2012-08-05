@@ -25,6 +25,14 @@ import (
 	"time"
 )
 
+type Context struct {
+	Cluster *cluster.Cluster
+	Cfg     config.SiteConfig
+	Ch      models.SharedChannels
+	SL      *syslog.Writer
+	MC      *memcache.Client
+}
+
 type Page struct {
 	Title      string
 	RequireKey bool
@@ -80,8 +88,7 @@ func retrieveImage(c *cluster.Cluster, ahash string, size string, extension stri
 	return nil, errors.New("not found in the cluster")
 }
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
@@ -101,21 +108,21 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 
 	memcache_key := ahash + "/" + size + "/image" + extension
 	// check memcached first
-	item, err := mc.Get(memcache_key)
+	item, err := ctx.MC.Get(memcache_key)
 	if err == nil {
-		sl.Info("Cache Hit")
+		ctx.SL.Info("Cache Hit")
 		w.Header().Set("Content-Type", extmimes[extension[1:]])
 		w.Write(item.Value)
 		return
 	}
 
-	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
+	baseDir := ctx.Cfg.UploadDirectory + hashStringToPath(ahash)
 	path := baseDir + "/full" + extension
 	sizedPath := baseDir + "/" + size + extension
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
-		mc.Set(&memcache.Item{Key: memcache_key, Value: contents})
+		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: contents})
 		// we've got it, so serve it directly
 		w.Header().Set("Content-Type", extmimes[extension[1:]])
 		w.Write(contents)
@@ -126,12 +133,12 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 	if err != nil {
 		// we don't have the full-size on this node either
 		// need to check the rest of the cluster
-		img_data, err := retrieveImage(cls, ahash, size, extension[1:])
+		img_data, err := retrieveImage(ctx.Cluster, ahash, size, extension[1:])
 		if err != nil {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
 		} else {
-			mc.Set(&memcache.Item{Key: memcache_key, Value: img_data})
+			ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_data})
 			w.Header().Set("Content-Type", extmimes[extension[1:]])
 			w.Write(img_data)
 		}
@@ -142,7 +149,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 	// so resize it, cache it, and serve it.
 
 	c := make(chan resize_worker.ResizeResponse)
-	channels.ResizeQueue <- resize_worker.ResizeRequest{path, extension, size, c}
+	ctx.Ch.ResizeQueue <- resize_worker.ResizeRequest{path, extension, size, c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
@@ -153,7 +160,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 		// the sized file
 		w.Header().Set("Content-Type", extmimes[extension])
 		img_contents, _ := ioutil.ReadFile(sizedPath)
-		mc.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 		w.Write(img_contents)
 		return
 	}
@@ -171,7 +178,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 		jpeg.Encode(wFile, outputImage, &jpeg_options)
 		jpeg.Encode(w, outputImage, &jpeg_options)
 		img_contents, _ := ioutil.ReadFile(sizedPath)
-		mc.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 		return
 	}
 	if extension == ".gif" {
@@ -181,14 +188,14 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Clus
 		png.Encode(wFile, outputImage)
 		png.Encode(w, outputImage)
 		img_contents, _ := ioutil.ReadFile(sizedPath)
-		mc.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 		return
 	}
 	if extension == ".png" {
 		png.Encode(wFile, outputImage)
 		png.Encode(w, outputImage)
 		img_contents, _ := ioutil.ReadFile(sizedPath)
-		mc.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 		return
 	}
 
@@ -206,11 +213,10 @@ var extmimes = map[string]string{
 	"png": "image/png",
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
+func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if r.Method == "POST" {
-		if siteconfig.KeyRequired() {
-			if !siteconfig.ValidKey(r.FormValue("key")) {
+		if ctx.Cfg.KeyRequired() {
+			if !ctx.Cfg.ValidKey(r.FormValue("key")) {
 				http.Error(w, "invalid upload key", 403)
 				return
 			}
@@ -220,7 +226,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 		h := sha1.New()
 		io.Copy(h, i)
 		ahash := fmt.Sprintf("%x", h.Sum(nil))
-		path := siteconfig.UploadDirectory + hashToPath(h.Sum(nil))
+		path := ctx.Cfg.UploadDirectory + hashToPath(h.Sum(nil))
 		os.MkdirAll(path, 0755)
 		mimetype := fh.Header["Content-Type"][0]
 		ext := mimeexts[mimetype]
@@ -236,24 +242,24 @@ func AddHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
 		// at some point in the future.
 
 		// now stash it to other nodes in the cluster too
-		nodes := c.Stash(ahash, fullpath, siteconfig.Replication, siteconfig.MinReplication)
+		nodes := ctx.Cluster.Stash(ahash, fullpath, ctx.Cfg.Replication, ctx.Cfg.MinReplication)
 
 		id := ImageData{
 			Hash:      ahash,
 			Extension: ext,
 			FullUrl:   "/image/" + ahash + "/full/image." + ext,
-			Satisfied: len(nodes) >= siteconfig.MinReplication,
+			Satisfied: len(nodes) >= ctx.Cfg.MinReplication,
 			Nodes:     nodes,
 		}
 		b, err := json.Marshal(id)
 		if err != nil {
-			sl.Err(err.Error())
+			ctx.SL.Err(err.Error())
 		}
 		w.Write(b)
 	} else {
 		p := Page{
 			Title:      "upload image",
-			RequireKey: siteconfig.KeyRequired(),
+			RequireKey: ctx.Cfg.KeyRequired(),
 		}
 		t, _ := template.New("add").Parse(add_template)
 		t.Execute(w, &p)
@@ -267,19 +273,19 @@ type StatusPage struct {
 	Neighbors []node.NodeData
 }
 
-func StatusHandler(w http.ResponseWriter, r *http.Request, c *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
+func StatusHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	p := StatusPage{
 		Title:     "Status",
-		Config:    siteconfig,
-		Cluster:   c,
-		Neighbors: c.GetNeighbors(),
+		Config:    ctx.Cfg,
+		Cluster:   ctx.Cluster,
+		Neighbors: ctx.Cluster.GetNeighbors(),
 	}
 	t, _ := template.New("status").Parse(status_template)
 	t.Execute(w, p)
 }
 
-func StashHandler(w http.ResponseWriter, r *http.Request, n node.NodeData, upload_dir string) {
+func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
+	n := ctx.Cluster.Myself
 	if r.Method != "POST" {
 		http.Error(w, "POST only", 400)
 		return
@@ -298,7 +304,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, n node.NodeData, uploa
 	h := sha1.New()
 	io.Copy(h, i)
 
-	path := upload_dir + hashToPath(h.Sum(nil))
+	path := ctx.Cfg.UploadDirectory + hashToPath(h.Sum(nil))
 	os.MkdirAll(path, 0755)
 	ext := filepath.Ext(fh.Filename)
 	fullpath := path + "full" + ext
@@ -309,8 +315,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, n node.NodeData, uploa
 	fmt.Fprint(w, "ok")
 }
 
-func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
+func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	// request will look like /retrieve_info/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) != 6) || (parts[1] != "retrieve_info") {
@@ -325,7 +330,7 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cl
 		return
 	}
 
-	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
+	baseDir := ctx.Cfg.UploadDirectory + hashStringToPath(ahash)
 	path := baseDir + "/full" + "." + extension
 	_, err := os.Open(path)
 	if err != nil {
@@ -334,14 +339,13 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cl
 
 	b, err := json.Marshal(node.ImageInfoResponse{ahash, extension, local})
 	if err != nil {
-		sl.Err(err.Error())
+		ctx.SL.Err(err.Error())
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
 }
 
-func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluster,
-	siteconfig config.SiteConfig, channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
+func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	// request will look like /retrieve/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
@@ -358,7 +362,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 		return
 	}
 
-	baseDir := siteconfig.UploadDirectory + hashStringToPath(ahash)
+	baseDir := ctx.Cfg.UploadDirectory + hashStringToPath(ahash)
 	path := baseDir + "/full" + "." + extension
 	sizedPath := baseDir + "/" + size + "." + extension
 
@@ -379,7 +383,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 	// so resize it, cache it, and serve it.
 
 	c := make(chan resize_worker.ResizeResponse)
-	channels.ResizeQueue <- resize_worker.ResizeRequest{path, "." + extension, size, c}
+	ctx.Ch.ResizeQueue <- resize_worker.ResizeRequest{path, "." + extension, size, c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
@@ -423,14 +427,12 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, cls *cluster.Cluste
 	}
 }
 
-func AnnounceHandler(w http.ResponseWriter, r *http.Request,
-	c *cluster.Cluster, siteconfig config.SiteConfig,
-	channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) {
+func AnnounceHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if r.Method == "POST" {
 		// another node is announcing themselves to us
 		// if they are already in the Neighbors list, update as needed
 		// TODO: this should use channels to make it concurrency safe, like Add
-		if neighbor, ok := c.FindNeighborByUUID(r.FormValue("uuid")); ok {
+		if neighbor, ok := ctx.Cluster.FindNeighborByUUID(r.FormValue("uuid")); ok {
 			if r.FormValue("nickname") != "" {
 				neighbor.Nickname = r.FormValue("nickname")
 			}
@@ -444,15 +446,15 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 				neighbor.Writeable = r.FormValue("writeable") == "true"
 			}
 			neighbor.LastSeen = time.Now()
-			c.UpdateNeighbor(*neighbor)
-			sl.Info("updated existing neighbor")
+			ctx.Cluster.UpdateNeighbor(*neighbor)
+			ctx.SL.Info("updated existing neighbor")
 			// TODO: gossip enable by accepting the list of neighbors
 			// from the client and merging that data in.
 			// for now, just let it update its own entry
 
 		} else {
 			// otherwise, add them to the Neighbors list
-			sl.Info("adding neighbor")
+			ctx.SL.Info("adding neighbor")
 			nd := node.NodeData{
 				Nickname: r.FormValue("nickname"),
 				UUID:     r.FormValue("uuid"),
@@ -465,20 +467,20 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request,
 				nd.Writeable = false
 			}
 			nd.LastSeen = time.Now()
-			c.AddNeighbor(nd)
+			ctx.Cluster.AddNeighbor(nd)
 		}
 	}
 	ar := node.AnnounceResponse{
-		Nickname:  c.Myself.Nickname,
-		UUID:      c.Myself.UUID,
-		Location:  c.Myself.Location,
-		Writeable: c.Myself.Writeable,
-		BaseUrl:   c.Myself.BaseUrl,
-		Neighbors: c.GetNeighbors(),
+		Nickname:  ctx.Cluster.Myself.Nickname,
+		UUID:      ctx.Cluster.Myself.UUID,
+		Location:  ctx.Cluster.Myself.Location,
+		Writeable: ctx.Cluster.Myself.Writeable,
+		BaseUrl:   ctx.Cluster.Myself.BaseUrl,
+		Neighbors: ctx.Cluster.GetNeighbors(),
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {
-		sl.Err(err.Error())
+		ctx.SL.Err(err.Error())
 	}
 	w.Write(b)
 }

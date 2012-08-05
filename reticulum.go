@@ -8,7 +8,6 @@ import (
 	"github.com/thraxil/reticulum/cluster"
 	"github.com/thraxil/reticulum/config"
 	"github.com/thraxil/reticulum/models"
-	"github.com/thraxil/reticulum/node"
 	"github.com/thraxil/reticulum/resize_worker"
 	"github.com/thraxil/reticulum/verifier"
 	"github.com/thraxil/reticulum/views"
@@ -20,21 +19,10 @@ import (
 	"time"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, *cluster.Cluster,
-	config.SiteConfig, models.SharedChannels, *syslog.Writer, *memcache.Client),
-	c *cluster.Cluster, siteconfig config.SiteConfig,
-	channels models.SharedChannels, sl *syslog.Writer, mc *memcache.Client) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, views.Context),
+	ctx views.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, c, siteconfig, channels, sl, mc)
-	}
-}
-
-func makeLightHandler(fn func(http.ResponseWriter, *http.Request, node.NodeData,
-	string),
-	n node.NodeData, upload_dir string,
-) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fn(w, r, n, upload_dir)
+		fn(w, r, ctx)
 	}
 }
 
@@ -101,14 +89,16 @@ func main() {
 	go verifier.Verify(c, siteconfig, sl)
 
 	mc := memcache.New(siteconfig.MemcacheServers...)
+
+	ctx := views.Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl, MC: mc}
 	// set up HTTP Handlers
-	http.HandleFunc("/", makeHandler(views.AddHandler, c, siteconfig, channels, sl, mc))
-	http.HandleFunc("/stash/", makeLightHandler(views.StashHandler, c.Myself, siteconfig.UploadDirectory))
-	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, c, siteconfig, channels, sl, mc))
-	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, c, siteconfig, channels, sl, mc))
-	http.HandleFunc("/retrieve_info/", makeHandler(views.RetrieveInfoHandler, c, siteconfig, channels, sl, mc))
-	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, c, siteconfig, channels, sl, mc))
-	http.HandleFunc("/status/", makeHandler(views.StatusHandler, c, siteconfig, channels, sl, mc))
+	http.HandleFunc("/", makeHandler(views.AddHandler, ctx))
+	http.HandleFunc("/stash/", makeHandler(views.StashHandler, ctx))
+	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, ctx))
+	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, ctx))
+	http.HandleFunc("/retrieve_info/", makeHandler(views.RetrieveInfoHandler, ctx))
+	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, ctx))
+	http.HandleFunc("/status/", makeHandler(views.StatusHandler, ctx))
 	http.HandleFunc("/favicon.ico", views.FaviconHandler)
 
 	// everything is ready, let's go
