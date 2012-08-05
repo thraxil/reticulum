@@ -179,6 +179,11 @@ type AnnounceResponse struct {
 	Neighbors []NodeData `json:"neighbors"`
 }
 
+type pingResponse struct {
+	Resp *http.Response
+	Err  error
+}
+
 func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
 	if err != nil {
@@ -197,22 +202,40 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 
 	var response AnnounceResponse
 	sl.Info(n.announceUrl())
-	resp, err := http.PostForm(n.announceUrl(), params)
-	sl.Info("made request")
-	if err != nil {
-		sl.Info(fmt.Sprintf("node %s returned an error on ping: %s", n.Nickname, err.Error()))
+	rc := make(chan pingResponse, 1)
+	go func() {
+		sl.Info("made request")
+		resp, err := http.PostForm(n.announceUrl(), params)
+		rc <- pingResponse{resp, err}
+	}()
+
+	select {
+	case pr := <-rc:
+		resp := pr.Resp
+		err = pr.Err
+		if err != nil {
+			sl.Info(fmt.Sprintf("node %s returned an error on ping: %s", n.Nickname, err.Error()))
+			n.LastFailed = time.Now()
+			return response, err
+		} else {
+			n.LastSeen = time.Now()
+			// todo, update Writeable, Nickname, etc.
+			b, _ := ioutil.ReadAll(resp.Body)
+			err = json.Unmarshal(b, &response)
+			resp.Body.Close()
+			if err != nil {
+				sl.Err("bad json response")
+				sl.Err(fmt.Sprintf("%s", b))
+				return response, errors.New("bad JSON response")
+			}
+			return response, nil
+		}
+	case <-time.After(1 * time.Second):
+		// if they take more than a second to respond
+		// let's cut them out
+		sl.Err("response timed out")
 		n.LastFailed = time.Now()
-		return response, err
-	} else {
-		n.LastSeen = time.Now()
-		// todo, update Writeable, Nickname, etc.
-	}
-	b, _ := ioutil.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	err = json.Unmarshal(b, &response)
-	if err != nil {
-		sl.Err("bad json response")
-		sl.Err(fmt.Sprintf("%s", b))
+		return response, errors.New("response timed out")
 	}
 	return response, nil
 }
