@@ -112,6 +112,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if err == nil {
 		ctx.SL.Info("Cache Hit")
 		w.Header().Set("Content-Type", extmimes[extension[1:]])
+		w.Header().Set("Expires",time.Now().Add(time.Hour * 24 * 365).Format(time.RFC1123))
 		w.Write(item.Value)
 		return
 	}
@@ -125,6 +126,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: contents})
 		// we've got it, so serve it directly
 		w.Header().Set("Content-Type", extmimes[extension[1:]])
+		w.Header().Set("Expires",time.Now().Add(time.Hour * 24 * 365).Format(time.RFC1123))
 		w.Write(contents)
 		return
 	}
@@ -140,6 +142,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		} else {
 			ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_data})
 			w.Header().Set("Content-Type", extmimes[extension[1:]])
+			w.Header().Set("Expires",time.Now().Add(time.Hour * 24 * 365).Format(time.RFC1123))
 			w.Write(img_data)
 		}
 		return
@@ -161,6 +164,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		w.Header().Set("Content-Type", extmimes[extension])
 		img_contents, _ := ioutil.ReadFile(sizedPath)
 		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+		w.Header().Set("Expires",time.Now().Add(time.Hour * 24 * 365).Format(time.RFC1123))
 		w.Write(img_contents)
 		return
 	}
@@ -174,6 +178,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// we just can't cache it. 
 	}
 	w.Header().Set("Content-Type", extmimes[extension[1:]])
+	w.Header().Set("Expires",time.Now().Add(time.Hour * 24 * 365).Format(time.RFC1123))
 	if extension == ".jpg" {
 		jpeg.Encode(wFile, outputImage, &jpeg_options)
 		jpeg.Encode(w, outputImage, &jpeg_options)
@@ -198,7 +203,6 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 		return
 	}
-
 }
 
 var mimeexts = map[string]string{
