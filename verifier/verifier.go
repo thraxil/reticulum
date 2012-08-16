@@ -228,6 +228,10 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 		sl.Err(fmt.Sprintf("verifier.visit was handed an error: %s", err.Error()))
 		return err
 	}
+	if c == nil {
+		sl.Err("verifier.visit was given a nil cluster")
+		return errors.New("nil cluster")
+	}
 
 	// all we care about is the "full" version of each
 	if f.IsDir() {
@@ -247,10 +251,18 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 	}
 
 	h := sha1.New()
-	imgfile, _ := os.Open(path)
+	imgfile, err := os.Open(path)
 	defer imgfile.Close()
+	if err != nil {
+		sl.Err(fmt.Sprintf("error opening %s", path))
+		return err
+	}
 
-	io.Copy(h, imgfile)
+	_, err = io.Copy(h, imgfile)
+	if err != nil {
+		sl.Err(fmt.Sprintf("error copying %s", path))
+		return err
+	}
 	ahash := fmt.Sprintf("%x", h.Sum(nil))
 
 	err = verify(path, extension, hash, ahash, c, sl)
