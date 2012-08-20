@@ -11,6 +11,7 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
+	"io/ioutil"
 	"log/syslog"
 	"math"
 	"os"
@@ -147,6 +148,9 @@ func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer, s *config.Site
 // so this will be removed as soon as Go can handle it all itself
 func imageMagickResize(path, size string, sl *syslog.Writer,
 	s *config.SiteConfig) (string, error) {
+
+	origPath := path
+	path := magickOrient(path)
 	args := convertArgs(size, path, s)
 
 	fds := []*os.File{os.Stdin, os.Stdout, os.Stderr}
@@ -164,6 +168,17 @@ func imageMagickResize(path, size string, sl *syslog.Writer,
 		return "", err
 	}
 	return resizedPath(path, size), nil
+}
+
+func magickOrient(path string, s *config.SiteConfig) string {
+	f, err := ioutil.TempFile("","oriented")
+	fds := []*os.File{os.Stdin, os.Stdou, os.Stderr}
+	p, err := os.StartProcess(s.ImageMagickConvertPath,
+		path, "-auto-orient", f.Name)
+	defer p.Release()
+	// TODO: error handling
+	_, err = p.Wait()
+	return f.Name
 }
 
 func resizedPath(path, size string) string {
