@@ -148,6 +148,10 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 	var delete_local = true
 	var satisfied = false
 	var found_replicas = 0
+	if c == nil {
+		sl.Err("rebalance was given a nil cluster")
+		return errors.New("nil cluster")
+	}
 	nodes_to_check := c.ReadOrder(hash)
 	// TODO: parallelize this
 	for _, n := range nodes_to_check {
@@ -183,8 +187,7 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 func retrieveReplica(n node.NodeData, hash string, extension string, path string, satisfied bool,
 	sl *syslog.Writer) int {
 	img_info, err := n.RetrieveImageInfo(hash, "full", extension[1:])
-
-	if err == nil && img_info.Local {
+	if err == nil && img_info != nil && img_info.Local {
 		// node should have it. node has it. cool.
 		return 1
 	} else {
@@ -228,7 +231,10 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 		sl.Err(fmt.Sprintf("verifier.visit was handed an error: %s", err.Error()))
 		return err
 	}
-
+	if c == nil {
+		sl.Err("verifier.visit was given a nil cluster")
+		return errors.New("nil cluster")
+	}
 	// all we care about is the "full" version of each
 	if f.IsDir() {
 		return nil
@@ -245,14 +251,19 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 	if err != nil {
 		return nil
 	}
-
 	h := sha1.New()
-	imgfile, _ := os.Open(path)
+	imgfile, err := os.Open(path)
 	defer imgfile.Close()
-
-	io.Copy(h, imgfile)
+	if err != nil {
+		sl.Err(fmt.Sprintf("error opening %s", path))
+		return err
+	}
+	_, err = io.Copy(h, imgfile)
+	if err != nil {
+		sl.Err(fmt.Sprintf("error copying %s", path))
+		return err
+	}
 	ahash := fmt.Sprintf("%x", h.Sum(nil))
-
 	err = verify(path, extension, hash, ahash, c, sl)
 	if err != nil {
 		return err
@@ -261,12 +272,10 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 	if err != nil {
 		return err
 	}
-
 	// slow things down a little to keep server load down
 	var base_time = s.VerifierSleep
 	jitter := rand.Intn(5)
 	time.Sleep(time.Duration(base_time+jitter) * time.Second)
-
 	return nil
 }
 

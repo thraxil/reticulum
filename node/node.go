@@ -130,18 +130,25 @@ func timedGetRequest(url string, duration time.Duration) (resp *http.Response, e
 func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string) (*ImageInfoResponse, error) {
 	url := n.retrieveInfoUrl(hash, size, extension)
 	resp, err := timedGetRequest(url, 1*time.Second)
-	defer resp.Body.Close()
 	if err != nil {
 		n.LastFailed = time.Now()
 		return nil, err
 	}
+
 	// otherwise, we got the info
 	n.LastSeen = time.Now()
+	if resp == nil {
+		return nil, errors.New("nil response")
+	}
+	defer resp.Body.Close()
 	if resp.Status != "200 OK" {
 		return nil, errors.New("404, probably")
 	}
 	var response ImageInfoResponse
-	b, _ := ioutil.ReadAll(resp.Body)
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
 	err = json.Unmarshal(b, &response)
 	if err != nil {
 		return nil, err
