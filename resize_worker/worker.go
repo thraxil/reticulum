@@ -1,7 +1,9 @@
 package resize_worker
 
 import (
+	"code.google.com/p/graphics-go/graphics"
 	"fmt"
+	"github.com/thraxil/exifgo"
 	"github.com/thraxil/resize"
 	"github.com/thraxil/reticulum/config"
 	"image"
@@ -10,6 +12,7 @@ import (
 	"image/png"
 	"io"
 	"log/syslog"
+	"math"
 	"os"
 	"path/filepath"
 	"time"
@@ -44,6 +47,71 @@ func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer, s *config.Site
 			sl.Err(fmt.Sprintf("resize worker could not open %s: %s", req.Path, err.Error()))
 			req.Response <- ResizeResponse{nil, false, false}
 			continue
+		}
+		if req.Extension[1:] == "jpg" {
+			// check the EXIF to see if it needs to be rotated
+			exif_data, err := exifgo.Parse_jpeg(origFile)
+			if err == nil {
+				// if we can't parse EXIF, don't even try to do anything else with it
+				for _, t := range exif_data {
+					if t.Label == "Orientation of image" {
+						v := t.Content.(uint16)
+						// TODO: 2, 3, and 4 could be applied post-scale
+						// since they don't change dimensions
+						if v == 1 {
+							sl.Debug("no rotation needed")
+						} else if v == 2 {
+							// mirror left-right
+							sl.Debug("orient 2")
+							// TODO
+						} else if v == 3 {
+							// mirror upside-down
+							// aka, rotate 180
+							sl.Debug("orient 3")
+							src, _, err := image.Decode(origFile)
+							if err == nil {
+								srcb := src.Bounds()
+								dst := image.NewRGBA(image.Rect(0, 0, srcb.Dy(), srcb.Dx()))
+								graphics.Rotate(dst, src, &graphics.RotateOptions{math.Pi})
+								jpeg.Encode(origFile, dst, nil)
+							}
+						} else if v == 4 {
+							// mirror left-right and upside-down
+							// aka mirror left-right and rotate 180
+							sl.Debug("orient 4")
+							// TODO
+						} else if v == 5 {
+							// mirror left-right and rotate 270
+							sl.Debug("orient 5")
+							// TODO
+						} else if v == 6 {
+							// rotate 270
+							sl.Debug("orient 6")
+							src, _, err := image.Decode(origFile)
+							if err == nil {
+								srcb := src.Bounds()
+								dst := image.NewRGBA(image.Rect(0, 0, srcb.Dy(), srcb.Dx()))
+								graphics.Rotate(dst, src, &graphics.RotateOptions{3.0 * math.Pi / 2.0})
+								jpeg.Encode(origFile, dst, nil)
+							}
+						} else if v == 7 {
+							// mirror left-right and rotate 90
+							sl.Debug("orient 7")
+							// TODO
+						} else if v == 8 {
+							// rotate 90
+							sl.Debug("orient 8")
+							src, _, err := image.Decode(origFile)
+							if err == nil {
+								srcb := src.Bounds()
+								dst := image.NewRGBA(image.Rect(0, 0, srcb.Dy(), srcb.Dx()))
+								graphics.Rotate(dst, src, &graphics.RotateOptions{math.Pi / 2.0})
+								jpeg.Encode(origFile, dst, nil)
+							}
+						}
+					}
+				}
+			}
 		}
 		m, err := decoders[req.Extension[1:]](origFile)
 		if err != nil {
@@ -123,6 +191,7 @@ func convertArgs(size, path string, c *config.SiteConfig) []string {
 			convertBin,
 			"-resize",
 			fmt.Sprintf("%dx%d^", maxDim, maxDim),
+			"-auto-orient",
 			"-gravity",
 			"center",
 			"-extent",
@@ -131,10 +200,15 @@ func convertArgs(size, path string, c *config.SiteConfig) []string {
 			resizedPath(path, size),
 		}
 	} else {
+		// BUG(thraxil): this auto orients properly
+		// but doesn't switch width/height in that case
+		// so 90 or 270 degree rotations come out the wrong
+		// size
 		args = []string{
 			convertBin,
 			"-resize",
 			fmt.Sprintf("%dx%d", maxDim, maxDim),
+			"-auto-orient",
 			path,
 			resizedPath(path, size),
 		}
