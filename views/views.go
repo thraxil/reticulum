@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/thraxil/resize"
 	"github.com/thraxil/reticulum/cluster"
 	"github.com/thraxil/reticulum/config"
 	"github.com/thraxil/reticulum/models"
@@ -96,6 +97,12 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	ahash := parts[2]
 	size := parts[3]
+	s := resize.MakeSizeSpec(size)
+	if s.String() != size {
+		// force normalization of size spec
+		http.Redirect(w, r, "/image/" + ahash + "/" + s.String() + "/" + parts[4], 301)
+		return
+	}
 	filename := parts[4]
 	if filename == "" {
 		filename = "image.jpg"
