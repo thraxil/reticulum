@@ -183,6 +183,10 @@ func (cluster *Cluster) Stash(ahash string, filename string, size_hints string, 
 	for _, n := range nodes_to_check {
 		// TODO: detect when the node to stash to is the current one
 		// and just save directly instead of doing a POST to ourself
+		if save_count > 1 {
+			// only have the first node on the list eagerly resize images
+			size_hints = ""
+		}
 		if n.Stash(filename, size_hints) {
 			saved_to[save_count] = n.Nickname
 			save_count++

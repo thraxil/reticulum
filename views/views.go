@@ -335,7 +335,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			result := <-c
 			if !result.Success {
 				ctx.SL.Err("could not pre-resize")
-			}
+			} 
 		}
 	}()
 }
