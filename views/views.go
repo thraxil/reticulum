@@ -100,7 +100,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	s := resize.MakeSizeSpec(size)
 	if s.String() != size {
 		// force normalization of size spec
-		http.Redirect(w, r, "/image/" + ahash + "/" + s.String() + "/" + parts[4], 301)
+		http.Redirect(w, r, "/image/"+ahash+"/"+s.String()+"/"+parts[4], 301)
 		return
 	}
 	filename := parts[4]
@@ -246,6 +246,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		defer f.Close()
 		i.Seek(0, 0)
 		io.Copy(f, i)
+		size_hints := r.FormValue("size_hints")
 		// yes, the full-size for this image gets written to disk on
 		// this node even if it may not be one of the "right" ones
 		// for it to end up on. This isn't optimal, but is easy
@@ -253,7 +254,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// at some point in the future.
 
 		// now stash it to other nodes in the cluster too
-		nodes := ctx.Cluster.Stash(ahash, fullpath, ctx.Cfg.Replication, ctx.Cfg.MinReplication)
+		nodes := ctx.Cluster.Stash(ahash, fullpath, size_hints, ctx.Cfg.Replication, ctx.Cfg.MinReplication)
 
 		id := ImageData{
 			Hash:      ahash,
@@ -324,6 +325,19 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	i.Seek(0, 0)
 	io.Copy(f, i)
 	fmt.Fprint(w, "ok")
+	// do any eager resizing in the background
+	size_hints := r.FormValue("size_hints")
+	go func() {
+		sizes := strings.Split(size_hints, ",")
+		for _, size := range sizes {
+			c := make(chan resize_worker.ResizeResponse)
+			ctx.Ch.ResizeQueue <- resize_worker.ResizeRequest{fullpath, ext, size, c}
+			result := <-c
+			if !result.Success {
+				ctx.SL.Err("could not pre-resize")
+			}
+		}
+	}()
 }
 
 func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
@@ -515,6 +529,7 @@ var add_template = `
 <p>Upload key is required: <input type="text" name="key" /></p>
 {{end}}
 <input type="file" name="image" /><br />
+initial sizes to pre-create: <input type="text" name="size_hints" /><br />
 <input type="submit" value="upload image" />
 </form>
 

@@ -193,7 +193,7 @@ func retrieveReplica(n node.NodeData, hash string, extension string, path string
 	} else {
 		// that node should have a copy, but doesn't so stash it
 		if !satisfied {
-			if n.Stash(path) {
+			if n.Stash(path, "") {
 				sl.Info(fmt.Sprintf("replicated %s\n", path))
 				return 1
 			} else {

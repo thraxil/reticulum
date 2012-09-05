@@ -156,9 +156,10 @@ func (n *NodeData) RetrieveImageInfo(hash string, size string, extension string)
 	return &response, nil
 }
 
-func postFile(filename string, target_url string) (*http.Response, error) {
+func postFile(filename string, target_url string, size_hints string) (*http.Response, error) {
 	body_buf := bytes.NewBufferString("")
 	body_writer := multipart.NewWriter(body_buf)
+	body_writer.WriteField("size_hints", size_hints)
 	file_writer, err := body_writer.CreateFormFile("image", filename)
 	if err != nil {
 		panic(err.Error())
@@ -177,8 +178,8 @@ func postFile(filename string, target_url string) (*http.Response, error) {
 	return http.Post(target_url, content_type, body_buf)
 }
 
-func (n *NodeData) Stash(filename string) bool {
-	resp, err := postFile(filename, n.stashUrl())
+func (n *NodeData) Stash(filename string, size_hints string) bool {
+	resp, err := postFile(filename, n.stashUrl(), size_hints)
 	if err != nil {
 		return false
 	}
