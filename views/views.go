@@ -158,6 +158,22 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	// we do have the full-size, but not the scaled one
 	// so resize it, cache it, and serve it.
 
+	// but first, make sure we are writeable. If not,
+	// we need to let another node in the cluster handle it.
+	n := ctx.Cluster.Myself
+	if !n.Writeable {
+		img_data, err := retrieveImage(ctx.Cluster, ahash, size, extension[1:])
+		if err != nil {
+			// for now we just have to 404
+			http.Error(w, "not found", 404)
+		} else {
+			ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_data})
+			w.Header().Set("Content-Type", extmimes[extension[1:]])
+			w.Header().Set("Expires", time.Now().Add(time.Hour*24*365).Format(time.RFC1123))
+			w.Write(img_data)
+		}
+		return
+	}
 	c := make(chan resize_worker.ResizeResponse)
 	ctx.Ch.ResizeQueue <- resize_worker.ResizeRequest{path, extension, size, c}
 	result := <-c
@@ -335,7 +351,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			result := <-c
 			if !result.Success {
 				ctx.SL.Err("could not pre-resize")
-			} 
+			}
 		}
 	}()
 }
