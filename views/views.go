@@ -378,6 +378,19 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		local = false
 	}
 
+	// if we aren't writeable, we can't resize locally
+	// let them know this as early as possible
+	size := parts[3]
+	n := ctx.Cluster.Myself
+	if size != "full" && !n.Writeable {
+		// anything other than full-size, we can't do
+		// if we don't have it already
+		_, err = os.Open(baseDir + "/" + size + "." + extension)
+		if err != nil {
+			local = false
+		}
+	}
+
 	b, err := json.Marshal(node.ImageInfoResponse{ahash, extension, local})
 	if err != nil {
 		ctx.SL.Err(err.Error())
@@ -422,6 +435,14 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	// we do have the full-size, but not the scaled one
 	// so resize it, cache it, and serve it.
+
+	// if we aren't writeable, we can't resize locally though.
+	// 404 and let another node handle it
+	n := ctx.Cluster.Myself
+	if !n.Writeable {
+		http.Error(w, "could not resize image", 404)
+		return
+	}
 
 	c := make(chan resize_worker.ResizeResponse)
 	ctx.Ch.ResizeQueue <- resize_worker.ResizeRequest{path, "." + extension, size, c}
