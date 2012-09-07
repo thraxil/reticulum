@@ -92,6 +92,7 @@ func (c ConfigData) MyConfig() SiteConfig {
 		ImageMagickConvertPath: convert_path,
 		MemcacheServers:        c.MemcacheServers,
 		GoMaxProcs:             c.GoMaxProcs,
+		Writeable:              c.Writeable,
 	}
 }
 
@@ -110,6 +111,7 @@ type SiteConfig struct {
 	ImageMagickConvertPath string
 	MemcacheServers        []string
 	GoMaxProcs             int
+	Writeable              bool
 }
 
 func (s SiteConfig) KeyRequired() bool {

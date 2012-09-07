@@ -36,6 +36,11 @@ var decoders = map[string](func(io.Reader) (image.Image, error)){
 
 func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer, s *config.SiteConfig) {
 	for req := range requests {
+		if !s.Writeable {
+			// node is not writeable, so we should never handle a resize
+			req.Response <- ResizeResponse{nil, false, false}
+			continue
+		}
 		sl.Info("handling a resize request")
 		t0 := time.Now()
 		origFile, err := os.Open(req.Path)
