@@ -1,16 +1,12 @@
-package cluster
+package main
 
 import (
 	"fmt"
-	"github.com/thraxil/reticulum/node"
 	"log/syslog"
 	"math/rand"
 	"sort"
 	"time"
 )
-
-// TODO: move this to a config
-var REPLICAS = 16
 
 // represents what our Node nows about the cluster
 // ie, itself and its neighbors
@@ -18,15 +14,15 @@ var REPLICAS = 16
 // there should probably be a map for that so we don't
 // have to run through the whole list every time
 type Cluster struct {
-	Myself    node.NodeData
-	neighbors map[string]node.NodeData
+	Myself    NodeData
+	neighbors map[string]NodeData
 	chF       chan func()
 }
 
-func NewCluster(myself node.NodeData) *Cluster {
+func NewCluster(myself NodeData) *Cluster {
 	c := &Cluster{
 		Myself:    myself,
-		neighbors: make(map[string]node.NodeData),
+		neighbors: make(map[string]NodeData),
 		chF:       make(chan func()),
 	}
 	go c.backend()
@@ -41,21 +37,21 @@ func (c *Cluster) backend() {
 	}
 }
 
-func (c *Cluster) AddNeighbor(nd node.NodeData) {
+func (c *Cluster) AddNeighbor(nd NodeData) {
 	c.chF <- func() {
 		c.neighbors[nd.UUID] = nd
 	}
 }
 
 type gnresp struct {
-	N []node.NodeData
+	N []NodeData
 }
 
-func (c *Cluster) GetNeighbors() []node.NodeData {
+func (c *Cluster) GetNeighbors() []NodeData {
 	r := make(chan gnresp)
 	go func() {
 		c.chF <- func() {
-			neighbs := make([]node.NodeData, len(c.neighbors))
+			neighbs := make([]NodeData, len(c.neighbors))
 			var i = 0
 			for _, value := range c.neighbors {
 				neighbs[i] = value
@@ -68,18 +64,18 @@ func (c *Cluster) GetNeighbors() []node.NodeData {
 	return resp.N
 }
 
-func (c *Cluster) RemoveNeighbor(nd node.NodeData) {
+func (c *Cluster) RemoveNeighbor(nd NodeData) {
 	c.chF <- func() {
 		delete(c.neighbors, nd.UUID)
 	}
 }
 
 type fResp struct {
-	N   *node.NodeData
+	N   *NodeData
 	Err bool
 }
 
-func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
+func (c Cluster) FindNeighborByUUID(uuid string) (*NodeData, bool) {
 	r := make(chan fResp)
 	go func() {
 		c.chF <- func() {
@@ -91,7 +87,7 @@ func (c Cluster) FindNeighborByUUID(uuid string) (*node.NodeData, bool) {
 	return resp.N, resp.Err
 }
 
-func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
+func (c *Cluster) UpdateNeighbor(neighbor NodeData) {
 	c.chF <- func() {
 		if n, ok := c.neighbors[neighbor.UUID]; ok {
 			n.Nickname = neighbor.Nickname
@@ -106,7 +102,7 @@ func (c *Cluster) UpdateNeighbor(neighbor node.NodeData) {
 	}
 }
 
-func (c *Cluster) FailedNeighbor(neighbor node.NodeData) {
+func (c *Cluster) FailedNeighbor(neighbor NodeData) {
 	c.chF <- func() {
 		if n, ok := c.neighbors[neighbor.UUID]; ok {
 			n.Writeable = false
@@ -117,17 +113,17 @@ func (c *Cluster) FailedNeighbor(neighbor node.NodeData) {
 }
 
 type listResp struct {
-	Ns []node.NodeData
+	Ns []NodeData
 }
 
-func (c Cluster) NeighborsInclusive() []node.NodeData {
+func (c Cluster) NeighborsInclusive() []NodeData {
 	r := make(chan listResp)
 	go func() {
 		c.chF <- func() {
-			a := make([]node.NodeData, 1)
+			a := make([]NodeData, 1)
 			a[0] = c.Myself
 
-			neighbs := make([]node.NodeData, len(c.neighbors))
+			neighbs := make([]NodeData, len(c.neighbors))
 			var i = 0
 			for _, value := range c.neighbors {
 				neighbs[i] = value
@@ -142,9 +138,9 @@ func (c Cluster) NeighborsInclusive() []node.NodeData {
 	return resp.Ns
 }
 
-func (c Cluster) WriteableNeighbors() []node.NodeData {
+func (c Cluster) WriteableNeighbors() []NodeData {
 	var all = c.NeighborsInclusive()
-	var p []node.NodeData // == nil
+	var p []NodeData // == nil
 	for _, i := range all {
 		if i.Writeable {
 			p = append(p, i)
@@ -154,7 +150,7 @@ func (c Cluster) WriteableNeighbors() []node.NodeData {
 }
 
 type RingEntry struct {
-	Node node.NodeData
+	Node NodeData
 	Hash string // the hash
 }
 
@@ -207,7 +203,7 @@ func (cluster *Cluster) Stash(ahash string, filename string, size_hints string, 
 	return saved_to
 }
 
-func neighborsToRing(neighbors []node.NodeData) RingEntryList {
+func neighborsToRing(neighbors []NodeData) RingEntryList {
 	keys := make(RingEntryList, REPLICAS*len(neighbors))
 	for i := range neighbors {
 		node := neighbors[i]
@@ -222,17 +218,17 @@ func neighborsToRing(neighbors []node.NodeData) RingEntryList {
 
 // returns the list of all nodes in the order
 // that the given hash will choose to write to them
-func (c Cluster) WriteOrder(hash string) []node.NodeData {
+func (c Cluster) WriteOrder(hash string) []NodeData {
 	return hashOrder(hash, len(c.GetNeighbors())+1, c.WriteRing())
 }
 
 // returns the list of all nodes in the order
 // that the given hash will choose to try to read from them
-func (c Cluster) ReadOrder(hash string) []node.NodeData {
+func (c Cluster) ReadOrder(hash string) []NodeData {
 	return hashOrder(hash, len(c.GetNeighbors())+1, c.Ring())
 }
 
-func hashOrder(hash string, size int, ring []RingEntry) []node.NodeData {
+func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 	// our approach is to find the first bucket after our hash,
 	// partition the ring on that and put the first part on the
 	// end. Then go through and extract the ordering.
@@ -254,7 +250,7 @@ func hashOrder(hash string, size int, ring []RingEntry) []node.NodeData {
 	reordered := make([]RingEntry, len(ring))
 	reordered = append(ring[partitionIndex:], ring[:partitionIndex]...)
 
-	results := make([]node.NodeData, size)
+	results := make([]NodeData, size)
 	var seen = map[string]bool{}
 	var i = 0
 	for _, r := range reordered {

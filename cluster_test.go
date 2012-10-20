@@ -1,13 +1,12 @@
-package cluster
+package main
 
 import (
 	"fmt"
 	"testing"
-	"github.com/thraxil/reticulum/node"
 )
 
 func Test_ClusterOfOne(t *testing.T) {
-	myself := node.NodeData{
+	myself := NodeData{
 		Nickname:  "myself",
 		UUID:      "test-uuid",
 		BaseUrl:   "localhost:8080",
@@ -68,36 +67,36 @@ func Test_ClusterOfOne(t *testing.T) {
 }
 
 func Test_SmallCluster(t *testing.T) {
-	myself := node.NodeData{
+	myself := NodeData{
 		Nickname:  "myself",
 		UUID:      "test-uuid",
 		BaseUrl:   "localhost:8080",
 		Location:  "test",
 		Writeable: true,
 	}
-	var neighbors = []node.NodeData{
-		node.NodeData{
+	var neighbors = []NodeData{
+		NodeData{
 			Nickname:  "neighbor-1",
 			UUID:      "neighbor-1-uuid",
 			BaseUrl:   "localhost:8081",
 			Location:  "test",
 			Writeable: true,
 		},
-		node.NodeData{
+		NodeData{
 			Nickname:  "neighbor-2",
 			UUID:      "neighbor-2-uuid",
 			BaseUrl:   "localhost:8082",
 			Location:  "test",
 			Writeable: true,
 		},
-		node.NodeData{
+		NodeData{
 			Nickname:  "neighbor-3",
 			UUID:      "neighbor-3-uuid",
 			BaseUrl:   "localhost:8083",
 			Location:  "test",
 			Writeable: true,
 		},
-		node.NodeData{
+		NodeData{
 			Nickname:  "neighbor-4",
 			UUID:      "neighbor-4-uuid",
 			BaseUrl:   "localhost:8084",

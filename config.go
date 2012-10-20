@@ -1,7 +1,6 @@
-package config
+package main
 
 import (
-	"github.com/thraxil/reticulum/node"
 )
 
 // the structure of the config.json file
@@ -16,7 +15,7 @@ type ConfigData struct {
 	NumResizeWorkers       int
 	UploadKeys             []string
 	UploadDirectory        string
-	Neighbors              []node.NodeData
+	Neighbors              []NodeData
 	Replication            int
 	MinReplication         int
 	MaxReplication         int
@@ -27,8 +26,8 @@ type ConfigData struct {
 	GoMaxProcs             int
 }
 
-func (c ConfigData) MyNode() node.NodeData {
-	n := node.NodeData{
+func (c ConfigData) MyNode() NodeData {
+	n := NodeData{
 		Nickname:  c.Nickname,
 		UUID:      c.UUID,
 		BaseUrl:   c.BaseUrl,

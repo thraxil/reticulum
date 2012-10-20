@@ -1,7 +1,7 @@
 all: reticulum
 
-reticulum: reticulum.go models/models.go views/views.go resize_worker/worker.go node/node.go cluster/cluster.go verifier/verifier.go config/config.go
-	go build reticulum.go
+reticulum: reticulum.go models.go views.go worker.go node.go cluster.go verifier.go config.go
+	go build .
 
 cluster: reticulum
 	python run_cluster.py
@@ -17,23 +17,23 @@ run: reticulum
 
 fmt:
 	go fmt reticulum.go
-	go fmt views/views.go
-	go fmt verifier/verifier.go
-	go fmt resize_worker/worker.go
-	go fmt models/models.go
-	go fmt cluster/cluster.go
-	go fmt node/node.go
-	go fmt config/config.go
+	go fmt views.go
+	go fmt verifier.go
+	go fmt worker.go
+	go fmt models.go
+	go fmt cluster.go
+	go fmt node.go
+	go fmt config.go
 
 install: reticulum
 	cp -f reticulum /usr/local/bin/reticulum
 
 test: reticulum
-	go test github.com/thraxil/reticulum/node github.com/thraxil/reticulum/cluster
+	go test .
 
 coverage: reticulum
-	${GOROOT}/bin/gocov test github.com/thraxil/reticulum/node | ${GOROOT}/bin/gocov report
-	${GOROOT}/bin/gocov test github.com/thraxil/reticulum/cluster ${GOROOT}/bin/gocov report
+	${GOROOT}/bin/gocov test . | ${GOROOT}/bin/gocov report
+
 
 install_deps:
 	go get github.com/thraxil/resize

@@ -1,9 +1,8 @@
-package resize_worker
+package main
 
 import (
 	"fmt"
 	"github.com/thraxil/resize"
-	"github.com/thraxil/reticulum/config"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -34,7 +33,7 @@ var decoders = map[string](func(io.Reader) (image.Image, error)){
 	"png": png.Decode,
 }
 
-func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer, s *config.SiteConfig) {
+func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer, s *SiteConfig) {
 	for req := range requests {
 		if !s.Writeable {
 			// node is not writeable, so we should never handle a resize
@@ -70,7 +69,7 @@ func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer, s *config.Site
 // this sucks, is redundant, and i'd rather not have this external dependency
 // so this will be removed as soon as Go can handle it all itself
 func imageMagickResize(path, size string, sl *syslog.Writer,
-	s *config.SiteConfig) (string, error) {
+	s *SiteConfig) (string, error) {
 
 	args := convertArgs(size, path, s)
 
@@ -97,7 +96,7 @@ func resizedPath(path, size string) string {
 	return d + "/" + size + extension
 }
 
-func convertArgs(size, path string, c *config.SiteConfig) []string {
+func convertArgs(size, path string, c *SiteConfig) []string {
 	convertBin := c.ImageMagickConvertPath
 	// need to convert our size spec to what convert expects
 	// we can ignore 'full' since that will never trigger

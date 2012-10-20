@@ -1,12 +1,9 @@
-package verifier
+package main
 
 import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
-	"github.com/thraxil/reticulum/cluster"
-	"github.com/thraxil/reticulum/config"
-	"github.com/thraxil/reticulum/node"
 	"io"
 	"io/ioutil"
 	"log/syslog"
@@ -42,7 +39,7 @@ func hashFromPath(path string) (string, error) {
 // checks the image for corruption
 // if it is corrupt, try to repair
 func verify(path string, extension string, hash string, ahash string,
-	c *cluster.Cluster, sl *syslog.Writer) error {
+	c *Cluster, sl *syslog.Writer) error {
 	//    VERIFY PHASE
 	if hash != ahash {
 		sl.Warning(fmt.Sprintf("image %s appears to be corrupted!\n", path))
@@ -68,7 +65,7 @@ func verify(path string, extension string, hash string, ahash string,
 
 // do our best to repair the image
 func repair_image(path string, extension string, hash string,
-	c *cluster.Cluster, sl *syslog.Writer) (bool, error) {
+	c *Cluster, sl *syslog.Writer) (bool, error) {
 	nodes_to_check := c.ReadOrder(hash)
 	for _, n := range nodes_to_check {
 		if n.UUID == c.Myself.UUID {
@@ -142,8 +139,8 @@ func clear_cached(path string, extension string) error {
 // check that the image is stored in at least Replication nodes
 // and, if at all possible, those should be the ones at the front
 // of the list
-func rebalance(path string, extension string, hash string, c *cluster.Cluster,
-	s config.SiteConfig, sl *syslog.Writer) error {
+func rebalance(path string, extension string, hash string, c *Cluster,
+	s SiteConfig, sl *syslog.Writer) error {
 	//    REBALANCE PHASE
 	var delete_local = true
 	var satisfied = false
@@ -184,7 +181,7 @@ func rebalance(path string, extension string, hash string, c *cluster.Cluster,
 	return nil
 }
 
-func retrieveReplica(n node.NodeData, hash string, extension string, path string, satisfied bool,
+func retrieveReplica(n NodeData, hash string, extension string, path string, satisfied bool,
 	sl *syslog.Writer) int {
 	img_info, err := n.RetrieveImageInfo(hash, "full", extension[1:])
 	if err == nil && img_info != nil && img_info.Local {
@@ -219,8 +216,8 @@ func clean_up_excess_replica(path string, sl *syslog.Writer) {
 	}
 }
 
-func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
-	s config.SiteConfig, sl *syslog.Writer) error {
+func visit(path string, f os.FileInfo, err error, c *Cluster,
+	s SiteConfig, sl *syslog.Writer) error {
 	defer func() {
 		if r := recover(); r != nil {
 			sl.Err(fmt.Sprintf("Error in verifier.visit() [%s] %s", c.Myself.Nickname, path))
@@ -280,14 +277,14 @@ func visit(path string, f os.FileInfo, err error, c *cluster.Cluster,
 }
 
 // makes a closure that has access to the cluster and config
-func makeVisitor(fn func(string, os.FileInfo, error, *cluster.Cluster, config.SiteConfig, *syslog.Writer) error,
-	c *cluster.Cluster, s config.SiteConfig, sl *syslog.Writer) func(path string, f os.FileInfo, err error) error {
+func makeVisitor(fn func(string, os.FileInfo, error, *Cluster, SiteConfig, *syslog.Writer) error,
+	c *Cluster, s SiteConfig, sl *syslog.Writer) func(path string, f os.FileInfo, err error) error {
 	return func(path string, f os.FileInfo, err error) error {
 		return fn(path, f, err, c, s, sl)
 	}
 }
 
-func Verify(c *cluster.Cluster, s config.SiteConfig, sl *syslog.Writer) {
+func Verify(c *Cluster, s SiteConfig, sl *syslog.Writer) {
 	sl.Info("starting verifier")
 
 	rand.Seed(int64(time.Now().Unix()) + int64(int(s.Port)))

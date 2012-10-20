@@ -1,4 +1,4 @@
-package views
+package main
 
 import (
 	"bytes"
@@ -8,11 +8,6 @@ import (
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/thraxil/resize"
-	"github.com/thraxil/reticulum/cluster"
-	"github.com/thraxil/reticulum/config"
-	"github.com/thraxil/reticulum/models"
-	"github.com/thraxil/reticulum/node"
-	"github.com/thraxil/reticulum/resize_worker"
 	"html/template"
 	"image/jpeg"
 	"image/png"
@@ -27,9 +22,9 @@ import (
 )
 
 type Context struct {
-	Cluster *cluster.Cluster
-	Cfg     config.SiteConfig
-	Ch      models.SharedChannels
+	Cluster *Cluster
+	Cfg     SiteConfig
+	Ch      SharedChannels
 	SL      *syslog.Writer
 	MC      *memcache.Client
 }
@@ -68,7 +63,7 @@ func hashStringToPath(h string) string {
 
 var jpeg_options = jpeg.Options{Quality: 90}
 
-func retrieveImage(c *cluster.Cluster, ahash string, size string, extension string) ([]byte, error) {
+func retrieveImage(c *Cluster, ahash string, size string, extension string) ([]byte, error) {
 	// we don't have the full-size, so check the cluster
 	nodes_to_check := c.ReadOrder(ahash)
 	// this is where we go down the list and ask the other
@@ -174,8 +169,8 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		}
 		return
 	}
-	c := make(chan resize_worker.ResizeResponse)
-	ctx.Ch.ResizeQueue <- resize_worker.ResizeRequest{path, extension, size, c}
+	c := make(chan ResizeResponse)
+	ctx.Ch.ResizeQueue <- ResizeRequest{path, extension, size, c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
@@ -296,9 +291,9 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 type StatusPage struct {
 	Title     string
-	Config    config.SiteConfig
-	Cluster   *cluster.Cluster
-	Neighbors []node.NodeData
+	Config    SiteConfig
+	Cluster   *Cluster
+	Neighbors []NodeData
 }
 
 func StatusHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
@@ -346,8 +341,8 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	go func() {
 		sizes := strings.Split(size_hints, ",")
 		for _, size := range sizes {
-			c := make(chan resize_worker.ResizeResponse)
-			ctx.Ch.ResizeQueue <- resize_worker.ResizeRequest{fullpath, ext, size, c}
+			c := make(chan ResizeResponse)
+			ctx.Ch.ResizeQueue <- ResizeRequest{fullpath, ext, size, c}
 			result := <-c
 			if !result.Success {
 				ctx.SL.Err("could not pre-resize")
@@ -391,7 +386,7 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		}
 	}
 
-	b, err := json.Marshal(node.ImageInfoResponse{ahash, extension, local})
+	b, err := json.Marshal(ImageInfoResponse{ahash, extension, local})
 	if err != nil {
 		ctx.SL.Err(err.Error())
 	}
@@ -444,8 +439,8 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	c := make(chan resize_worker.ResizeResponse)
-	ctx.Ch.ResizeQueue <- resize_worker.ResizeRequest{path, "." + extension, size, c}
+	c := make(chan ResizeResponse)
+	ctx.Ch.ResizeQueue <- ResizeRequest{path, "." + extension, size, c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
@@ -517,7 +512,7 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		} else {
 			// otherwise, add them to the Neighbors list
 			ctx.SL.Info("adding neighbor")
-			nd := node.NodeData{
+			nd := NodeData{
 				Nickname: r.FormValue("nickname"),
 				UUID:     r.FormValue("uuid"),
 				BaseUrl:  r.FormValue("base_url"),
@@ -532,7 +527,7 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			ctx.Cluster.AddNeighbor(nd)
 		}
 	}
-	ar := node.AnnounceResponse{
+	ar := AnnounceResponse{
 		Nickname:  ctx.Cluster.Myself.Nickname,
 		UUID:      ctx.Cluster.Myself.UUID,
 		Location:  ctx.Cluster.Myself.Location,

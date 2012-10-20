@@ -5,12 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/thraxil/reticulum/cluster"
-	"github.com/thraxil/reticulum/config"
-	"github.com/thraxil/reticulum/models"
-	"github.com/thraxil/reticulum/resize_worker"
-	"github.com/thraxil/reticulum/verifier"
-	"github.com/thraxil/reticulum/views"
 	"io/ioutil"
 	"log"
 	"log/syslog"
@@ -19,8 +13,7 @@ import (
 	"time"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, views.Context),
-	ctx views.Context) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, ctx)
 	}
@@ -59,13 +52,13 @@ func main() {
 		log.Fatal(err)
 	}
 
-	f := config.ConfigData{}
+	f := ConfigData{}
 	err = json.Unmarshal(file, &f)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	c := cluster.NewCluster(f.MyNode())
+	c := NewCluster(f.MyNode())
 	for i := range f.Neighbors {
 		c.AddNeighbor(f.Neighbors[i])
 	}
@@ -75,31 +68,31 @@ func main() {
 	runtime.GOMAXPROCS(siteconfig.GoMaxProcs)
 
 	// start our resize worker goroutines
-	var channels = models.SharedChannels{
-		ResizeQueue: make(chan resize_worker.ResizeRequest),
+	var channels = SharedChannels{
+		ResizeQueue: make(chan ResizeRequest),
 	}
 
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
-		go resize_worker.ResizeWorker(channels.ResizeQueue, sl, &siteconfig)
+		go ResizeWorker(channels.ResizeQueue, sl, &siteconfig)
 	}
 
 	// start our gossiper
 	go c.Gossip(int(f.Port), siteconfig.GossiperSleep, sl)
 
-	go verifier.Verify(c, siteconfig, sl)
+	go Verify(c, siteconfig, sl)
 
 	mc := memcache.New(siteconfig.MemcacheServers...)
 
-	ctx := views.Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl, MC: mc}
+	ctx := Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl, MC: mc}
 	// set up HTTP Handlers
-	http.HandleFunc("/", makeHandler(views.AddHandler, ctx))
-	http.HandleFunc("/stash/", makeHandler(views.StashHandler, ctx))
-	http.HandleFunc("/image/", makeHandler(views.ServeImageHandler, ctx))
-	http.HandleFunc("/retrieve/", makeHandler(views.RetrieveHandler, ctx))
-	http.HandleFunc("/retrieve_info/", makeHandler(views.RetrieveInfoHandler, ctx))
-	http.HandleFunc("/announce/", makeHandler(views.AnnounceHandler, ctx))
-	http.HandleFunc("/status/", makeHandler(views.StatusHandler, ctx))
-	http.HandleFunc("/favicon.ico", views.FaviconHandler)
+	http.HandleFunc("/", makeHandler(AddHandler, ctx))
+	http.HandleFunc("/stash/", makeHandler(StashHandler, ctx))
+	http.HandleFunc("/image/", makeHandler(ServeImageHandler, ctx))
+	http.HandleFunc("/retrieve/", makeHandler(RetrieveHandler, ctx))
+	http.HandleFunc("/retrieve_info/", makeHandler(RetrieveInfoHandler, ctx))
+	http.HandleFunc("/announce/", makeHandler(AnnounceHandler, ctx))
+	http.HandleFunc("/status/", makeHandler(StatusHandler, ctx))
+	http.HandleFunc("/favicon.ico", FaviconHandler)
 
 	// everything is ready, let's go
 	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, sl, c.Myself.Nickname))
