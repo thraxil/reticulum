@@ -6,8 +6,8 @@ import (
 )
 
 type rptestcase struct {
-	Path string
-	Size string
+	Path   string
+	Size   string
 	Output string
 }
 

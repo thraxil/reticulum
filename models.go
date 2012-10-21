@@ -1,7 +1,6 @@
 package main
 
-import (
-)
+import ()
 
 type SharedChannels struct {
 	ResizeQueue chan ResizeRequest

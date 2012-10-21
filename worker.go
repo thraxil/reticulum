@@ -71,7 +71,7 @@ func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer, s *SiteConfig)
 func imageMagickResize(path, size string, sl *syslog.Writer,
 	s *SiteConfig) (string, error) {
 
-	args := convertArgs(size, path, s)
+	args := convertArgs(size, path, s.ImageMagickConvertPath)
 
 	fds := []*os.File{os.Stdin, os.Stdout, os.Stderr}
 	p, err := os.StartProcess(args[0], args, &os.ProcAttr{Files: fds})
@@ -96,8 +96,7 @@ func resizedPath(path, size string) string {
 	return d + "/" + size + extension
 }
 
-func convertArgs(size, path string, c *SiteConfig) []string {
-	convertBin := c.ImageMagickConvertPath
+func convertArgs(size, path, convertBin string) []string {
 	// need to convert our size spec to what convert expects
 	// we can ignore 'full' since that will never trigger
 	// a resize_worker request

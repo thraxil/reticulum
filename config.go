@@ -1,7 +1,6 @@
 package main
 
-import (
-)
+import ()
 
 // the structure of the config.json file
 // where config info is stored
