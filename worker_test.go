@@ -26,44 +26,43 @@ func Test_resizedPath(t *testing.T) {
 }
 
 type catestcase struct {
-	Size string
-	Path string
+	Size       string
+	Path       string
 	ConvertBin string
-	Output []string
+	Output     []string
 }
 
 func Test_convertArgs(t *testing.T) {
 	var testCases = []catestcase{
 		catestcase{"100s", "/foo/bar/image.jpg", "/usr/bin/convert",
 			[]string{
-			"/usr/bin/convert",
-			"-resize",
-			"100x100^",
-			"-auto-orient",
-			"-gravity",
-			"center",
-			"-extent",
-			"100x100",
-			"/foo/bar/image.jpg",
-			"/foo/bar/100s.jpg",
+				"/usr/bin/convert",
+				"-resize",
+				"100x100^",
+				"-auto-orient",
+				"-gravity",
+				"center",
+				"-extent",
+				"100x100",
+				"/foo/bar/image.jpg",
+				"/foo/bar/100s.jpg",
 			},
 		},
 		catestcase{"100w", "/foo/bar/image.jpg", "/usr/bin/convert",
 			[]string{
-			"/usr/bin/convert",
-			"-auto-orient",
-			"-resize",
-			"100",
-			"/foo/bar/image.jpg",
-			"/foo/bar/100w.jpg",
+				"/usr/bin/convert",
+				"-auto-orient",
+				"-resize",
+				"100",
+				"/foo/bar/image.jpg",
+				"/foo/bar/100w.jpg",
 			},
 		},
-
 	}
 	for _, tc := range testCases {
 		output := convertArgs(tc.Size, tc.Path, tc.ConvertBin)
 		for i := range output {
-			if tc.Output[i] !=  output[i] {
+			if tc.Output[i] != output[i] {
 				fmt.Printf("%s %s\n", tc.Output[i], output[i])
 				t.Error("incorrect convert args")
 			}

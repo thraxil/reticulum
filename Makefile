@@ -16,14 +16,7 @@ run: reticulum
 	./reticulum -config=test/config0.json
 
 fmt:
-	go fmt reticulum.go
-	go fmt views.go
-	go fmt verifier.go
-	go fmt worker.go
-	go fmt models.go
-	go fmt cluster.go
-	go fmt node.go
-	go fmt config.go
+	go fmt *.go
 
 install: reticulum
 	cp -f reticulum /usr/local/bin/reticulum

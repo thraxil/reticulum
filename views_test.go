@@ -8,7 +8,7 @@ func Test_hashToPath(t *testing.T) {
 }
 
 type hstp_testcase struct {
-	Input string
+	Input  string
 	Output string
 }
 
