@@ -106,3 +106,21 @@ func Test_Urls(t *testing.T) {
 	}
 
 }
+
+func Test_startswith(t *testing.T) {
+	if !startswith("foo", "f") {
+		t.Error("basic startswith functionality broken")
+	}
+	if startswith("foo", "foobar") {
+		t.Error("prefix longer than string should be false")
+	}
+}
+
+func Test_endswith(t *testing.T) {
+	if !endswith("foo", "o") {
+		t.Error("basic endswith functionality broken")
+	}
+	if endswith("foo", "foobar") {
+		t.Error("suffix longer than string should be false")
+	}
+}
