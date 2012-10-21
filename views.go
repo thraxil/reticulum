@@ -92,6 +92,10 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	ahash := parts[2]
 	size := parts[3]
+	if size == "" {
+		http.Error(w, "missing size", 404)
+		return
+	}
 	s := resize.MakeSizeSpec(size)
 	if s.String() != size {
 		// force normalization of size spec
