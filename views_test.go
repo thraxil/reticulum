@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -23,5 +24,12 @@ func Test_hashStringToPath(t *testing.T) {
 		if tc.Output != hashStringToPath(tc.Input) {
 			t.Error("bad path from hash string")
 		}
+	}
+	// try round-tripping with hashFromPath()
+	var h = "30de73dcec0ab2de54035edda643ada69dcd60c4"
+	o, err := hashFromPath(hashStringToPath(h) + "/file.jpg")
+	if err != nil || o != h {
+		fmt.Println(err.Error())
+		t.Error("can't round-trip")
 	}
 }

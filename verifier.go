@@ -22,6 +22,8 @@ func basename(path string) string {
 }
 
 // convert some/base/12/34/45/56/67/.../file.jpg to 1234455667
+// expects a filename at the end. otherwise, there can be
+// arbitrarily many extra path components on the front
 func hashFromPath(path string) (string, error) {
 	dir := filepath.Dir(path)
 	parts := strings.Split(dir, "/")
@@ -31,7 +33,7 @@ func hashFromPath(path string) (string, error) {
 	}
 	hash := strings.Join(parts[len(parts)-20:], "")
 	if len(hash) != 40 {
-		return "", errors.New("invalid hash")
+		return "", errors.New(fmt.Sprintf("invalid hash length: %d (%s)", len(hash), hash))
 	}
 	return hash, nil
 }
