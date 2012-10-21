@@ -84,6 +84,12 @@ func retrieveImage(c *Cluster, ahash string, size string, extension string) ([]b
 	return nil, errors.New("not found in the cluster")
 }
 
+func setCacheHeaders(w http.ResponseWriter, extension string) http.ResponseWriter {
+	w.Header().Set("Content-Type", extmimes[extension[1:]])
+	w.Header().Set("Expires", time.Now().Add(time.Hour*24*365).Format(time.RFC1123))
+	return w
+}
+
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
@@ -117,8 +123,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	item, err := ctx.MC.Get(memcache_key)
 	if err == nil {
 		ctx.SL.Info("Cache Hit")
-		w.Header().Set("Content-Type", extmimes[extension[1:]])
-		w.Header().Set("Expires", time.Now().Add(time.Hour*24*365).Format(time.RFC1123))
+		w = setCacheHeaders(w, extension)
 		w.Write(item.Value)
 		return
 	}
@@ -131,8 +136,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if err == nil {
 		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: contents})
 		// we've got it, so serve it directly
-		w.Header().Set("Content-Type", extmimes[extension[1:]])
-		w.Header().Set("Expires", time.Now().Add(time.Hour*24*365).Format(time.RFC1123))
+		w = setCacheHeaders(w, extension)
 		w.Write(contents)
 		return
 	}
@@ -147,8 +151,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			http.Error(w, "not found", 404)
 		} else {
 			ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_data})
-			w.Header().Set("Content-Type", extmimes[extension[1:]])
-			w.Header().Set("Expires", time.Now().Add(time.Hour*24*365).Format(time.RFC1123))
+			w = setCacheHeaders(w, extension)
 			w.Write(img_data)
 		}
 		return
@@ -167,8 +170,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			http.Error(w, "not found", 404)
 		} else {
 			ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_data})
-			w.Header().Set("Content-Type", extmimes[extension[1:]])
-			w.Header().Set("Expires", time.Now().Add(time.Hour*24*365).Format(time.RFC1123))
+			w = setCacheHeaders(w, extension)
 			w.Write(img_data)
 		}
 		return
@@ -183,10 +185,9 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if result.Magick {
 		// imagemagick did the resize, so we just spit out
 		// the sized file
-		w.Header().Set("Content-Type", extmimes[extension])
 		img_contents, _ := ioutil.ReadFile(sizedPath)
 		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
-		w.Header().Set("Expires", time.Now().Add(time.Hour*24*365).Format(time.RFC1123))
+		w = setCacheHeaders(w, extension)
 		w.Write(img_contents)
 		return
 	}
@@ -199,8 +200,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// we still have the resized image, so we can serve the response
 		// we just can't cache it. 
 	}
-	w.Header().Set("Content-Type", extmimes[extension[1:]])
-	w.Header().Set("Expires", time.Now().Add(time.Hour*24*365).Format(time.RFC1123))
+	w = setCacheHeaders(w, extension)
 	if extension == ".jpg" {
 		jpeg.Encode(wFile, outputImage, &jpeg_options)
 		jpeg.Encode(w, outputImage, &jpeg_options)
