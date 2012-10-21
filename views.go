@@ -125,7 +125,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	baseDir := ctx.Cfg.UploadDirectory + hashStringToPath(ahash)
 	path := baseDir + "/full" + extension
-	sizedPath := baseDir + "/" + size + extension
+	sizedPath := resizedPath(path, size)
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
