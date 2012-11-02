@@ -113,6 +113,13 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		filename = "image.jpg"
 	}
 	extension := filepath.Ext(filename)
+
+	if extension == ".jpeg" {
+		fixed_filename := strings.Replace(parts[4],".jpeg",".jpg",1)
+		http.Redirect(w, r, "/image/"+ahash+"/"+s.String()+"/"+fixed_filename, 301)
+		return
+	}
+
 	if len(ahash) != 40 {
 		http.Error(w, "bad hash", 404)
 		return
