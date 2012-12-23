@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"encoding/json"
 	"errors"
@@ -43,29 +42,11 @@ type ImageData struct {
 	Nodes     []string `json:"nodes"`
 }
 
-func hashToPath(h []byte) string {
-	buffer := bytes.NewBufferString("")
-	for i := range h {
-		fmt.Fprint(buffer, fmt.Sprintf("%02x/", h[i]))
-	}
-	return buffer.String()
-}
-
-func hashStringToPath(h string) string {
-	var parts []string
-	for i := range h {
-		if (i % 2) != 0 {
-			parts = append(parts, h[i-1:i+1])
-		}
-	}
-	return strings.Join(parts, "/")
-}
-
 var jpeg_options = jpeg.Options{Quality: 90}
 
-func retrieveImage(c *Cluster, ahash string, size string, extension string) ([]byte, error) {
+func retrieveImage(c *Cluster, ahash *Hash, size string, extension string) ([]byte, error) {
 	// we don't have the full-size, so check the cluster
-	nodes_to_check := c.ReadOrder(ahash)
+	nodes_to_check := c.ReadOrder(ahash.String())
 	// this is where we go down the list and ask the other
 	// nodes for the image
 	// TODO: parallelize this
@@ -96,7 +77,11 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		http.Error(w, "bad request", 404)
 		return
 	}
-	ahash := parts[2]
+	ahash, err := HashFromString(parts[2], "")
+	if err != nil {
+		http.Error(w, "invalid hash", 404)
+		return
+	}
 	size := parts[3]
 	if size == "" {
 		http.Error(w, "missing size", 404)
@@ -105,7 +90,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	s := resize.MakeSizeSpec(size)
 	if s.String() != size {
 		// force normalization of size spec
-		http.Redirect(w, r, "/image/"+ahash+"/"+s.String()+"/"+parts[4], 301)
+		http.Redirect(w, r, "/image/"+ahash.String()+"/"+s.String()+"/"+parts[4], 301)
 		return
 	}
 	filename := parts[4]
@@ -115,17 +100,17 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	extension := filepath.Ext(filename)
 
 	if extension == ".jpeg" {
-		fixed_filename := strings.Replace(parts[4],".jpeg",".jpg",1)
-		http.Redirect(w, r, "/image/"+ahash+"/"+s.String()+"/"+fixed_filename, 301)
+		fixed_filename := strings.Replace(parts[4], ".jpeg", ".jpg", 1)
+		http.Redirect(w, r, "/image/"+ahash.String()+"/"+s.String()+"/"+fixed_filename, 301)
 		return
 	}
 
-	if len(ahash) != 40 {
+	if !ahash.Valid() {
 		http.Error(w, "bad hash", 404)
 		return
 	}
 
-	memcache_key := ahash + "/" + size + "/image" + extension
+	memcache_key := ahash.String() + "/" + size + "/image" + extension
 	// check memcached first
 	item, err := ctx.MC.Get(memcache_key)
 	if err == nil {
@@ -135,7 +120,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	baseDir := ctx.Cfg.UploadDirectory + hashStringToPath(ahash)
+	baseDir := ctx.Cfg.UploadDirectory + ahash.AsPath()
 	path := baseDir + "/full" + extension
 	sizedPath := resizedPath(path, size)
 
@@ -258,8 +243,12 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		defer i.Close()
 		h := sha1.New()
 		io.Copy(h, i)
-		ahash := fmt.Sprintf("%x", h.Sum(nil))
-		path := ctx.Cfg.UploadDirectory + hashToPath(h.Sum(nil))
+		ahash, err := HashFromString(fmt.Sprintf("%x", h.Sum(nil)), "")
+		if err != nil {
+			http.Error(w, "bad hash", 500)
+			return
+		}
+		path := ctx.Cfg.UploadDirectory + ahash.AsPath()
 		os.MkdirAll(path, 0755)
 		mimetype := fh.Header["Content-Type"][0]
 		ext := mimeexts[mimetype]
@@ -279,9 +268,9 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		nodes := ctx.Cluster.Stash(ahash, fullpath, size_hints, ctx.Cfg.Replication, ctx.Cfg.MinReplication)
 
 		id := ImageData{
-			Hash:      ahash,
+			Hash:      ahash.String(),
 			Extension: ext,
-			FullUrl:   "/image/" + ahash + "/full/image." + ext,
+			FullUrl:   "/image/" + ahash.String() + "/full/image." + ext,
 			Satisfied: len(nodes) >= ctx.Cfg.MinReplication,
 			Nodes:     nodes,
 		}
@@ -337,8 +326,13 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	defer i.Close()
 	h := sha1.New()
 	io.Copy(h, i)
+	ahash, err := HashFromString(fmt.Sprintf("%x", h.Sum(nil)), "")
+	if err != nil {
+		http.Error(w, "bad hash", 404)
+		return
+	}
 
-	path := ctx.Cfg.UploadDirectory + hashToPath(h.Sum(nil))
+	path := ctx.Cfg.UploadDirectory + ahash.AsPath()
 	os.MkdirAll(path, 0755)
 	ext := filepath.Ext(fh.Filename)
 	fullpath := path + "full" + ext
@@ -369,17 +363,21 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		http.Error(w, "bad request", 404)
 		return
 	}
-	ahash := parts[2]
+	ahash, err := HashFromString(parts[2], "")
+	if err != nil {
+		http.Error(w, "bad hash", 404)
+		return
+	}
 	extension := parts[4]
 	var local = true
-	if len(ahash) != 40 {
+	if !ahash.Valid() {
 		http.Error(w, "bad hash", 404)
 		return
 	}
 
-	baseDir := ctx.Cfg.UploadDirectory + hashStringToPath(ahash)
+	baseDir := ctx.Cfg.UploadDirectory + ahash.AsPath()
 	path := baseDir + "/full" + "." + extension
-	_, err := os.Open(path)
+	_, err = os.Open(path)
 	if err != nil {
 		local = false
 	}
@@ -397,7 +395,7 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		}
 	}
 
-	b, err := json.Marshal(ImageInfoResponse{ahash, extension, local})
+	b, err := json.Marshal(ImageInfoResponse{ahash.String(), extension, local})
 	if err != nil {
 		ctx.SL.Err(err.Error())
 	}
@@ -413,16 +411,15 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		http.Error(w, "bad request", 404)
 		return
 	}
-	ahash := parts[2]
-	size := parts[3]
-	extension := parts[4]
-
-	if len(ahash) != 40 {
+	ahash, err := HashFromString(parts[2], "")
+	if err != nil {
 		http.Error(w, "bad hash", 404)
 		return
 	}
+	size := parts[3]
+	extension := parts[4]
 
-	baseDir := ctx.Cfg.UploadDirectory + hashStringToPath(ahash)
+	baseDir := ctx.Cfg.UploadDirectory + ahash.AsPath()
 	path := baseDir + "/full" + "." + extension
 	sizedPath := baseDir + "/" + size + "." + extension
 

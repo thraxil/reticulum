@@ -49,7 +49,10 @@ func Test_Urls(t *testing.T) {
 		Location:  "test",
 		Writeable: true,
 	}
-	var hash = "fb682e05b9be61797601e60165825c0b089f755e"
+	hash, err := HashFromString("fb682e05b9be61797601e60165825c0b089f755e", "")
+	if err != nil {
+		t.Error("bad hash")
+	}
 	if n.retrieveUrl(hash, "full", "jpg") != "http://localhost:8080/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
 		t.Error("bad retrieve url")
 	}

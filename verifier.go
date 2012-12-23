@@ -40,10 +40,10 @@ func hashFromPath(path string) (string, error) {
 
 // checks the image for corruption
 // if it is corrupt, try to repair
-func verify(path string, extension string, hash string, ahash string,
+func verify(path string, extension string, hash *Hash, ahash string,
 	c *Cluster, sl *syslog.Writer) error {
 	//    VERIFY PHASE
-	if hash != ahash {
+	if hash.String() != ahash {
 		sl.Warning(fmt.Sprintf("image %s appears to be corrupted!\n", path))
 		// trust that the hash was correct on upload
 		// ask other nodes for a copy
@@ -66,9 +66,9 @@ func verify(path string, extension string, hash string, ahash string,
 }
 
 // do our best to repair the image
-func repair_image(path string, extension string, hash string,
+func repair_image(path string, extension string, hash *Hash,
 	c *Cluster, sl *syslog.Writer) (bool, error) {
-	nodes_to_check := c.ReadOrder(hash)
+	nodes_to_check := c.ReadOrder(hash.String())
 	for _, n := range nodes_to_check {
 		if n.UUID == c.Myself.UUID {
 			// skip ourself, since we know we are corrupt
@@ -104,11 +104,11 @@ func repair_image(path string, extension string, hash string,
 	return false, nil
 }
 
-func doublecheck_replica(img []byte, hash string) bool {
+func doublecheck_replica(img []byte, hash *Hash) bool {
 	hn := sha1.New()
 	io.WriteString(hn, string(img))
 	nhash := fmt.Sprintf("%x", hn.Sum(nil))
-	return nhash == hash
+	return nhash == hash.String()
 }
 
 // cached sizes may have been created off the broken one
@@ -141,7 +141,7 @@ func clear_cached(path string, extension string) error {
 // check that the image is stored in at least Replication nodes
 // and, if at all possible, those should be the ones at the front
 // of the list
-func rebalance(path string, extension string, hash string, c *Cluster,
+func rebalance(path string, extension string, hash *Hash, c *Cluster,
 	s SiteConfig, sl *syslog.Writer) error {
 	//    REBALANCE PHASE
 	var delete_local = true
@@ -151,7 +151,7 @@ func rebalance(path string, extension string, hash string, c *Cluster,
 		sl.Err("rebalance was given a nil cluster")
 		return errors.New("nil cluster")
 	}
-	nodes_to_check := c.ReadOrder(hash)
+	nodes_to_check := c.ReadOrder(hash.String())
 	// TODO: parallelize this
 	for _, n := range nodes_to_check {
 		if n.UUID == c.Myself.UUID {
@@ -183,7 +183,7 @@ func rebalance(path string, extension string, hash string, c *Cluster,
 	return nil
 }
 
-func retrieveReplica(n NodeData, hash string, extension string, path string, satisfied bool,
+func retrieveReplica(n NodeData, hash *Hash, extension string, path string, satisfied bool,
 	sl *syslog.Writer) int {
 	img_info, err := n.RetrieveImageInfo(hash, "full", extension[1:])
 	if err == nil && img_info != nil && img_info.Local {
@@ -246,7 +246,7 @@ func visit(path string, f os.FileInfo, err error, c *Cluster,
 		return nil
 	}
 
-	hash, err := hashFromPath(path)
+	hash, err := HashFromPath(path)
 	if err != nil {
 		return nil
 	}

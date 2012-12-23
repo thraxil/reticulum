@@ -151,7 +151,7 @@ func (c Cluster) WriteableNeighbors() []NodeData {
 
 type RingEntry struct {
 	Node NodeData
-	Hash string // the hash
+	Hash string
 }
 
 type RingEntryList []RingEntry
@@ -170,9 +170,9 @@ func (c Cluster) WriteRing() RingEntryList {
 	return neighborsToRing(c.WriteableNeighbors())
 }
 
-func (cluster *Cluster) Stash(ahash string, filename string, size_hints string, replication int, min_replication int) []string {
+func (cluster *Cluster) Stash(ahash *Hash, filename string, size_hints string, replication int, min_replication int) []string {
 	// we don't have the full-size, so check the cluster
-	nodes_to_check := cluster.WriteOrder(ahash)
+	nodes_to_check := cluster.WriteOrder(ahash.String())
 	saved_to := make([]string, replication)
 	var save_count = 0
 	// TODO: parallelize this
