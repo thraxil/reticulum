@@ -8,6 +8,7 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/thraxil/resize"
 	"html/template"
+	"image"
 	"image/jpeg"
 	"image/png"
 	"io"
@@ -189,29 +190,44 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	w = setCacheHeaders(w, extension)
 	if extension == ".jpg" {
-		jpeg.Encode(wFile, outputImage, &jpeg_options)
-		jpeg.Encode(w, outputImage, &jpeg_options)
-		img_contents, _ := ioutil.ReadFile(sizedPath)
-		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+		serveJpg(wFile, outputImage, w, sizedPath, ctx, memcache_key)
 		return
 	}
 	if extension == ".gif" {
-		// image/gif doesn't include an Encode()
-		// so we'll use png for now. 
-		// :(
-		png.Encode(wFile, outputImage)
-		png.Encode(w, outputImage)
-		img_contents, _ := ioutil.ReadFile(sizedPath)
-		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+		serveGif(wFile, outputImage, w, sizedPath, ctx, memcache_key)
 		return
 	}
 	if extension == ".png" {
-		png.Encode(wFile, outputImage)
-		png.Encode(w, outputImage)
-		img_contents, _ := ioutil.ReadFile(sizedPath)
-		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+		servePng(wFile, outputImage, w, sizedPath, ctx, memcache_key)
 		return
 	}
+}
+
+func serveJpg(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
+	memcache_key string) {
+	jpeg.Encode(wFile, outputImage, &jpeg_options)
+	jpeg.Encode(w, outputImage, &jpeg_options)
+	img_contents, _ := ioutil.ReadFile(sizedPath)
+	ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+}
+
+func serveGif(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
+	memcache_key string) {
+	// image/gif doesn't include an Encode()
+	// so we'll use png for now. 
+	// :(
+	png.Encode(wFile, outputImage)
+	png.Encode(w, outputImage)
+	img_contents, _ := ioutil.ReadFile(sizedPath)
+	ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+}
+
+func servePng(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
+	memcache_key string) {
+	png.Encode(wFile, outputImage)
+	png.Encode(w, outputImage)
+	img_contents, _ := ioutil.ReadFile(sizedPath)
+	ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 }
 
 var mimeexts = map[string]string{
