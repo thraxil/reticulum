@@ -122,7 +122,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
-		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: contents})
+		addToMemcache(ctx, memcache_key, contents)
 		// we've got it, so serve it directly
 		w = setCacheHeaders(w, extension)
 		w.Write(contents)
@@ -138,7 +138,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
 		} else {
-			ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_data})
+			addToMemcache(ctx, memcache_key, img_data)
 			w = setCacheHeaders(w, extension)
 			w.Write(img_data)
 		}
@@ -157,7 +157,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
 		} else {
-			ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_data})
+			addToMemcache(ctx, memcache_key, img_data)
 			w = setCacheHeaders(w, extension)
 			w.Write(img_data)
 		}
@@ -174,7 +174,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// imagemagick did the resize, so we just spit out
 		// the sized file
 		img_contents, _ := ioutil.ReadFile(sizedPath)
-		ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+		addToMemcache(ctx, memcache_key, img_contents)
 		w = setCacheHeaders(w, extension)
 		w.Write(img_contents)
 		return
@@ -203,12 +203,16 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 }
 
+func addToMemcache(ctx Context, memcache_key string, img_contents []byte) {
+	ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+}
+
 func serveJpg(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
 	memcache_key string) {
 	jpeg.Encode(wFile, outputImage, &jpeg_options)
 	jpeg.Encode(w, outputImage, &jpeg_options)
 	img_contents, _ := ioutil.ReadFile(sizedPath)
-	ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+	addToMemcache(ctx, memcache_key, img_contents)
 }
 
 func serveGif(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
@@ -219,7 +223,7 @@ func serveGif(wFile *os.File, outputImage image.Image, w http.ResponseWriter, si
 	png.Encode(wFile, outputImage)
 	png.Encode(w, outputImage)
 	img_contents, _ := ioutil.ReadFile(sizedPath)
-	ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+	addToMemcache(ctx, memcache_key, img_contents)
 }
 
 func servePng(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
@@ -227,7 +231,7 @@ func servePng(wFile *os.File, outputImage image.Image, w http.ResponseWriter, si
 	png.Encode(wFile, outputImage)
 	png.Encode(w, outputImage)
 	img_contents, _ := ioutil.ReadFile(sizedPath)
-	ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
+	addToMemcache(ctx, memcache_key, img_contents)
 }
 
 var mimeexts = map[string]string{
