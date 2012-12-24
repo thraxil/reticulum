@@ -105,11 +105,6 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	if !ahash.Valid() {
-		http.Error(w, "bad hash", 404)
-		return
-	}
-
 	memcache_key := ahash.String() + "/" + size + "/image" + extension
 	// check memcached first
 	item, err := ctx.MC.Get(memcache_key)
@@ -370,11 +365,6 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	extension := parts[4]
 	var local = true
-	if !ahash.Valid() {
-		http.Error(w, "bad hash", 404)
-		return
-	}
-
 	baseDir := ctx.Cfg.UploadDirectory + ahash.AsPath()
 	path := baseDir + "/full" + "." + extension
 	_, err = os.Open(path)
