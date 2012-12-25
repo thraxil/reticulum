@@ -89,17 +89,17 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 }
 
 func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
-		// we don't have the full-size on this node either
-		// need to check the rest of the cluster
-		img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
-		if err != nil {
-			// for now we just have to 404
-			http.Error(w, "not found", 404)
-		} else {
-			ctx.addToMemcache(ri.MemcacheKey(), img_data)
-			w = setCacheHeaders(w, ri.Extension)
-			w.Write(img_data)
-		}
+	// we don't have the full-size on this node either
+	// need to check the rest of the cluster
+	img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
+	if err != nil {
+		// for now we just have to 404
+		http.Error(w, "not found", 404)
+	} else {
+		ctx.addToMemcache(ri.MemcacheKey(), img_data)
+		w = setCacheHeaders(w, ri.Extension)
+		w.Write(img_data)
+	}
 }
 
 func (ctx Context) serveFromMemcache(ri *ImageSpecifier, w http.ResponseWriter) bool {
@@ -177,16 +177,16 @@ func (ctx Context) haveImageFullsizeLocally(ri *ImageSpecifier) bool {
 }
 
 func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
-		img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
-		if err != nil {
-			// for now we just have to 404
-			http.Error(w, "not found", 404)
-		} else {
-			ctx.addToMemcache(ri.MemcacheKey(), img_data)
-			w = setCacheHeaders(w, ri.Extension)
-			w.Write(img_data)
-		}
-		return
+	img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
+	if err != nil {
+		// for now we just have to 404
+		http.Error(w, "not found", 404)
+	} else {
+		ctx.addToMemcache(ri.MemcacheKey(), img_data)
+		w = setCacheHeaders(w, ri.Extension)
+		w.Write(img_data)
+	}
+	return
 }
 
 func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
@@ -197,10 +197,10 @@ func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
 }
 
 func (ctx Context) serveMagick(ri *ImageSpecifier, w http.ResponseWriter) {
-		img_contents, _ := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
-		ctx.addToMemcache(ri.MemcacheKey(), img_contents)
-		w = setCacheHeaders(w, ri.Extension)
-		w.Write(img_contents)
+	img_contents, _ := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
+	ctx.addToMemcache(ri.MemcacheKey(), img_contents)
+	w = setCacheHeaders(w, ri.Extension)
+	w.Write(img_contents)
 }
 
 func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWriter,
@@ -233,12 +233,13 @@ func (ctx Context) addToMemcache(memcache_key string, img_contents []byte) {
 	ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
 }
 
+func jpgencode(out io.Writer, in image.Image) error {
+	return jpeg.Encode(out, in, &jpeg_options)
+}
+
 func serveJpg(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
 	memcache_key string) {
-	jpeg.Encode(wFile, outputImage, &jpeg_options)
-	jpeg.Encode(w, outputImage, &jpeg_options)
-	img_contents, _ := ioutil.ReadFile(sizedPath)
-	ctx.addToMemcache(memcache_key, img_contents)
+	serveType(wFile, outputImage, w, sizedPath, ctx, memcache_key, jpgencode)
 }
 
 func serveGif(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
@@ -246,16 +247,20 @@ func serveGif(wFile *os.File, outputImage image.Image, w http.ResponseWriter, si
 	// image/gif doesn't include an Encode()
 	// so we'll use png for now. 
 	// :(
-	png.Encode(wFile, outputImage)
-	png.Encode(w, outputImage)
-	img_contents, _ := ioutil.ReadFile(sizedPath)
-	ctx.addToMemcache(memcache_key, img_contents)
+	serveType(wFile, outputImage, w, sizedPath, ctx, memcache_key, png.Encode)
 }
 
 func servePng(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
 	memcache_key string) {
-	png.Encode(wFile, outputImage)
-	png.Encode(w, outputImage)
+	serveType(wFile, outputImage, w, sizedPath, ctx, memcache_key, png.Encode)
+}
+
+type encfunc func(io.Writer, image.Image) error
+
+func serveType(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
+	memcache_key string, encFunc encfunc) {
+	encFunc(wFile, outputImage)
+	encFunc(w, outputImage)
 	img_contents, _ := ioutil.ReadFile(sizedPath)
 	ctx.addToMemcache(memcache_key, img_contents)
 }
