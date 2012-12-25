@@ -50,27 +50,28 @@ func setCacheHeaders(w http.ResponseWriter, extension string) http.ResponseWrite
 	return w
 }
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
+func parsePathServeImage(w http.ResponseWriter, r *http.Request,
+	ctx Context) (*ImageSpecifier, bool) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", 404)
-		return
+		return nil, true
 	}
 	ahash, err := HashFromString(parts[2], "")
 	if err != nil {
 		http.Error(w, "invalid hash", 404)
-		return
+		return nil, true
 	}
 	size := parts[3]
 	if size == "" {
 		http.Error(w, "missing size", 404)
-		return
+		return nil, true
 	}
 	s := resize.MakeSizeSpec(size)
 	if s.String() != size {
 		// force normalization of size spec
 		http.Redirect(w, r, "/image/"+ahash.String()+"/"+s.String()+"/"+parts[4], 301)
-		return
+		return nil, true
 	}
 	filename := parts[4]
 	if filename == "" {
@@ -81,29 +82,36 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if extension == ".jpeg" {
 		fixed_filename := strings.Replace(parts[4], ".jpeg", ".jpg", 1)
 		http.Redirect(w, r, "/image/"+ahash.String()+"/"+s.String()+"/"+fixed_filename, 301)
+		return nil, true
+	}
+	ri := &ImageSpecifier{ahash, s.String(), extension}
+	return ri, false
+}
+
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
+	ri, handled := parsePathServeImage(w, r, ctx)
+	if handled {
 		return
 	}
-
-	ri := ImageSpecifier{ahash, s.String(), extension}
 
 	// check memcached first
 	item, err := ctx.MC.Get(ri.MemcacheKey())
 	if err == nil {
 		ctx.SL.Info("Cache Hit")
-		w = setCacheHeaders(w, extension)
+		w = setCacheHeaders(w, ri.Extension)
 		w.Write(item.Value)
 		return
 	}
 
-	baseDir := ctx.Cfg.UploadDirectory + ahash.AsPath()
-	path := baseDir + "/full" + extension
-	sizedPath := resizedPath(path, s.String())
+	baseDir := ctx.Cfg.UploadDirectory + ri.Hash.AsPath()
+	path := baseDir + "/full" + ri.Extension
+	sizedPath := resizedPath(path, ri.Size)
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
 		ctx.addToMemcache(ri.MemcacheKey(), contents)
 		// we've got it, so serve it directly
-		w = setCacheHeaders(w, extension)
+		w = setCacheHeaders(w, ri.Extension)
 		w.Write(contents)
 		return
 	}
@@ -112,13 +120,13 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if err != nil {
 		// we don't have the full-size on this node either
 		// need to check the rest of the cluster
-		img_data, err := ctx.Cluster.RetrieveImage(ahash, s.String(), extension[1:])
+		img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
 		if err != nil {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
 		} else {
 			ctx.addToMemcache(ri.MemcacheKey(), img_data)
-			w = setCacheHeaders(w, extension)
+			w = setCacheHeaders(w, ri.Extension)
 			w.Write(img_data)
 		}
 		return
@@ -131,19 +139,19 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	// we need to let another node in the cluster handle it.
 	n := ctx.Cluster.Myself
 	if !n.Writeable {
-		img_data, err := ctx.Cluster.RetrieveImage(ahash, s.String(), extension[1:])
+		img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
 		if err != nil {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
 		} else {
 			ctx.addToMemcache(ri.MemcacheKey(), img_data)
-			w = setCacheHeaders(w, extension)
+			w = setCacheHeaders(w, ri.Extension)
 			w.Write(img_data)
 		}
 		return
 	}
 	c := make(chan ResizeResponse)
-	ctx.Ch.ResizeQueue <- ResizeRequest{path, extension, s.String(), c}
+	ctx.Ch.ResizeQueue <- ResizeRequest{path, ri.Extension, ri.Size, c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
@@ -154,7 +162,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// the sized file
 		img_contents, _ := ioutil.ReadFile(sizedPath)
 		ctx.addToMemcache(ri.MemcacheKey(), img_contents)
-		w = setCacheHeaders(w, extension)
+		w = setCacheHeaders(w, ri.Extension)
 		w.Write(img_contents)
 		return
 	}
@@ -167,16 +175,16 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// we still have the resized image, so we can serve the response
 		// we just can't cache it. 
 	}
-	w = setCacheHeaders(w, extension)
-	if extension == ".jpg" {
+	w = setCacheHeaders(w, ri.Extension)
+	if ri.Extension == ".jpg" {
 		serveJpg(wFile, outputImage, w, sizedPath, ctx, ri.MemcacheKey())
 		return
 	}
-	if extension == ".gif" {
+	if ri.Extension == ".gif" {
 		serveGif(wFile, outputImage, w, sizedPath, ctx, ri.MemcacheKey())
 		return
 	}
-	if extension == ".png" {
+	if ri.Extension == ".png" {
 		servePng(wFile, outputImage, w, sizedPath, ctx, ri.MemcacheKey())
 		return
 	}
