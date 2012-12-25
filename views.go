@@ -174,14 +174,18 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if result.Magick {
 		// imagemagick did the resize, so we just spit out
 		// the sized file
-		img_contents, _ := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
-		ctx.addToMemcache(ri.MemcacheKey(), img_contents)
-		w = setCacheHeaders(w, ri.Extension)
-		w.Write(img_contents)
+		ctx.serveMagick(ri, w)
 		return
 	}
 	outputImage := *result.OutputImage
 	ctx.serveScaledByExtension(ri, w, outputImage)
+}
+
+func (ctx Context) serveMagick(ri *ImageSpecifier, w http.ResponseWriter) {
+		img_contents, _ := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
+		ctx.addToMemcache(ri.MemcacheKey(), img_contents)
+		w = setCacheHeaders(w, ri.Extension)
+		w.Write(img_contents)
 }
 
 func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWriter,
