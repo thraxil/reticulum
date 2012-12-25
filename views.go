@@ -88,9 +88,8 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	memcache_key := memcacheKey(ahash, s.String(), extension)
 	// check memcached first
-	item, err := ctx.MC.Get(memcache_key)
+	item, err := ctx.MC.Get(memcacheKey(ahash, s.String(), extension))
 	if err == nil {
 		ctx.SL.Info("Cache Hit")
 		w = setCacheHeaders(w, extension)
@@ -104,7 +103,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
-		addToMemcache(ctx, memcache_key, contents)
+		addToMemcache(ctx, memcacheKey(ahash, s.String(), extension), contents)
 		// we've got it, so serve it directly
 		w = setCacheHeaders(w, extension)
 		w.Write(contents)
@@ -120,7 +119,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
 		} else {
-			addToMemcache(ctx, memcache_key, img_data)
+			addToMemcache(ctx, memcacheKey(ahash, s.String(), extension), img_data)
 			w = setCacheHeaders(w, extension)
 			w.Write(img_data)
 		}
@@ -139,7 +138,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
 		} else {
-			addToMemcache(ctx, memcache_key, img_data)
+			addToMemcache(ctx, memcacheKey(ahash, s.String(), extension), img_data)
 			w = setCacheHeaders(w, extension)
 			w.Write(img_data)
 		}
@@ -156,7 +155,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// imagemagick did the resize, so we just spit out
 		// the sized file
 		img_contents, _ := ioutil.ReadFile(sizedPath)
-		addToMemcache(ctx, memcache_key, img_contents)
+		addToMemcache(ctx, memcacheKey(ahash, s.String(), extension), img_contents)
 		w = setCacheHeaders(w, extension)
 		w.Write(img_contents)
 		return
@@ -172,15 +171,15 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	w = setCacheHeaders(w, extension)
 	if extension == ".jpg" {
-		serveJpg(wFile, outputImage, w, sizedPath, ctx, memcache_key)
+		serveJpg(wFile, outputImage, w, sizedPath, ctx, memcacheKey(ahash, s.String(), extension))
 		return
 	}
 	if extension == ".gif" {
-		serveGif(wFile, outputImage, w, sizedPath, ctx, memcache_key)
+		serveGif(wFile, outputImage, w, sizedPath, ctx, memcacheKey(ahash, s.String(), extension))
 		return
 	}
 	if extension == ".png" {
-		servePng(wFile, outputImage, w, sizedPath, ctx, memcache_key)
+		servePng(wFile, outputImage, w, sizedPath, ctx, memcacheKey(ahash, s.String(), extension))
 		return
 	}
 }
