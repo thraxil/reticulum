@@ -102,18 +102,25 @@ func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
 		}
 }
 
-func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
-	ri, handled := parsePathServeImage(w, r, ctx)
-	if handled {
-		return
-	}
-
+func (ctx Context) serveFromMemcache(ri *ImageSpecifier, w http.ResponseWriter) bool {
 	// check memcached first
 	item, err := ctx.MC.Get(ri.MemcacheKey())
 	if err == nil {
 		ctx.SL.Info("Cache Hit")
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(item.Value)
+		return true
+	}
+	return false
+}
+
+func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
+	ri, handled := parsePathServeImage(w, r, ctx)
+	if handled {
+		return
+	}
+
+	if ctx.serveFromMemcache(ri, w) {
 		return
 	}
 
