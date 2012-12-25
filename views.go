@@ -88,6 +88,20 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 	return ri, false
 }
 
+func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
+		// we don't have the full-size on this node either
+		// need to check the rest of the cluster
+		img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
+		if err != nil {
+			// for now we just have to 404
+			http.Error(w, "not found", 404)
+		} else {
+			ctx.addToMemcache(ri.MemcacheKey(), img_data)
+			w = setCacheHeaders(w, ri.Extension)
+			w.Write(img_data)
+		}
+}
+
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	ri, handled := parsePathServeImage(w, r, ctx)
 	if handled {
@@ -103,9 +117,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	baseDir := ctx.Cfg.UploadDirectory + ri.Hash.AsPath()
-	path := baseDir + "/full" + ri.Extension
-	sizedPath := resizedPath(path, ri.Size)
+	sizedPath := ri.sizedPath(ctx.Cfg.UploadDirectory)
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
@@ -116,19 +128,9 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	_, err = ioutil.ReadFile(path)
+	_, err = ioutil.ReadFile(ri.fullSizePath(ctx.Cfg.UploadDirectory))
 	if err != nil {
-		// we don't have the full-size on this node either
-		// need to check the rest of the cluster
-		img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
-		if err != nil {
-			// for now we just have to 404
-			http.Error(w, "not found", 404)
-		} else {
-			ctx.addToMemcache(ri.MemcacheKey(), img_data)
-			w = setCacheHeaders(w, ri.Extension)
-			w.Write(img_data)
-		}
+		ctx.serveFromCluster(ri, w)
 		return
 	}
 
@@ -151,7 +153,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 	c := make(chan ResizeResponse)
-	ctx.Ch.ResizeQueue <- ResizeRequest{path, ri.Extension, ri.Size, c}
+	ctx.Ch.ResizeQueue <- ResizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size, c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
