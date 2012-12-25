@@ -181,6 +181,11 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 	outputImage := *result.OutputImage
+	ctx.serveScaledByExtension(ri, w, outputImage)
+}
+
+func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWriter,
+	outputImage image.Image) {
 
 	wFile, err := os.OpenFile(ri.sizedPath(ctx.Cfg.UploadDirectory), os.O_CREATE|os.O_RDWR, 0644)
 	defer wFile.Close()
@@ -190,11 +195,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// we just can't cache it. 
 	}
 	w = setCacheHeaders(w, ri.Extension)
-	ctx.serveScaledByExtension(ri, w, outputImage, wFile)
-}
 
-func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWriter,
-	outputImage image.Image, wFile *os.File) {
 	if ri.Extension == ".jpg" {
 		serveJpg(wFile, outputImage, w, ri.sizedPath(ctx.Cfg.UploadDirectory), ctx, ri.MemcacheKey())
 		return
