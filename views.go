@@ -117,9 +117,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	sizedPath := ri.sizedPath(ctx.Cfg.UploadDirectory)
-
-	contents, err := ioutil.ReadFile(sizedPath)
+	contents, err := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
 	if err == nil {
 		ctx.addToMemcache(ri.MemcacheKey(), contents)
 		// we've got it, so serve it directly
@@ -162,7 +160,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if result.Magick {
 		// imagemagick did the resize, so we just spit out
 		// the sized file
-		img_contents, _ := ioutil.ReadFile(sizedPath)
+		img_contents, _ := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
 		ctx.addToMemcache(ri.MemcacheKey(), img_contents)
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(img_contents)
@@ -170,7 +168,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	outputImage := *result.OutputImage
 
-	wFile, err := os.OpenFile(sizedPath, os.O_CREATE|os.O_RDWR, 0644)
+	wFile, err := os.OpenFile(ri.sizedPath(ctx.Cfg.UploadDirectory), os.O_CREATE|os.O_RDWR, 0644)
 	defer wFile.Close()
 	if err != nil {
 		// what do we do if we can't write?
@@ -179,15 +177,15 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	w = setCacheHeaders(w, ri.Extension)
 	if ri.Extension == ".jpg" {
-		serveJpg(wFile, outputImage, w, sizedPath, ctx, ri.MemcacheKey())
+		serveJpg(wFile, outputImage, w, ri.sizedPath(ctx.Cfg.UploadDirectory), ctx, ri.MemcacheKey())
 		return
 	}
 	if ri.Extension == ".gif" {
-		serveGif(wFile, outputImage, w, sizedPath, ctx, ri.MemcacheKey())
+		serveGif(wFile, outputImage, w, ri.sizedPath(ctx.Cfg.UploadDirectory), ctx, ri.MemcacheKey())
 		return
 	}
 	if ri.Extension == ".png" {
-		servePng(wFile, outputImage, w, sizedPath, ctx, ri.MemcacheKey())
+		servePng(wFile, outputImage, w, ri.sizedPath(ctx.Cfg.UploadDirectory), ctx, ri.MemcacheKey())
 		return
 	}
 }
