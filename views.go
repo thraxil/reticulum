@@ -50,6 +50,10 @@ func setCacheHeaders(w http.ResponseWriter, extension string) http.ResponseWrite
 	return w
 }
 
+func memcacheKey(ahash *Hash, size string, extension string) string {
+	return ahash.String() + "/" + size + "/image" + extension
+}
+
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
@@ -84,7 +88,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	memcache_key := ahash.String() + "/" + s.String() + "/image" + extension
+	memcache_key := memcacheKey(ahash, s.String(), extension)
 	// check memcached first
 	item, err := ctx.MC.Get(memcache_key)
 	if err == nil {
