@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log/syslog"
 	"math/rand"
@@ -310,4 +311,25 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 			}
 		}
 	}
+}
+
+func (c *Cluster) RetrieveImage(ahash *Hash, size string, extension string) ([]byte, error) {
+	// we don't have the full-size, so check the cluster
+	nodes_to_check := c.ReadOrder(ahash.String())
+	// this is where we go down the list and ask the other
+	// nodes for the image
+	// TODO: parallelize this
+	for _, n := range nodes_to_check {
+		if n.UUID == c.Myself.UUID {
+			// checking ourself would be silly
+			continue
+		}
+		img, err := n.RetrieveImage(ahash, size, extension)
+		if err == nil {
+			// got it, return it
+			return img, nil
+		}
+		// that node didn't have it so we keep going
+	}
+	return nil, errors.New("not found in the cluster")
 }

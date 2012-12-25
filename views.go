@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/sha1"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/thraxil/resize"
@@ -45,27 +44,6 @@ type ImageData struct {
 
 var jpeg_options = jpeg.Options{Quality: 90}
 
-func retrieveImage(c *Cluster, ahash *Hash, size string, extension string) ([]byte, error) {
-	// we don't have the full-size, so check the cluster
-	nodes_to_check := c.ReadOrder(ahash.String())
-	// this is where we go down the list and ask the other
-	// nodes for the image
-	// TODO: parallelize this
-	for _, n := range nodes_to_check {
-		if n.UUID == c.Myself.UUID {
-			// checking ourself would be silly
-			continue
-		}
-		img, err := n.RetrieveImage(ahash, size, extension)
-		if err == nil {
-			// got it, return it
-			return img, nil
-		}
-		// that node didn't have it so we keep going
-	}
-	return nil, errors.New("not found in the cluster")
-}
-
 func setCacheHeaders(w http.ResponseWriter, extension string) http.ResponseWriter {
 	w.Header().Set("Content-Type", extmimes[extension[1:]])
 	w.Header().Set("Expires", time.Now().Add(time.Hour*24*365).Format(time.RFC1123))
@@ -106,7 +84,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	memcache_key := ahash.String() + "/" + size + "/image" + extension
+	memcache_key := ahash.String() + "/" + s.String() + "/image" + extension
 	// check memcached first
 	item, err := ctx.MC.Get(memcache_key)
 	if err == nil {
@@ -118,7 +96,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	baseDir := ctx.Cfg.UploadDirectory + ahash.AsPath()
 	path := baseDir + "/full" + extension
-	sizedPath := resizedPath(path, size)
+	sizedPath := resizedPath(path, s.String())
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
@@ -133,7 +111,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if err != nil {
 		// we don't have the full-size on this node either
 		// need to check the rest of the cluster
-		img_data, err := retrieveImage(ctx.Cluster, ahash, size, extension[1:])
+		img_data, err := ctx.Cluster.RetrieveImage(ahash, s.String(), extension[1:])
 		if err != nil {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
@@ -152,7 +130,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	// we need to let another node in the cluster handle it.
 	n := ctx.Cluster.Myself
 	if !n.Writeable {
-		img_data, err := retrieveImage(ctx.Cluster, ahash, size, extension[1:])
+		img_data, err := ctx.Cluster.RetrieveImage(ahash, s.String(), extension[1:])
 		if err != nil {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
@@ -164,7 +142,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 	c := make(chan ResizeResponse)
-	ctx.Ch.ResizeQueue <- ResizeRequest{path, extension, size, c}
+	ctx.Ch.ResizeQueue <- ResizeRequest{path, extension, s.String(), c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
