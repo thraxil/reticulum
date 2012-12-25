@@ -88,8 +88,10 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
+	ri := ImageSpecifier{ahash, s.String(), extension}
+
 	// check memcached first
-	item, err := ctx.MC.Get(memcacheKey(ahash, s.String(), extension))
+	item, err := ctx.MC.Get(ri.MemcacheKey())
 	if err == nil {
 		ctx.SL.Info("Cache Hit")
 		w = setCacheHeaders(w, extension)
