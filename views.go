@@ -216,15 +216,15 @@ func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWri
 	w = setCacheHeaders(w, ri.Extension)
 
 	if ri.Extension == ".jpg" {
-		serveJpg(wFile, outputImage, w, ri.sizedPath(ctx.Cfg.UploadDirectory), ctx, ri.MemcacheKey())
+		serveJpg(wFile, outputImage, w, ctx, ri)
 		return
 	}
 	if ri.Extension == ".gif" {
-		serveGif(wFile, outputImage, w, ri.sizedPath(ctx.Cfg.UploadDirectory), ctx, ri.MemcacheKey())
+		serveGif(wFile, outputImage, w, ctx, ri)
 		return
 	}
 	if ri.Extension == ".png" {
-		servePng(wFile, outputImage, w, ri.sizedPath(ctx.Cfg.UploadDirectory), ctx, ri.MemcacheKey())
+		servePng(wFile, outputImage, w, ctx, ri)
 		return
 	}
 }
@@ -237,32 +237,32 @@ func jpgencode(out io.Writer, in image.Image) error {
 	return jpeg.Encode(out, in, &jpeg_options)
 }
 
-func serveJpg(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
-	memcache_key string) {
-	serveType(wFile, outputImage, w, sizedPath, ctx, memcache_key, jpgencode)
+func serveJpg(wFile *os.File, outputImage image.Image, w http.ResponseWriter, ctx Context,
+	ri *ImageSpecifier) {
+	serveType(wFile, outputImage, w, ctx, ri, jpgencode)
 }
 
-func serveGif(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
-	memcache_key string) {
+func serveGif(wFile *os.File, outputImage image.Image, w http.ResponseWriter, ctx Context,
+	ri *ImageSpecifier) {
 	// image/gif doesn't include an Encode()
 	// so we'll use png for now. 
 	// :(
-	serveType(wFile, outputImage, w, sizedPath, ctx, memcache_key, png.Encode)
+	serveType(wFile, outputImage, w, ctx, ri, png.Encode)
 }
 
-func servePng(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
-	memcache_key string) {
-	serveType(wFile, outputImage, w, sizedPath, ctx, memcache_key, png.Encode)
+func servePng(wFile *os.File, outputImage image.Image, w http.ResponseWriter, ctx Context,
+	ri *ImageSpecifier) {
+	serveType(wFile, outputImage, w, ctx, ri, png.Encode)
 }
 
 type encfunc func(io.Writer, image.Image) error
 
-func serveType(wFile *os.File, outputImage image.Image, w http.ResponseWriter, sizedPath string, ctx Context,
-	memcache_key string, encFunc encfunc) {
+func serveType(wFile *os.File, outputImage image.Image, w http.ResponseWriter, ctx Context,
+	ri *ImageSpecifier, encFunc encfunc) {
 	encFunc(wFile, outputImage)
 	encFunc(w, outputImage)
-	img_contents, _ := ioutil.ReadFile(sizedPath)
-	ctx.addToMemcache(memcache_key, img_contents)
+	img_contents, _ := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
+	ctx.addToMemcache(ri.MemcacheKey(), img_contents)
 }
 
 var mimeexts = map[string]string{
