@@ -148,25 +148,13 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	// we do have the full-size, but not the scaled one
 	// so resize it, cache it, and serve it.
-
-	// but first, make sure we are writeable. If not,
-	// we need to let another node in the cluster handle it.
-	n := ctx.Cluster.Myself
-	if !n.Writeable {
-		img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
-		if err != nil {
-			// for now we just have to 404
-			http.Error(w, "not found", 404)
-		} else {
-			ctx.addToMemcache(ri.MemcacheKey(), img_data)
-			w = setCacheHeaders(w, ri.Extension)
-			w.Write(img_data)
-		}
+	if !ctx.Cluster.Myself.Writeable {
+		// but first, make sure we are writeable. If not,
+		// we need to let another node in the cluster handle it.
+		ctx.serveScaledFromCluster(ri, w)
 		return
 	}
-	c := make(chan ResizeResponse)
-	ctx.Ch.ResizeQueue <- ResizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size, c}
-	result := <-c
+	result := ctx.makeResizeJob(ri)
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
 		return
@@ -179,6 +167,26 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	outputImage := *result.OutputImage
 	ctx.serveScaledByExtension(ri, w, outputImage)
+}
+
+func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
+		img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
+		if err != nil {
+			// for now we just have to 404
+			http.Error(w, "not found", 404)
+		} else {
+			ctx.addToMemcache(ri.MemcacheKey(), img_data)
+			w = setCacheHeaders(w, ri.Extension)
+			w.Write(img_data)
+		}
+		return
+}
+
+func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
+	c := make(chan ResizeResponse)
+	ctx.Ch.ResizeQueue <- ResizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size, c}
+	result := <-c
+	return result
 }
 
 func (ctx Context) serveMagick(ri *ImageSpecifier, w http.ResponseWriter) {
