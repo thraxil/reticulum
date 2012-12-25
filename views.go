@@ -50,10 +50,6 @@ func setCacheHeaders(w http.ResponseWriter, extension string) http.ResponseWrite
 	return w
 }
 
-func memcacheKey(ahash *Hash, size string, extension string) string {
-	return ahash.String() + "/" + size + "/image" + extension
-}
-
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
@@ -105,7 +101,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	contents, err := ioutil.ReadFile(sizedPath)
 	if err == nil {
-		addToMemcache(ctx, memcacheKey(ahash, s.String(), extension), contents)
+		addToMemcache(ctx, ri.MemcacheKey(), contents)
 		// we've got it, so serve it directly
 		w = setCacheHeaders(w, extension)
 		w.Write(contents)
@@ -121,7 +117,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
 		} else {
-			addToMemcache(ctx, memcacheKey(ahash, s.String(), extension), img_data)
+			addToMemcache(ctx, ri.MemcacheKey(), img_data)
 			w = setCacheHeaders(w, extension)
 			w.Write(img_data)
 		}
@@ -140,7 +136,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			// for now we just have to 404
 			http.Error(w, "not found", 404)
 		} else {
-			addToMemcache(ctx, memcacheKey(ahash, s.String(), extension), img_data)
+			addToMemcache(ctx, ri.MemcacheKey(), img_data)
 			w = setCacheHeaders(w, extension)
 			w.Write(img_data)
 		}
@@ -157,7 +153,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// imagemagick did the resize, so we just spit out
 		// the sized file
 		img_contents, _ := ioutil.ReadFile(sizedPath)
-		addToMemcache(ctx, memcacheKey(ahash, s.String(), extension), img_contents)
+		addToMemcache(ctx, ri.MemcacheKey(), img_contents)
 		w = setCacheHeaders(w, extension)
 		w.Write(img_contents)
 		return
@@ -173,15 +169,15 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	w = setCacheHeaders(w, extension)
 	if extension == ".jpg" {
-		serveJpg(wFile, outputImage, w, sizedPath, ctx, memcacheKey(ahash, s.String(), extension))
+		serveJpg(wFile, outputImage, w, sizedPath, ctx, ri.MemcacheKey())
 		return
 	}
 	if extension == ".gif" {
-		serveGif(wFile, outputImage, w, sizedPath, ctx, memcacheKey(ahash, s.String(), extension))
+		serveGif(wFile, outputImage, w, sizedPath, ctx, ri.MemcacheKey())
 		return
 	}
 	if extension == ".png" {
-		servePng(wFile, outputImage, w, sizedPath, ctx, memcacheKey(ahash, s.String(), extension))
+		servePng(wFile, outputImage, w, sizedPath, ctx, ri.MemcacheKey())
 		return
 	}
 }
