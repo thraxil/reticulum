@@ -140,15 +140,14 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	_, err := ioutil.ReadFile(ri.fullSizePath(ctx.Cfg.UploadDirectory))
-	if err != nil {
+	if !ctx.haveImageFullsizeLocally(ri) {
 		ctx.serveFromCluster(ri, w)
 		return
 	}
 
 	// we do have the full-size, but not the scaled one
 	// so resize it, cache it, and serve it.
-	if !ctx.Cluster.Myself.Writeable {
+	if !ctx.locallyWriteable() {
 		// but first, make sure we are writeable. If not,
 		// we need to let another node in the cluster handle it.
 		ctx.serveScaledFromCluster(ri, w)
@@ -165,8 +164,16 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		ctx.serveMagick(ri, w)
 		return
 	}
-	outputImage := *result.OutputImage
-	ctx.serveScaledByExtension(ri, w, outputImage)
+	ctx.serveScaledByExtension(ri, w, *result.OutputImage)
+}
+
+func (ctx Context) locallyWriteable() bool {
+	return ctx.Cluster.Myself.Writeable
+}
+
+func (ctx Context) haveImageFullsizeLocally(ri *ImageSpecifier) bool {
+	_, err := ioutil.ReadFile(ri.fullSizePath(ctx.Cfg.UploadDirectory))
+	return err == nil
 }
 
 func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
