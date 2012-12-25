@@ -114,6 +114,18 @@ func (ctx Context) serveFromMemcache(ri *ImageSpecifier, w http.ResponseWriter) 
 	return false
 }
 
+func (ctx Context) serveDirect(ri *ImageSpecifier, w http.ResponseWriter) bool {
+	contents, err := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
+	if err == nil {
+		ctx.addToMemcache(ri.MemcacheKey(), contents)
+		// we've got it, so serve it directly
+		w = setCacheHeaders(w, ri.Extension)
+		w.Write(contents)
+		return true
+	}
+	return false
+}
+
 func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	ri, handled := parsePathServeImage(w, r, ctx)
 	if handled {
@@ -124,16 +136,11 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	contents, err := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
-	if err == nil {
-		ctx.addToMemcache(ri.MemcacheKey(), contents)
-		// we've got it, so serve it directly
-		w = setCacheHeaders(w, ri.Extension)
-		w.Write(contents)
+	if ctx.serveDirect(ri, w) {
 		return
 	}
 
-	_, err = ioutil.ReadFile(ri.fullSizePath(ctx.Cfg.UploadDirectory))
+	_, err := ioutil.ReadFile(ri.fullSizePath(ctx.Cfg.UploadDirectory))
 	if err != nil {
 		ctx.serveFromCluster(ri, w)
 		return
