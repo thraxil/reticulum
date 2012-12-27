@@ -84,14 +84,14 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 		http.Redirect(w, r, "/image/"+ahash.String()+"/"+s.String()+"/"+fixed_filename, 301)
 		return nil, true
 	}
-	ri := &ImageSpecifier{ahash, s.String(), extension}
+	ri := &ImageSpecifier{ahash, s, extension}
 	return ri, false
 }
 
 func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
 	// we don't have the full-size on this node either
 	// need to check the rest of the cluster
-	img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
+	img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size.String(), ri.Extension[1:])
 	if err != nil {
 		// for now we just have to 404
 		http.Error(w, "not found", 404)
@@ -177,7 +177,7 @@ func (ctx Context) haveImageFullsizeLocally(ri *ImageSpecifier) bool {
 }
 
 func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
-	img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size, ri.Extension[1:])
+	img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size.String(), ri.Extension[1:])
 	if err != nil {
 		// for now we just have to 404
 		http.Error(w, "not found", 404)
@@ -191,7 +191,7 @@ func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWri
 
 func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
 	c := make(chan ResizeResponse)
-	ctx.Ch.ResizeQueue <- ResizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size, c}
+	ctx.Ch.ResizeQueue <- ResizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size.String(), c}
 	result := <-c
 	return result
 }
@@ -215,44 +215,11 @@ func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWri
 	}
 	w = setCacheHeaders(w, ri.Extension)
 
-	if ri.Extension == ".jpg" {
-		serveJpg(wFile, outputImage, w, ctx, ri)
-		return
-	}
-	if ri.Extension == ".gif" {
-		serveGif(wFile, outputImage, w, ctx, ri)
-		return
-	}
-	if ri.Extension == ".png" {
-		servePng(wFile, outputImage, w, ctx, ri)
-		return
-	}
+	serveType(wFile, outputImage, w, ctx, ri, extencoders[ri.Extension])
 }
 
 func (ctx Context) addToMemcache(memcache_key string, img_contents []byte) {
 	ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
-}
-
-func jpgencode(out io.Writer, in image.Image) error {
-	return jpeg.Encode(out, in, &jpeg_options)
-}
-
-func serveJpg(wFile *os.File, outputImage image.Image, w http.ResponseWriter, ctx Context,
-	ri *ImageSpecifier) {
-	serveType(wFile, outputImage, w, ctx, ri, jpgencode)
-}
-
-func serveGif(wFile *os.File, outputImage image.Image, w http.ResponseWriter, ctx Context,
-	ri *ImageSpecifier) {
-	// image/gif doesn't include an Encode()
-	// so we'll use png for now. 
-	// :(
-	serveType(wFile, outputImage, w, ctx, ri, png.Encode)
-}
-
-func servePng(wFile *os.File, outputImage image.Image, w http.ResponseWriter, ctx Context,
-	ri *ImageSpecifier) {
-	serveType(wFile, outputImage, w, ctx, ri, png.Encode)
 }
 
 type encfunc func(io.Writer, image.Image) error
@@ -275,6 +242,19 @@ var extmimes = map[string]string{
 	"jpg": "image/jpeg",
 	"gif": "image/gif",
 	"png": "image/png",
+}
+
+func jpgencode(out io.Writer, in image.Image) error {
+	return jpeg.Encode(out, in, &jpeg_options)
+}
+
+var extencoders = map[string]encfunc{
+	".jpg": jpgencode,
+	".png": png.Encode,
+	// image/gif doesn't include an Encode()
+	// so we'll use png for now. 
+	// :(
+	".gif": png.Encode,
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
