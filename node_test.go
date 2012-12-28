@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "fmt"
+	"github.com/thraxil/resize"
 	"testing"
 )
 
@@ -53,10 +54,13 @@ func Test_Urls(t *testing.T) {
 	if err != nil {
 		t.Error("bad hash")
 	}
-	if n.retrieveUrl(hash, "full", "jpg") != "http://localhost:8080/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
+	s := resize.MakeSizeSpec("full")
+	ri := &ImageSpecifier{hash, s, "jpg"}
+
+	if n.retrieveUrl(ri) != "http://localhost:8080/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
 		t.Error("bad retrieve url")
 	}
-	if n.retrieveInfoUrl(hash, "full", "jpg") != "http://localhost:8080/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
+	if n.retrieveInfoUrl(ri) != "http://localhost:8080/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
 		t.Error("bad retrieve info url")
 	}
 	if n.stashUrl() != "http://localhost:8080/stash/" {
@@ -67,10 +71,10 @@ func Test_Urls(t *testing.T) {
 	}
 
 	n.BaseUrl = "localhost:8080/"
-	if n.retrieveUrl(hash, "full", "jpg") != "http://localhost:8080/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
+	if n.retrieveUrl(ri) != "http://localhost:8080/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
 		t.Error("bad retrieve url")
 	}
-	if n.retrieveInfoUrl(hash, "full", "jpg") != "http://localhost:8080/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
+	if n.retrieveInfoUrl(ri) != "http://localhost:8080/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
 		t.Error("bad retrieve info url")
 	}
 	if n.stashUrl() != "http://localhost:8080/stash/" {
@@ -81,10 +85,10 @@ func Test_Urls(t *testing.T) {
 	}
 
 	n.BaseUrl = "http://localhost:8081/"
-	if n.retrieveUrl(hash, "full", "jpg") != "http://localhost:8081/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
+	if n.retrieveUrl(ri) != "http://localhost:8081/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
 		t.Error("bad retrieve url")
 	}
-	if n.retrieveInfoUrl(hash, "full", "jpg") != "http://localhost:8081/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
+	if n.retrieveInfoUrl(ri) != "http://localhost:8081/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
 		t.Error("bad retrieve info url")
 	}
 	if n.stashUrl() != "http://localhost:8081/stash/" {
@@ -95,10 +99,10 @@ func Test_Urls(t *testing.T) {
 	}
 
 	n.BaseUrl = "http://localhost:8081"
-	if n.retrieveUrl(hash, "full", "jpg") != "http://localhost:8081/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
+	if n.retrieveUrl(ri) != "http://localhost:8081/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
 		t.Error("bad retrieve url")
 	}
-	if n.retrieveInfoUrl(hash, "full", "jpg") != "http://localhost:8081/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
+	if n.retrieveInfoUrl(ri) != "http://localhost:8081/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/" {
 		t.Error("bad retrieve info url")
 	}
 	if n.stashUrl() != "http://localhost:8081/stash/" {

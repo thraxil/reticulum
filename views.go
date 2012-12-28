@@ -91,7 +91,7 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
 	// we don't have the full-size on this node either
 	// need to check the rest of the cluster
-	img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size.String(), ri.Extension[1:])
+	img_data, err := ctx.Cluster.RetrieveImage(ri)
 	if err != nil {
 		// for now we just have to 404
 		http.Error(w, "not found", 404)
@@ -177,7 +177,7 @@ func (ctx Context) haveImageFullsizeLocally(ri *ImageSpecifier) bool {
 }
 
 func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
-	img_data, err := ctx.Cluster.RetrieveImage(ri.Hash, ri.Size.String(), ri.Extension[1:])
+	img_data, err := ctx.Cluster.RetrieveImage(ri)
 	if err != nil {
 		// for now we just have to 404
 		http.Error(w, "not found", 404)

@@ -313,9 +313,9 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 	}
 }
 
-func (c *Cluster) RetrieveImage(ahash *Hash, size string, extension string) ([]byte, error) {
+func (c *Cluster) RetrieveImage(ri *ImageSpecifier) ([]byte, error) {
 	// we don't have the full-size, so check the cluster
-	nodes_to_check := c.ReadOrder(ahash.String())
+	nodes_to_check := c.ReadOrder(ri.Hash.String())
 	// this is where we go down the list and ask the other
 	// nodes for the image
 	// TODO: parallelize this
@@ -324,7 +324,7 @@ func (c *Cluster) RetrieveImage(ahash *Hash, size string, extension string) ([]b
 			// checking ourself would be silly
 			continue
 		}
-		img, err := n.RetrieveImage(ahash, size, extension)
+		img, err := n.RetrieveImage(ri)
 		if err == nil {
 			// got it, return it
 			return img, nil

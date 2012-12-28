@@ -23,3 +23,11 @@ func (i ImageSpecifier) fullSizePath(upload_dir string) string {
 	baseDir := upload_dir + i.Hash.AsPath()
 	return baseDir + "/full" + i.Extension
 }
+
+func (i ImageSpecifier) retrieveUrlPath() string {
+	return "/retrieve/" + i.Hash.String() + "/" + i.Size.String() + "/" + i.Extension + "/"
+}
+
+func (i ImageSpecifier) retrieveInfoUrlPath() string {
+	return "/retrieve_info/" + i.Hash.String() + "/" + i.Size.String() + "/" + i.Extension + "/"
+}

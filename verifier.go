@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	"github.com/thraxil/resize"
 	"io"
 	"io/ioutil"
 	"log/syslog"
@@ -74,7 +75,11 @@ func repair_image(path string, extension string, hash *Hash,
 			// skip ourself, since we know we are corrupt
 			continue
 		}
-		img, err := n.RetrieveImage(hash, "full", extension)
+
+		s := resize.MakeSizeSpec("full")
+		ri := &ImageSpecifier{hash, s, extension}
+
+		img, err := n.RetrieveImage(ri)
 		if err != nil {
 			// doesn't have it
 			sl.Info(fmt.Sprintf("node %s does not have a copy of the desired image\n", n.Nickname))
@@ -185,7 +190,11 @@ func rebalance(path string, extension string, hash *Hash, c *Cluster,
 
 func retrieveReplica(n NodeData, hash *Hash, extension string, path string, satisfied bool,
 	sl *syslog.Writer) int {
-	img_info, err := n.RetrieveImageInfo(hash, "full", extension[1:])
+
+	s := resize.MakeSizeSpec("full")
+	ri := &ImageSpecifier{hash, s, extension[1:]}
+
+	img_info, err := n.RetrieveImageInfo(ri)
 	if err == nil && img_info != nil && img_info.Local {
 		// node should have it. node has it. cool.
 		return 1

@@ -78,20 +78,20 @@ func (n NodeData) goodBaseUrl() string {
 	return url
 }
 
-func (n NodeData) retrieveUrl(hash *Hash, size string, extension string) string {
-	return n.goodBaseUrl() + "/retrieve/" + hash.String() + "/" + size + "/" + extension + "/"
+func (n NodeData) retrieveUrl(ri *ImageSpecifier) string {
+	return n.goodBaseUrl() + ri.retrieveUrlPath()
 }
 
-func (n NodeData) retrieveInfoUrl(hash *Hash, size string, extension string) string {
-	return n.goodBaseUrl() + "/retrieve_info/" + hash.String() + "/" + size + "/" + extension + "/"
+func (n NodeData) retrieveInfoUrl(ri *ImageSpecifier) string {
+	return n.goodBaseUrl() + ri.retrieveInfoUrlPath()
 }
 
 func (n NodeData) stashUrl() string {
 	return n.goodBaseUrl() + "/stash/"
 }
 
-func (n *NodeData) RetrieveImage(hash *Hash, size string, extension string) ([]byte, error) {
-	resp, err := http.Get(n.retrieveUrl(hash, size, extension))
+func (n *NodeData) RetrieveImage(ri *ImageSpecifier) ([]byte, error) {
+	resp, err := http.Get(n.retrieveUrl(ri))
 	defer resp.Body.Close()
 	if err != nil {
 		n.LastFailed = time.Now()
@@ -127,8 +127,8 @@ func timedGetRequest(url string, duration time.Duration) (resp *http.Response, e
 	return
 }
 
-func (n *NodeData) RetrieveImageInfo(hash *Hash, size string, extension string) (*ImageInfoResponse, error) {
-	url := n.retrieveInfoUrl(hash, size, extension)
+func (n *NodeData) RetrieveImageInfo(ri *ImageSpecifier) (*ImageInfoResponse, error) {
+	url := n.retrieveInfoUrl(ri)
 	resp, err := timedGetRequest(url, 1*time.Second)
 	if err != nil {
 		n.LastFailed = time.Now()
