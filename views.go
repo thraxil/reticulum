@@ -153,6 +153,7 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		ctx.serveScaledFromCluster(ri, w)
 		return
 	}
+
 	result := ctx.makeResizeJob(ri)
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
@@ -278,7 +279,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		os.MkdirAll(path, 0755)
 		mimetype := fh.Header["Content-Type"][0]
 		ext := mimeexts[mimetype]
-		fullpath := path + "full." + ext
+		fullpath := path + "/full." + ext
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 		defer f.Close()
 		i.Seek(0, 0)

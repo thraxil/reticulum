@@ -95,5 +95,5 @@ func main() {
 	http.HandleFunc("/favicon.ico", FaviconHandler)
 
 	// everything is ready, let's go
-	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, sl, c.Myself.Nickname))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, sl, c.Myself.Nickname)))
 }
