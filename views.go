@@ -577,7 +577,7 @@ func FaviconHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(nil)
 }
 
-var add_template = `
+const add_template = `
 <html>
 <head>
 <title>{{.Title}}</title>
@@ -599,7 +599,7 @@ initial sizes to pre-create: <input type="text" name="size_hints" /><br />
 </html>
 `
 
-var status_template = `
+const status_template = `
 <html>
 <head>
 <title>{{.Title}}</title>
