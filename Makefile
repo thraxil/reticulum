@@ -29,5 +29,5 @@ coverage: reticulum
 
 
 install_deps:
-	go get github.com/thraxil/resize
-	go get github.com/bradfitz/gomemcache/memcache
+	go get -u github.com/thraxil/resize
+	go get -u github.com/bradfitz/gomemcache/memcache
