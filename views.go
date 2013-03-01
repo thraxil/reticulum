@@ -94,7 +94,7 @@ func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
 	img_data, err := ctx.Cluster.RetrieveImage(ri)
 	if err != nil {
 		// for now we just have to 404
-		http.Error(w, "not found", 404)
+		http.Error(w, "not found (serve from cluster)", 404)
 	} else {
 		ctx.addToMemcache(ri.MemcacheKey(), img_data)
 		w = setCacheHeaders(w, ri.Extension)
@@ -181,7 +181,7 @@ func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWri
 	img_data, err := ctx.Cluster.RetrieveImage(ri)
 	if err != nil {
 		// for now we just have to 404
-		http.Error(w, "not found", 404)
+		http.Error(w, "not found (serveScaledFromCluster)", 404)
 	} else {
 		ctx.addToMemcache(ri.MemcacheKey(), img_data)
 		w = setCacheHeaders(w, ri.Extension)
@@ -455,7 +455,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	_, err = ioutil.ReadFile(path)
 	if err != nil {
 		// we don't have the full-size on this node either
-		http.Error(w, "not found", 404)
+		http.Error(w, "not found (retrieveHandler)", 404)
 		return
 	}
 	// we do have the full-size, but not the scaled one
