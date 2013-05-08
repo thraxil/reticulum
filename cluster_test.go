@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func makeNewClusterData() (NodeData, *Cluster) {
+func makeNewClusterData(neighbors []NodeData) (NodeData, *Cluster) {
 	myself := NodeData{
 		Nickname:  "myself",
 		UUID:      "test-uuid",
@@ -15,18 +15,24 @@ func makeNewClusterData() (NodeData, *Cluster) {
 	}
 
 	c := NewCluster(myself)
+	for _, n := range neighbors {
+		c.AddNeighbor(n)
+	}
+
 	return myself, c
 }
 
 func Test_ClusterOfOneInitialNeighbors(t *testing.T) {
-	_, c := makeNewClusterData()
+	n := make([]NodeData, 0)
+	_, c := makeNewClusterData(n)
 	if len(c.GetNeighbors()) != 0 {
 		t.Error("should not have any neighbors yet")
 	}
 }
 
 func Test_ClusterOfOneNeighborsInclusive(t *testing.T) {
-	myself, c := makeNewClusterData()
+	n := make([]NodeData, 0)
+	myself, c := makeNewClusterData(n)
 
 	neighbors := c.NeighborsInclusive()
 	if len(neighbors) != 1 {
@@ -38,7 +44,8 @@ func Test_ClusterOfOneNeighborsInclusive(t *testing.T) {
 }
 
 func Test_ClusterOfOneFindNeighbors(t *testing.T) {
-	myself, c := makeNewClusterData()
+	n := make([]NodeData, 0)
+	myself, c := makeNewClusterData(n)
 	neighbors := c.NeighborsInclusive()
 
 	_, found := c.FindNeighborByUUID("test-uuid")
@@ -81,14 +88,34 @@ func Test_ClusterOfOneFindNeighbors(t *testing.T) {
 	}
 }
 
-func Test_SmallCluster(t *testing.T) {
-	myself := NodeData{
-		Nickname:  "myself",
-		UUID:      "test-uuid",
-		BaseUrl:   "localhost:8080",
-		Location:  "test",
-		Writeable: true,
+func checkForNeighbor(c *Cluster, n NodeData, t *testing.T) {
+	rn, found := c.FindNeighborByUUID(n.UUID)
+	if !found {
+		t.Error(fmt.Sprintf("couldn't find %s by UUID", n.UUID))
 	}
+	if rn.Nickname != n.Nickname {
+		t.Error("not the same nickname")
+	}
+}
+
+func checkForNeighborAfterRemoval(c *Cluster, n NodeData, i int, t *testing.T) {
+	rn, found := c.FindNeighborByUUID(n.UUID)
+	if i == 2 {
+		// the one that was removed
+		if found {
+			t.Error("found the one we removed")
+		}
+	} else {
+		if !found {
+			t.Error(fmt.Sprintf("couldn't find %s by UUID", n.UUID))
+		}
+		if rn.Nickname != n.Nickname {
+			t.Error("not the same nickname")
+		}
+	}
+}
+
+func Test_SmallCluster(t *testing.T) {
 	var neighbors = []NodeData{
 		NodeData{
 			Nickname:  "neighbor-1",
@@ -120,11 +147,7 @@ func Test_SmallCluster(t *testing.T) {
 		},
 	}
 
-	c := NewCluster(myself)
-	c.AddNeighbor(neighbors[0])
-	c.AddNeighbor(neighbors[1])
-	c.AddNeighbor(neighbors[2])
-	c.AddNeighbor(neighbors[3])
+	_, c := makeNewClusterData(neighbors)
 
 	if len(c.GetNeighbors()) != 4 {
 		t.Error(fmt.Sprintf("wrong number of neighbors: %d", len(c.GetNeighbors())))
@@ -135,13 +158,7 @@ func Test_SmallCluster(t *testing.T) {
 	}
 
 	for _, n := range neighbors {
-		rn, found := c.FindNeighborByUUID(n.UUID)
-		if !found {
-			t.Error(fmt.Sprintf("couldn't find %s by UUID", n.UUID))
-		}
-		if rn.Nickname != n.Nickname {
-			t.Error("not the same nickname")
-		}
+		checkForNeighbor(c, n, t)
 	}
 
 	c.RemoveNeighbor(neighbors[2])
@@ -154,24 +171,10 @@ func Test_SmallCluster(t *testing.T) {
 	}
 
 	for i, n := range neighbors {
-		rn, found := c.FindNeighborByUUID(n.UUID)
-		if i == 2 {
-			// the one that was removed
-			if found {
-				t.Error("found the one we removed")
-			}
-		} else {
-			if !found {
-				t.Error(fmt.Sprintf("couldn't find %s by UUID", n.UUID))
-			}
-			if rn.Nickname != n.Nickname {
-				t.Error("not the same nickname")
-			}
-		}
+		checkForNeighborAfterRemoval(c, n, i, t)
 	}
 	// remove the last one, just to check for off-by-ones
 	c.RemoveNeighbor(neighbors[3])
 	// same for the first
 	c.RemoveNeighbor(neighbors[0])
-
 }
