@@ -18,11 +18,15 @@ func makeNewClusterData() (NodeData, *Cluster) {
 	return myself, c
 }
 
-func Test_ClusterOfOne(t *testing.T) {
-	myself, c := makeNewClusterData()
+func Test_ClusterOfOneInitialNeighbors(t *testing.T) {
+	_, c := makeNewClusterData()
 	if len(c.GetNeighbors()) != 0 {
 		t.Error("should not have any neighbors yet")
 	}
+}
+
+func Test_ClusterOfOneNeighborsInclusive(t *testing.T) {
+	myself, c := makeNewClusterData()
 
 	neighbors := c.NeighborsInclusive()
 	if len(neighbors) != 1 {
@@ -31,6 +35,12 @@ func Test_ClusterOfOne(t *testing.T) {
 	if neighbors[0].Nickname != myself.Nickname {
 		t.Error("single node is not myself")
 	}
+}
+
+func Test_ClusterOfOneFindNeighbors(t *testing.T) {
+	myself, c := makeNewClusterData()
+	neighbors := c.NeighborsInclusive()
+
 	_, found := c.FindNeighborByUUID("test-uuid")
 	if found {
 		t.Error("neighbors should be empty")
