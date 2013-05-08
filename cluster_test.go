@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_ClusterOfOne(t *testing.T) {
+func makeNewClusterData() (NodeData, *Cluster) {
 	myself := NodeData{
 		Nickname:  "myself",
 		UUID:      "test-uuid",
@@ -15,6 +15,11 @@ func Test_ClusterOfOne(t *testing.T) {
 	}
 
 	c := NewCluster(myself)
+	return myself, c
+}
+
+func Test_ClusterOfOne(t *testing.T) {
+	myself, c := makeNewClusterData()
 	if len(c.GetNeighbors()) != 0 {
 		t.Error("should not have any neighbors yet")
 	}
