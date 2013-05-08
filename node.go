@@ -137,6 +137,10 @@ func (n *NodeData) RetrieveImageInfo(ri *ImageSpecifier) (*ImageInfoResponse, er
 
 	// otherwise, we got the info
 	n.LastSeen = time.Now()
+	return n.processRetrieveInfoResponse(resp)
+}
+
+func (n *NodeData) processRetrieveInfoResponse(resp *http.Response) (*ImageInfoResponse, error) {
 	if resp == nil {
 		return nil, errors.New("nil response")
 	}
