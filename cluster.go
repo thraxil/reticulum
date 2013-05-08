@@ -295,21 +295,25 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 			n.LastSeen = time.Now()
 			c.UpdateNeighbor(n)
 			for _, neighbor := range resp.Neighbors {
-				if neighbor.UUID == c.Myself.UUID {
-					// as usual, skip ourself
-					continue
-				}
-				// TODO: convert these to a single atomic
-				// UpdateOrAddNeighbor type operation
-				if _, ok := c.FindNeighborByUUID(neighbor.UUID); ok {
-					c.UpdateNeighbor(neighbor)
-				} else {
-					// heard about another node second hand
-					sl.Info("adding neighbor via gossip")
-					c.AddNeighbor(neighbor)
-				}
+				c.updateNeighbor(neighbor, sl)
 			}
 		}
+	}
+}
+
+func (c *Cluster) updateNeighbor(neighbor NodeData, sl *syslog.Writer) {
+	if neighbor.UUID == c.Myself.UUID {
+		// as usual, skip ourself
+		return
+	}
+	// TODO: convert these to a single atomic
+	// UpdateOrAddNeighbor type operation
+	if _, ok := c.FindNeighborByUUID(neighbor.UUID); ok {
+		c.UpdateNeighbor(neighbor)
+	} else {
+		// heard about another node second hand
+		sl.Info("adding neighbor via gossip")
+		c.AddNeighbor(neighbor)
 	}
 }
 
