@@ -213,11 +213,7 @@ type pingResponse struct {
 	Err  error
 }
 
-func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
-	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
-	if err != nil {
-		log.Fatal("couldn't log to syslog")
-	}
+func makeParams(originator NodeData) url.Values {
 	params := url.Values{}
 	params.Set("uuid", originator.UUID)
 	params.Set("nickname", originator.Nickname)
@@ -228,6 +224,15 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 	} else {
 		params.Set("writeable", "false")
 	}
+	return params
+}
+
+func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
+	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
+	if err != nil {
+		log.Fatal("couldn't log to syslog")
+	}
+	params := makeParams(originator)
 
 	var response AnnounceResponse
 	sl.Info(n.announceUrl())
