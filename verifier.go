@@ -75,38 +75,46 @@ func repair_image(path string, extension string, hash *Hash,
 			// skip ourself, since we know we are corrupt
 			continue
 		}
-
-		s := resize.MakeSizeSpec("full")
-		ri := &ImageSpecifier{hash, s, extension}
-
-		img, err := n.RetrieveImage(ri)
-		if err != nil {
-			// doesn't have it
-			sl.Info(fmt.Sprintf("node %s does not have a copy of the desired image\n", n.Nickname))
-			continue
-		} else {
-			if !doublecheck_replica(img, hash) {
-				// the copy from that node isn't right either
-				continue
-			}
-			// replace the full-size with a corrected one
-			f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
-			if err != nil {
-				// can't open for writing!
-				sl.Err(fmt.Sprintf("could not open for writing: %s, %s\n", path, err))
-				f.Close()
-				return false, err
-			}
-			_, err = f.Write(img)
-			f.Close()
-			if err != nil {
-				sl.Err(fmt.Sprintf("could not write: %s, %s\n", path, err))
-				return false, err
-			}
-			return true, nil
+		cont, ret, err := checkImageOnNode(n, hash, extension, path, c, sl)
+		if !cont {
+			return ret, err
 		}
 	}
 	return false, nil
+}
+
+func checkImageOnNode(n NodeData, hash *Hash, extension string, path string,
+	c *Cluster, sl *syslog.Writer) (bool, bool, error) {
+	s := resize.MakeSizeSpec("full")
+	ri := &ImageSpecifier{hash, s, extension}
+
+	img, err := n.RetrieveImage(ri)
+	if err != nil {
+		// doesn't have it
+		sl.Info(fmt.Sprintf("node %s does not have a copy of the desired image\n", n.Nickname))
+		return true, true, nil
+	} else {
+		if !doublecheck_replica(img, hash) {
+			// the copy from that node isn't right either
+			return true, true, nil
+		}
+		// replace the full-size with a corrected one
+		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
+		if err != nil {
+			// can't open for writing!
+			sl.Err(fmt.Sprintf("could not open for writing: %s, %s\n", path, err))
+			f.Close()
+			return false, false, err
+		}
+		_, err = f.Write(img)
+		f.Close()
+		if err != nil {
+			sl.Err(fmt.Sprintf("could not write: %s, %s\n", path, err))
+			return false, false, err
+		}
+		return false, true, nil
+	}
+	return false, false, nil
 }
 
 func doublecheck_replica(img []byte, hash *Hash) bool {
