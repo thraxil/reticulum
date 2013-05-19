@@ -114,7 +114,6 @@ func checkImageOnNode(n NodeData, hash *Hash, extension string, path string,
 		}
 		return false, true, nil
 	}
-	return false, false, nil
 }
 
 func doublecheck_replica(img []byte, hash *Hash) bool {

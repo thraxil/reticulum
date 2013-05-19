@@ -271,5 +271,4 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 		n.LastFailed = time.Now()
 		return response, errors.New("response timed out")
 	}
-	return response, nil
 }
