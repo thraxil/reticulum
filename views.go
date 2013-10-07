@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/golang/groupcache"
 	"github.com/thraxil/resize"
 	"html/template"
 	"image"
@@ -26,6 +27,7 @@ type Context struct {
 	Ch      SharedChannels
 	SL      *syslog.Writer
 	MC      *memcache.Client
+	GC      *groupcache.HTTPPool
 }
 
 type Page struct {
@@ -212,7 +214,7 @@ func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWri
 	if err != nil {
 		// what do we do if we can't write?
 		// we still have the resized image, so we can serve the response
-		// we just can't cache it. 
+		// we just can't cache it.
 	}
 	w = setCacheHeaders(w, ri.Extension)
 
@@ -253,7 +255,7 @@ var extencoders = map[string]encfunc{
 	".jpg": jpgencode,
 	".png": png.Encode,
 	// image/gif doesn't include an Encode()
-	// so we'll use png for now. 
+	// so we'll use png for now.
 	// :(
 	".gif": png.Encode,
 }
@@ -490,7 +492,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if err != nil {
 		// what do we do if we can't write?
 		// we still have the resized image, so we can serve the response
-		// we just can't cache it. 
+		// we just can't cache it.
 	}
 	defer wFile.Close()
 	w.Header().Set("Content-Type", extmimes[extension])
@@ -501,7 +503,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	if extension == "gif" {
 		// image/gif doesn't include an Encode()
-		// so we'll use png for now. 
+		// so we'll use png for now.
 		// :(
 		png.Encode(wFile, outputImage)
 		png.Encode(w, outputImage)

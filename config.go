@@ -23,15 +23,17 @@ type ConfigData struct {
 	ImageMagickConvertPath string
 	MemcacheServers        []string
 	GoMaxProcs             int
+	GroupcacheUrl          string
 }
 
 func (c ConfigData) MyNode() NodeData {
 	n := NodeData{
-		Nickname:  c.Nickname,
-		UUID:      c.UUID,
-		BaseUrl:   c.BaseUrl,
-		Location:  c.Location,
-		Writeable: c.Writeable,
+		Nickname:      c.Nickname,
+		UUID:          c.UUID,
+		BaseUrl:       c.BaseUrl,
+		Location:      c.Location,
+		Writeable:     c.Writeable,
+		GroupcacheUrl: c.GroupcacheUrl,
 	}
 	return n
 }
@@ -91,6 +93,7 @@ func (c ConfigData) MyConfig() SiteConfig {
 		MemcacheServers:        c.MemcacheServers,
 		GoMaxProcs:             c.GoMaxProcs,
 		Writeable:              c.Writeable,
+		GroupcacheUrl:          c.GroupcacheUrl,
 	}
 }
 
@@ -110,6 +113,7 @@ type SiteConfig struct {
 	MemcacheServers        []string
 	GoMaxProcs             int
 	Writeable              bool
+	GroupcacheUrl          string
 }
 
 func (s SiteConfig) KeyRequired() bool {

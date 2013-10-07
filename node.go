@@ -20,13 +20,14 @@ import (
 // what we know about a single node
 // (ourself or another)
 type NodeData struct {
-	Nickname   string    `json:"nickname"`
-	UUID       string    `json:"uuid"`
-	BaseUrl    string    `json:"base_url"`
-	Location   string    `json:"location"`
-	Writeable  bool      `json:"bool"`
-	LastSeen   time.Time `json:"last_seen"`
-	LastFailed time.Time `json:"last_failed"`
+	Nickname      string    `json:"nickname"`
+	UUID          string    `json:"uuid"`
+	BaseUrl       string    `json:"base_url"`
+	GroupcacheUrl string    `json:"groupcache_url"`
+	Location      string    `json:"location"`
+	Writeable     bool      `json:"bool"`
+	LastSeen      time.Time `json:"last_seen"`
+	LastFailed    time.Time `json:"last_failed"`
 }
 
 var REPLICAS = 16
@@ -200,12 +201,13 @@ func (n NodeData) announceUrl() string {
 }
 
 type AnnounceResponse struct {
-	Nickname  string     `json:"nickname"`
-	UUID      string     `json:"uuid"`
-	Location  string     `json:"location"`
-	Writeable bool       `json:"writeable"`
-	BaseUrl   string     `json:"base_url"`
-	Neighbors []NodeData `json:"neighbors"`
+	Nickname      string     `json:"nickname"`
+	UUID          string     `json:"uuid"`
+	Location      string     `json:"location"`
+	Writeable     bool       `json:"writeable"`
+	BaseUrl       string     `json:"base_url"`
+	GroupcacheUrl string     `json:"groupcache_url"`
+	Neighbors     []NodeData `json:"neighbors"`
 }
 
 type pingResponse struct {
@@ -219,6 +221,7 @@ func makeParams(originator NodeData) url.Values {
 	params.Set("nickname", originator.Nickname)
 	params.Set("location", originator.Location)
 	params.Set("base_url", originator.BaseUrl)
+	params.Set("groupcache_url", originator.GroupcacheUrl)
 	if originator.Writeable {
 		params.Set("writeable", "true")
 	} else {

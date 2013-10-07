@@ -222,7 +222,7 @@ func retrieveReplica(n NodeData, hash *Hash, extension string, path string, sati
 	return 0
 }
 
-// our node is not at the front of the list, so 
+// our node is not at the front of the list, so
 // we have an excess copy. clean that up and make room!
 func clean_up_excess_replica(path string, sl *syslog.Writer) {
 	err := os.RemoveAll(filepath.Dir(path))
