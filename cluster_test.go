@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+// need a global one to avoid calling groupcache.NewHTTPool
+// multiple times
+var cluster *Cluster
+
 func makeNewClusterData(neighbors []NodeData) (NodeData, *Cluster) {
 	myself := NodeData{
 		Nickname:  "myself",
@@ -14,12 +18,19 @@ func makeNewClusterData(neighbors []NodeData) (NodeData, *Cluster) {
 		Writeable: true,
 	}
 
-	c := NewCluster(myself)
-	for _, n := range neighbors {
-		c.AddNeighbor(n)
+	if cluster == nil {
+		c := NewCluster(myself)
+		for _, n := range neighbors {
+			c.AddNeighbor(n)
+		}
+		cluster = c
+		return myself, cluster
+	} else {
+		cluster.Myself = myself
+		cluster.neighbors = map[string]NodeData{}
+		cluster.gcpeers.Set()
+		return myself, cluster
 	}
-
-	return myself, c
 }
 
 func Test_ClusterOfOneInitialNeighbors(t *testing.T) {

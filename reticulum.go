@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/golang/groupcache"
 	"io/ioutil"
 	"log"
 	"log/syslog"
@@ -83,9 +82,8 @@ func main() {
 	go Verify(c, siteconfig, sl)
 
 	mc := memcache.New(siteconfig.MemcacheServers...)
-	gc := groupcache.NewHTTPPool(f.GroupcacheUrl)
 
-	ctx := Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl, MC: mc, GC: gc}
+	ctx := Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl, MC: mc}
 	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(AddHandler, ctx))
 	http.HandleFunc("/stash/", makeHandler(StashHandler, ctx))

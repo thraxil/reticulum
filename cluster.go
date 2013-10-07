@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/golang/groupcache"
 	"log/syslog"
 	"math/rand"
 	"sort"
@@ -17,6 +18,7 @@ import (
 type Cluster struct {
 	Myself    NodeData
 	neighbors map[string]NodeData
+	gcpeers *groupcache.HTTPPool
 	chF       chan func()
 }
 
@@ -25,6 +27,7 @@ func NewCluster(myself NodeData) *Cluster {
 		Myself:    myself,
 		neighbors: make(map[string]NodeData),
 		chF:       make(chan func()),
+		gcpeers: groupcache.NewHTTPPool(myself.GroupcacheUrl),
 	}
 	go c.backend()
 	return c
@@ -41,6 +44,12 @@ func (c *Cluster) backend() {
 func (c *Cluster) AddNeighbor(nd NodeData) {
 	c.chF <- func() {
 		c.neighbors[nd.UUID] = nd
+		peerUrls := make([]string, 0)
+		for _,v := range c.neighbors {
+			peerUrls = append(peerUrls, v.GroupcacheUrl)
+		}
+		c.gcpeers.Set(peerUrls...)
+		// TODO: handle a node changing its groupcache URL
 	}
 }
 
@@ -68,6 +77,11 @@ func (c *Cluster) GetNeighbors() []NodeData {
 func (c *Cluster) RemoveNeighbor(nd NodeData) {
 	c.chF <- func() {
 		delete(c.neighbors, nd.UUID)
+		peerUrls := make([]string, 0)
+		for _,v := range c.neighbors {
+			peerUrls = append(peerUrls, v.GroupcacheUrl)
+		}
+		c.gcpeers.Set(peerUrls...)
 	}
 }
 
@@ -94,6 +108,7 @@ func (c *Cluster) UpdateNeighbor(neighbor NodeData) {
 			n.Nickname = neighbor.Nickname
 			n.Location = neighbor.Location
 			n.BaseUrl = neighbor.BaseUrl
+			n.GroupcacheUrl = neighbor.GroupcacheUrl
 			n.Writeable = neighbor.Writeable
 			if neighbor.LastSeen.Sub(n.LastSeen) > 0 {
 				n.LastSeen = neighbor.LastSeen
@@ -292,6 +307,7 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 			n.Writeable = resp.Writeable
 			n.Nickname = resp.Nickname
 			n.Location = resp.Location
+			n.GroupcacheUrl = resp.GroupcacheUrl
 			n.LastSeen = time.Now()
 			c.UpdateNeighbor(n)
 			for _, neighbor := range resp.Neighbors {

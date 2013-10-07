@@ -1,6 +1,7 @@
 {"Nickname": "node3",
 "UUID" : "uuid-node-3",
 "Port" : 8083,
+"GroupcacheUrl": "http://localhost:10083",
 "UploadDirectory" : "test/uploads3/",
 "NumResizeWorkers" : 4,
 "Writeable" : true,
@@ -10,46 +11,55 @@
 	     {"Nickname": "node1",
 	     "UUID": "uuid-node-1",
 	     "BaseUrl": "localhost:8081",
+	     "GroupcacheUrl": "http://localhost:10081",
 	     "Writeable": true
 	     },
 	     {"Nickname": "node2",
 	     "UUID": "uuid-node-2",
 	     "BaseUrl": "localhost:8082",
+	     "GroupcacheUrl": "http://localhost:10082",
 	     "Writeable": true
 	     },
 	     {"Nickname": "node0",
 	     "UUID": "uuid-node-0",
 	     "BaseUrl": "localhost:8080",
+	     "GroupcacheUrl": "http://localhost:10080",
 	     "Writeable": true
 	     },
 	     {"Nickname": "node4",
 	     "UUID": "uuid-node-4",
 	     "BaseUrl": "localhost:8084",
+	     "GroupcacheUrl": "http://localhost:10084",
 	     "Writeable": true
 	     },
 	     {"Nickname": "node5",
 	     "UUID": "uuid-node-5",
 	     "BaseUrl": "localhost:8085",
+	     "GroupcacheUrl": "http://localhost:10085",
 	     "Writeable": true
 	     },
 	     {"Nickname": "node6",
 	     "UUID": "uuid-node-6",
 	     "BaseUrl": "localhost:8086",
+	     "GroupcacheUrl": "http://localhost:10086",
 	     "Writeable": true
 	     },
 	     {"Nickname": "node7",
 	     "UUID": "uuid-node-7",
 	     "BaseUrl": "localhost:8087",
+	     "GroupcacheUrl": "http://localhost:10087",
 	     "Writeable": true
 	     },
 	     {"Nickname": "node8",
 	     "UUID": "uuid-node-8",
 	     "BaseUrl": "localhost:8088",
+	     "GroupcacheUrl": "http://localhost:10088",
 	     "Writeable": true
 	     },
 	     {"Nickname": "node9",
 	     "UUID": "uuid-node-9",
 	     "BaseUrl": "localhost:8089",
+	     "GroupcacheUrl": "http://localhost:10089",
 	     "Writeable": true
 	     }
   ]

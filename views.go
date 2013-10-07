@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/golang/groupcache"
 	"github.com/thraxil/resize"
 	"html/template"
 	"image"
@@ -27,7 +26,6 @@ type Context struct {
 	Ch      SharedChannels
 	SL      *syslog.Writer
 	MC      *memcache.Client
-	GC      *groupcache.HTTPPool
 }
 
 type Page struct {
