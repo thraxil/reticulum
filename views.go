@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/thraxil/resize"
 	"html/template"
 	"image"
@@ -25,7 +24,6 @@ type Context struct {
 	Cfg     SiteConfig
 	Ch      SharedChannels
 	SL      *syslog.Writer
-	MC      *memcache.Client
 }
 
 type Page struct {
@@ -96,28 +94,14 @@ func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
 		// for now we just have to 404
 		http.Error(w, "not found (serve from cluster)", 404)
 	} else {
-		ctx.addToMemcache(ri.MemcacheKey(), img_data)
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(img_data)
 	}
 }
 
-func (ctx Context) serveFromMemcache(ri *ImageSpecifier, w http.ResponseWriter) bool {
-	// check memcached first
-	item, err := ctx.MC.Get(ri.MemcacheKey())
-	if err == nil {
-		ctx.SL.Info("Cache Hit")
-		w = setCacheHeaders(w, ri.Extension)
-		w.Write(item.Value)
-		return true
-	}
-	return false
-}
-
 func (ctx Context) serveDirect(ri *ImageSpecifier, w http.ResponseWriter) bool {
 	contents, err := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
 	if err == nil {
-		ctx.addToMemcache(ri.MemcacheKey(), contents)
 		// we've got it, so serve it directly
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(contents)
@@ -132,9 +116,9 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	if ctx.serveFromMemcache(ri, w) {
-		return
-	}
+	//	if ctx.serveFromMemcache(ri, w) {
+	//		return
+	//	}
 
 	if ctx.serveDirect(ri, w) {
 		return
@@ -183,7 +167,6 @@ func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWri
 		// for now we just have to 404
 		http.Error(w, "not found (serveScaledFromCluster)", 404)
 	} else {
-		ctx.addToMemcache(ri.MemcacheKey(), img_data)
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(img_data)
 	}
@@ -199,7 +182,6 @@ func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
 
 func (ctx Context) serveMagick(ri *ImageSpecifier, w http.ResponseWriter) {
 	img_contents, _ := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
-	ctx.addToMemcache(ri.MemcacheKey(), img_contents)
 	w = setCacheHeaders(w, ri.Extension)
 	w.Write(img_contents)
 }
@@ -219,18 +201,12 @@ func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWri
 	serveType(wFile, outputImage, w, ctx, ri, extencoders[ri.Extension])
 }
 
-func (ctx Context) addToMemcache(memcache_key string, img_contents []byte) {
-	ctx.MC.Set(&memcache.Item{Key: memcache_key, Value: img_contents})
-}
-
 type encfunc func(io.Writer, image.Image) error
 
 func serveType(wFile *os.File, outputImage image.Image, w http.ResponseWriter, ctx Context,
 	ri *ImageSpecifier, encFunc encfunc) {
 	encFunc(wFile, outputImage)
 	encFunc(w, outputImage)
-	img_contents, _ := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
-	ctx.addToMemcache(ri.MemcacheKey(), img_contents)
 }
 
 var mimeexts = map[string]string{

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/bradfitz/gomemcache/memcache"
 	"io/ioutil"
 	"log"
 	"log/syslog"
@@ -81,9 +80,7 @@ func main() {
 
 	go Verify(c, siteconfig, sl)
 
-	mc := memcache.New(siteconfig.MemcacheServers...)
-
-	ctx := Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl, MC: mc}
+	ctx := Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
 	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(AddHandler, ctx))
 	http.HandleFunc("/stash/", makeHandler(StashHandler, ctx))

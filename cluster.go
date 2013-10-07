@@ -18,7 +18,7 @@ import (
 type Cluster struct {
 	Myself    NodeData
 	neighbors map[string]NodeData
-	gcpeers *groupcache.HTTPPool
+	gcpeers   *groupcache.HTTPPool
 	chF       chan func()
 }
 
@@ -27,7 +27,7 @@ func NewCluster(myself NodeData) *Cluster {
 		Myself:    myself,
 		neighbors: make(map[string]NodeData),
 		chF:       make(chan func()),
-		gcpeers: groupcache.NewHTTPPool(myself.GroupcacheUrl),
+		gcpeers:   groupcache.NewHTTPPool(myself.GroupcacheUrl),
 	}
 	go c.backend()
 	return c
@@ -45,7 +45,7 @@ func (c *Cluster) AddNeighbor(nd NodeData) {
 	c.chF <- func() {
 		c.neighbors[nd.UUID] = nd
 		peerUrls := make([]string, 0)
-		for _,v := range c.neighbors {
+		for _, v := range c.neighbors {
 			peerUrls = append(peerUrls, v.GroupcacheUrl)
 		}
 		c.gcpeers.Set(peerUrls...)
@@ -78,7 +78,7 @@ func (c *Cluster) RemoveNeighbor(nd NodeData) {
 	c.chF <- func() {
 		delete(c.neighbors, nd.UUID)
 		peerUrls := make([]string, 0)
-		for _,v := range c.neighbors {
+		for _, v := range c.neighbors {
 			peerUrls = append(peerUrls, v.GroupcacheUrl)
 		}
 		c.gcpeers.Set(peerUrls...)

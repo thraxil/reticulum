@@ -21,7 +21,6 @@ type ConfigData struct {
 	GossiperSleep          int
 	VerifierSleep          int
 	ImageMagickConvertPath string
-	MemcacheServers        []string
 	GoMaxProcs             int
 	GroupcacheUrl          string
 }
@@ -90,7 +89,6 @@ func (c ConfigData) MyConfig() SiteConfig {
 		GossiperSleep:          gossiper_sleep,
 		VerifierSleep:          verifier_sleep,
 		ImageMagickConvertPath: convert_path,
-		MemcacheServers:        c.MemcacheServers,
 		GoMaxProcs:             c.GoMaxProcs,
 		Writeable:              c.Writeable,
 		GroupcacheUrl:          c.GroupcacheUrl,
@@ -110,7 +108,6 @@ type SiteConfig struct {
 	GossiperSleep          int
 	VerifierSleep          int
 	ImageMagickConvertPath string
-	MemcacheServers        []string
 	GoMaxProcs             int
 	Writeable              bool
 	GroupcacheUrl          string
