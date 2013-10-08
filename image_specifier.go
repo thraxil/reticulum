@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/thraxil/resize"
 	"strings"
 )
@@ -14,6 +15,22 @@ type ImageSpecifier struct {
 
 func (i ImageSpecifier) MemcacheKey() string {
 	return i.Hash.String() + "/" + i.Size.String() + "/image" + i.Extension
+}
+
+func NewImageSpecifier(s string) *ImageSpecifier {
+	fmt.Println("NewImageSpecifier")
+	fmt.Println(s)
+	parts := strings.Split(s, "/")
+	ahash, _ := HashFromString(parts[0], "")
+	fmt.Println(ahash)
+	size := parts[1]
+	fmt.Println(size)
+	rs := resize.MakeSizeSpec(size)
+	filename := parts[2]
+	fparts := strings.Split(filename, ".")
+	extension := "." + fparts[1]
+	fmt.Println(extension)
+	return &ImageSpecifier{Hash: ahash, Size: rs, Extension: extension}
 }
 
 func (i ImageSpecifier) sizedPath(upload_dir string) string {

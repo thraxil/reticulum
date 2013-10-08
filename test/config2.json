@@ -1,6 +1,7 @@
 {"Nickname": "node2",
 "UUID" : "uuid-node-2",
 "Port" : 8082,
+"BaseUrl" : "localhost:8082",
 "GroupcacheUrl": "http://localhost:10082",
 "UploadDirectory" : "test/uploads2/",
 "NumResizeWorkers" : 4,
@@ -8,59 +9,59 @@
 "Replication" : 3,
 "VerifierSleep" : 60,
 "Neighbors": [
-	     {"Nickname": "node1",
-	     "UUID": "uuid-node-1",
-	     "BaseUrl": "localhost:8081",
-	     "GroupcacheUrl": "http://localhost:10081",
-	     "Writeable": true
+	     {"nickname": "node1",
+	     "uuid": "uuid-node-1",
+	     "base_url": "localhost:8081",
+	     "groupcache_url": "http://localhost:10081",
+	     "writeable": true
 	     },
-	     {"Nickname": "node0",
-	     "UUID": "uuid-node-0",
-	     "BaseUrl": "localhost:8080",
-	     "GroupcacheUrl": "http://localhost:10080",
-	     "Writeable": true
+	     {"nickname": "node0",
+	     "uuid": "uuid-node-0",
+	     "base_url": "localhost:8080",
+	     "groupcache_url": "http://localhost:10080",
+	     "writeable": true
 	     },
-	     {"Nickname": "node3",
-	     "UUID": "uuid-node-3",
-	     "BaseUrl": "localhost:8083",
-	     "GroupcacheUrl": "http://localhost:10083",
-	     "Writeable": true
+	     {"nickname": "node3",
+	     "uuid": "uuid-node-3",
+	     "base_url": "localhost:8083",
+	     "groupcache_url": "http://localhost:10083",
+	     "writeable": true
 	     },
-	     {"Nickname": "node4",
-	     "UUID": "uuid-node-4",
-	     "BaseUrl": "localhost:8084",
-	     "GroupcacheUrl": "http://localhost:10084",
-	     "Writeable": true
+	     {"nickname": "node4",
+	     "uuid": "uuid-node-4",
+	     "base_url": "localhost:8084",
+	     "groupcache_url": "http://localhost:10084",
+	     "writeable": true
 	     },
-	     {"Nickname": "node5",
-	     "UUID": "uuid-node-5",
-	     "BaseUrl": "localhost:8085",
-	     "GroupcacheUrl": "http://localhost:10085",
-	     "Writeable": true
+	     {"nickname": "node5",
+	     "uuid": "uuid-node-5",
+	     "base_url": "localhost:8085",
+	     "groupcache_url": "http://localhost:10085",
+	     "writeable": true
 	     },
-	     {"Nickname": "node6",
-	     "UUID": "uuid-node-6",
-	     "BaseUrl": "localhost:8086",
-	     "GroupcacheUrl": "http://localhost:10086",
-	     "Writeable": true
+	     {"nickname": "node6",
+	     "uuid": "uuid-node-6",
+	     "base_url": "localhost:8086",
+	     "groupcache_url": "http://localhost:10086",
+	     "writeable": true
 	     },
-	     {"Nickname": "node7",
-	     "UUID": "uuid-node-7",
-	     "BaseUrl": "localhost:8087",
-	     "GroupcacheUrl": "http://localhost:10087",
-	     "Writeable": true
+	     {"nickname": "node7",
+	     "uuid": "uuid-node-7",
+	     "base_url": "localhost:8087",
+	     "groupcache_url": "http://localhost:10087",
+	     "writeable": true
 	     },
-	     {"Nickname": "node8",
-	     "UUID": "uuid-node-8",
-	     "BaseUrl": "localhost:8088",
-	     "GroupcacheUrl": "http://localhost:10088",
-	     "Writeable": true
+	     {"nickname": "node8",
+	     "uuid": "uuid-node-8",
+	     "base_url": "localhost:8088",
+	     "groupcache_url": "http://localhost:10088",
+	     "writeable": true
 	     },
-	     {"Nickname": "node9",
-	     "UUID": "uuid-node-9",
-	     "BaseUrl": "localhost:8089",
-	     "GroupcacheUrl": "http://localhost:10089",
-	     "Writeable": true
+	     {"nickname": "node9",
+	     "uuid": "uuid-node-9",
+	     "base_url": "localhost:8089",
+	     "groupcache_url": "http://localhost:10089",
+	     "writeable": true
 	     }
   ]
 }

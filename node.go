@@ -25,7 +25,7 @@ type NodeData struct {
 	BaseUrl       string    `json:"base_url"`
 	GroupcacheUrl string    `json:"groupcache_url"`
 	Location      string    `json:"location"`
-	Writeable     bool      `json:"bool"`
+	Writeable     bool      `json:"writeable"`
 	LastSeen      time.Time `json:"last_seen"`
 	LastFailed    time.Time `json:"last_failed"`
 }
@@ -92,6 +92,9 @@ func (n NodeData) stashUrl() string {
 }
 
 func (n *NodeData) RetrieveImage(ri *ImageSpecifier) ([]byte, error) {
+	fmt.Println("retrieving from a node")
+	fmt.Println(n.BaseUrl)
+	fmt.Println(n.retrieveUrl(ri))
 	resp, err := http.Get(n.retrieveUrl(ri))
 	defer resp.Body.Close()
 	if err != nil {
@@ -100,6 +103,7 @@ func (n *NodeData) RetrieveImage(ri *ImageSpecifier) ([]byte, error) {
 	} // otherwise, we got the image
 	n.LastSeen = time.Now()
 	if resp.Status != "200 OK" {
+		fmt.Println(resp.Status)
 		return nil, errors.New("404, probably")
 	}
 	b, _ := ioutil.ReadAll(resp.Body)

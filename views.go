@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
+	"github.com/golang/groupcache"
 	"github.com/thraxil/resize"
 	"html/template"
 	"image"
@@ -116,9 +117,15 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	//	if ctx.serveFromMemcache(ri, w) {
-	//		return
-	//	}
+	var data []byte
+		err := ctx.Cluster.Imagecache.Get(nil, ri.MemcacheKey(),
+		groupcache.AllocatingByteSliceSink(&data))
+	if err == nil  {
+		fmt.Println("groupcache got it")
+		w = setCacheHeaders(w, ri.Extension)
+		w.Write(data)
+		return
+	}
 
 	if ctx.serveDirect(ri, w) {
 		return
@@ -252,10 +259,12 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			return
 		}
 		path := ctx.Cfg.UploadDirectory + ahash.AsPath()
+		fmt.Println("make directory [origin]:", path)
 		os.MkdirAll(path, 0755)
 		mimetype := fh.Header["Content-Type"][0]
 		ext := mimeexts[mimetype]
 		fullpath := path + "/full." + ext
+		fmt.Println("write file [origin]:", fullpath)
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 		defer f.Close()
 		i.Seek(0, 0)
@@ -337,8 +346,10 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	path := ctx.Cfg.UploadDirectory + ahash.AsPath()
 	os.MkdirAll(path, 0755)
+	fmt.Println("mkdir [stash]:", path)
 	ext := filepath.Ext(fh.Filename)
-	fullpath := path + "full" + ext
+	fullpath := path + "/full" + ext
+	fmt.Println("write file [stash]:", fullpath)
 	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 	defer f.Close()
 	i.Seek(0, 0)
@@ -349,6 +360,10 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	go func() {
 		sizes := strings.Split(size_hints, ",")
 		for _, size := range sizes {
+			if size == "" {
+				continue
+			}
+			fmt.Println("pre-creating size", size)
 			c := make(chan ResizeResponse)
 			ctx.Ch.ResizeQueue <- ResizeRequest{fullpath, ext, size, c}
 			result := <-c
@@ -428,6 +443,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		w.Write(contents)
 		return
 	}
+	fmt.Println("checking", path, extension)
 	_, err = ioutil.ReadFile(path)
 	if err != nil {
 		// we don't have the full-size on this node either
