@@ -3,7 +3,7 @@ go: 1.1
 
 install:
  - go get github.com/thraxil/resize
- - go get github.com/bradfitz/gomemcache/memcache
+ - go get github.com/golang/groupcache
 
 script:
  - go test -v
