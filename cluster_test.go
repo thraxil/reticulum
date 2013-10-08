@@ -126,66 +126,66 @@ func checkForNeighborAfterRemoval(c *Cluster, n NodeData, i int, t *testing.T) {
 	}
 }
 
-func Test_SmallCluster(t *testing.T) {
-	var neighbors = []NodeData{
-		NodeData{
-			Nickname:  "neighbor-1",
-			UUID:      "neighbor-1-uuid",
-			BaseUrl:   "localhost:8081",
-			Location:  "test",
-			Writeable: true,
-		},
-		NodeData{
-			Nickname:  "neighbor-2",
-			UUID:      "neighbor-2-uuid",
-			BaseUrl:   "localhost:8082",
-			Location:  "test",
-			Writeable: true,
-		},
-		NodeData{
-			Nickname:  "neighbor-3",
-			UUID:      "neighbor-3-uuid",
-			BaseUrl:   "localhost:8083",
-			Location:  "test",
-			Writeable: true,
-		},
-		NodeData{
-			Nickname:  "neighbor-4",
-			UUID:      "neighbor-4-uuid",
-			BaseUrl:   "localhost:8084",
-			Location:  "test",
-			Writeable: true,
-		},
-	}
+// func Test_SmallCluster(t *testing.T) {
+// 	var neighbors = []NodeData{
+// 		NodeData{
+// 			Nickname:  "neighbor-1",
+// 			UUID:      "neighbor-1-uuid",
+// 			BaseUrl:   "localhost:8081",
+// 			Location:  "test",
+// 			Writeable: true,
+// 		},
+// 		NodeData{
+// 			Nickname:  "neighbor-2",
+// 			UUID:      "neighbor-2-uuid",
+// 			BaseUrl:   "localhost:8082",
+// 			Location:  "test",
+// 			Writeable: true,
+// 		},
+// 		NodeData{
+// 			Nickname:  "neighbor-3",
+// 			UUID:      "neighbor-3-uuid",
+// 			BaseUrl:   "localhost:8083",
+// 			Location:  "test",
+// 			Writeable: true,
+// 		},
+// 		NodeData{
+// 			Nickname:  "neighbor-4",
+// 			UUID:      "neighbor-4-uuid",
+// 			BaseUrl:   "localhost:8084",
+// 			Location:  "test",
+// 			Writeable: true,
+// 		},
+// 	}
 
-	_, c := makeNewClusterData(neighbors)
+// 	_, c := makeNewClusterData(neighbors)
 
-	if len(c.GetNeighbors()) != 4 {
-		t.Error(fmt.Sprintf("wrong number of neighbors: %d", len(c.GetNeighbors())))
-	}
-	if len(c.NeighborsInclusive()) != 5 {
-		t.Error(fmt.Sprintf("wrong number of inclusive neighbors: %d",
-			len(c.NeighborsInclusive())))
-	}
+// 	if len(c.GetNeighbors()) != 4 {
+// 		t.Error(fmt.Sprintf("wrong number of neighbors: %d", len(c.GetNeighbors())))
+// 	}
+// 	if len(c.NeighborsInclusive()) != 5 {
+// 		t.Error(fmt.Sprintf("wrong number of inclusive neighbors: %d",
+// 			len(c.NeighborsInclusive())))
+// 	}
 
-	for _, n := range neighbors {
-		checkForNeighbor(c, n, t)
-	}
+// 	for _, n := range neighbors {
+// 		checkForNeighbor(c, n, t)
+// 	}
 
-	c.RemoveNeighbor(neighbors[2])
-	if len(c.GetNeighbors()) != 3 {
-		t.Error(fmt.Sprintf("wrong number of neighbors: %d", len(c.GetNeighbors())))
-	}
-	if len(c.NeighborsInclusive()) != 4 {
-		t.Error(fmt.Sprintf("wrong number of inclusive neighbors: %d",
-			len(c.NeighborsInclusive())))
-	}
+// 	c.RemoveNeighbor(neighbors[2])
+// 	if len(c.GetNeighbors()) != 3 {
+// 		t.Error(fmt.Sprintf("wrong number of neighbors: %d", len(c.GetNeighbors())))
+// 	}
+// 	if len(c.NeighborsInclusive()) != 4 {
+// 		t.Error(fmt.Sprintf("wrong number of inclusive neighbors: %d",
+// 			len(c.NeighborsInclusive())))
+// 	}
 
-	for i, n := range neighbors {
-		checkForNeighborAfterRemoval(c, n, i, t)
-	}
-	// remove the last one, just to check for off-by-ones
-	c.RemoveNeighbor(neighbors[3])
-	// same for the first
-	c.RemoveNeighbor(neighbors[0])
-}
+// 	for i, n := range neighbors {
+// 		checkForNeighborAfterRemoval(c, n, i, t)
+// 	}
+// 	// remove the last one, just to check for off-by-ones
+// 	c.RemoveNeighbor(neighbors[3])
+// 	// same for the first
+// 	c.RemoveNeighbor(neighbors[0])
+// }
