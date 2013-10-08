@@ -34,18 +34,11 @@ func NewCluster(myself NodeData) *Cluster {
 		"ReticulumCache", 64<<20, groupcache.GetterFunc(
 		func(ctx groupcache.Context, key string, dest groupcache.Sink) error {
 		// get image from disk
-		fmt.Println("groupcache getter")
-		fmt.Println(key)
 		ri := NewImageSpecifier(key)
-		fmt.Println("made ri")
-		fmt.Println(ri.MemcacheKey())
 		img_data, err := c.RetrieveImage(ri)
 		if err != nil {
-			fmt.Println("got an error")
-			fmt.Println(err)
 			return err
 		}
-		fmt.Println("got it")
 		dest.SetBytes([]byte(img_data))
 		return nil
 	}))
@@ -65,9 +58,6 @@ func (c *Cluster) backend() {
 func (c *Cluster) AddNeighbor(nd NodeData) {
 	c.chF <- func() {
 		c.neighbors[nd.UUID] = nd
-		fmt.Println("added neighbor:", nd.BaseUrl)
-		fmt.Println("Writeable:", nd.Writeable)
-		fmt.Println("groupcacheUrl", nd.GroupcacheUrl)
 		peerUrls := make([]string, 0)
 		for _, v := range c.neighbors {
 			peerUrls = append(peerUrls, v.GroupcacheUrl)
@@ -358,27 +348,22 @@ func (c *Cluster) updateNeighbor(neighbor NodeData, sl *syslog.Writer) {
 }
 
 func (c *Cluster) RetrieveImage(ri *ImageSpecifier) ([]byte, error) {
-	fmt.Println("in RetrieveImage()")
-	fmt.Println(ri.Hash.String())
 	// we don't have the full-size, so check the cluster
 	nodes_to_check := c.ReadOrder(ri.Hash.String())
 	// this is where we go down the list and ask the other
 	// nodes for the image
 	// TODO: parallelize this
 	for _, n := range nodes_to_check {
-		fmt.Println("checking a node")
 		if n.UUID == c.Myself.UUID {
 			// checking ourself would be silly
 			continue
 		}
 		img, err := n.RetrieveImage(ri)
 		if err == nil {
-			fmt.Println("got it")
 			// got it, return it
 			return img, nil
 		}
 		// that node didn't have it so we keep going
 	}
-	fmt.Println("never found it in the cluster")
 	return nil, errors.New("not found in the cluster")
 }

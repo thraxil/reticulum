@@ -121,7 +121,6 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		err := ctx.Cluster.Imagecache.Get(nil, ri.MemcacheKey(),
 		groupcache.AllocatingByteSliceSink(&data))
 	if err == nil  {
-		fmt.Println("groupcache got it")
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(data)
 		return
@@ -259,12 +258,10 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			return
 		}
 		path := ctx.Cfg.UploadDirectory + ahash.AsPath()
-		fmt.Println("make directory [origin]:", path)
 		os.MkdirAll(path, 0755)
 		mimetype := fh.Header["Content-Type"][0]
 		ext := mimeexts[mimetype]
 		fullpath := path + "/full." + ext
-		fmt.Println("write file [origin]:", fullpath)
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 		defer f.Close()
 		i.Seek(0, 0)
@@ -346,10 +343,8 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	path := ctx.Cfg.UploadDirectory + ahash.AsPath()
 	os.MkdirAll(path, 0755)
-	fmt.Println("mkdir [stash]:", path)
 	ext := filepath.Ext(fh.Filename)
 	fullpath := path + "/full" + ext
-	fmt.Println("write file [stash]:", fullpath)
 	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 	defer f.Close()
 	i.Seek(0, 0)
@@ -363,7 +358,6 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			if size == "" {
 				continue
 			}
-			fmt.Println("pre-creating size", size)
 			c := make(chan ResizeResponse)
 			ctx.Ch.ResizeQueue <- ResizeRequest{fullpath, ext, size, c}
 			result := <-c
@@ -443,7 +437,6 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		w.Write(contents)
 		return
 	}
-	fmt.Println("checking", path, extension)
 	_, err = ioutil.ReadFile(path)
 	if err != nil {
 		// we don't have the full-size on this node either
