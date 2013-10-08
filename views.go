@@ -118,9 +118,9 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 
 	var data []byte
-		err := ctx.Cluster.Imagecache.Get(nil, ri.MemcacheKey(),
+	err := ctx.Cluster.Imagecache.Get(nil, ri.String(),
 		groupcache.AllocatingByteSliceSink(&data))
-	if err == nil  {
+	if err == nil {
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(data)
 		return

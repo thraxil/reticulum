@@ -16,11 +16,11 @@ import (
 // there should probably be a map for that so we don't
 // have to run through the whole list every time
 type Cluster struct {
-	Myself    NodeData
-	neighbors map[string]NodeData
-	gcpeers   *groupcache.HTTPPool
+	Myself     NodeData
+	neighbors  map[string]NodeData
+	gcpeers    *groupcache.HTTPPool
 	Imagecache *groupcache.Group
-	chF       chan func()
+	chF        chan func()
 }
 
 func NewCluster(myself NodeData) *Cluster {
@@ -32,16 +32,16 @@ func NewCluster(myself NodeData) *Cluster {
 	}
 	c.Imagecache = groupcache.NewGroup(
 		"ReticulumCache", 64<<20, groupcache.GetterFunc(
-		func(ctx groupcache.Context, key string, dest groupcache.Sink) error {
-		// get image from disk
-		ri := NewImageSpecifier(key)
-		img_data, err := c.RetrieveImage(ri)
-		if err != nil {
-			return err
-		}
-		dest.SetBytes([]byte(img_data))
-		return nil
-	}))
+			func(ctx groupcache.Context, key string, dest groupcache.Sink) error {
+				// get image from disk
+				ri := NewImageSpecifier(key)
+				img_data, err := c.RetrieveImage(ri)
+				if err != nil {
+					return err
+				}
+				dest.SetBytes([]byte(img_data))
+				return nil
+			}))
 
 	go c.backend()
 	return c

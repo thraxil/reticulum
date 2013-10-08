@@ -12,7 +12,7 @@ type ImageSpecifier struct {
 	Extension string
 }
 
-func (i ImageSpecifier) MemcacheKey() string {
+func (i ImageSpecifier) String() string {
 	return i.Hash.String() + "/" + i.Size.String() + "/image" + i.Extension
 }
 

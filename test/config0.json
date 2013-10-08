@@ -9,7 +9,6 @@
 "GossiperSleep" : 5,
 "VerifierSleep" : 1,
 "Writeable" : true,
-"MemcacheServers": ["127.0.0.1:11211"],
 "GoMaxProcs": 7,
 "TemplateDirectory": "/home/anders/code/go/reticulum/templates",
 "Neighbors": [
