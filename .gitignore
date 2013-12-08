@@ -2,3 +2,5 @@ uploads
 config.json
 reticulum
 test/uploads*
+coverage.html
+coverage.out
