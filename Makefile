@@ -28,9 +28,6 @@ coverage: reticulum
 	go test . -coverprofile=coverage.out
 	go tool cover -html=coverage.out -o coverage.html
 
-coverage: reticulum
-	${GOROOT}/bin/gocov test . | ${GOROOT}/bin/gocov report
-
 
 install_deps:
 	go get -u github.com/thraxil/resize
