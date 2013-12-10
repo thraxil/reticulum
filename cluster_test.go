@@ -126,66 +126,109 @@ func checkForNeighborAfterRemoval(c *Cluster, n NodeData, i int, t *testing.T) {
 	}
 }
 
-// func Test_SmallCluster(t *testing.T) {
-// 	var neighbors = []NodeData{
-// 		NodeData{
-// 			Nickname:  "neighbor-1",
-// 			UUID:      "neighbor-1-uuid",
-// 			BaseUrl:   "localhost:8081",
-// 			Location:  "test",
-// 			Writeable: true,
-// 		},
-// 		NodeData{
-// 			Nickname:  "neighbor-2",
-// 			UUID:      "neighbor-2-uuid",
-// 			BaseUrl:   "localhost:8082",
-// 			Location:  "test",
-// 			Writeable: true,
-// 		},
-// 		NodeData{
-// 			Nickname:  "neighbor-3",
-// 			UUID:      "neighbor-3-uuid",
-// 			BaseUrl:   "localhost:8083",
-// 			Location:  "test",
-// 			Writeable: true,
-// 		},
-// 		NodeData{
-// 			Nickname:  "neighbor-4",
-// 			UUID:      "neighbor-4-uuid",
-// 			BaseUrl:   "localhost:8084",
-// 			Location:  "test",
-// 			Writeable: true,
-// 		},
-// 	}
+func Test_AddNeighbor(t *testing.T) {
+	n := make([]NodeData, 0)
+	_, c := makeNewClusterData(n)
+	if len(c.GetNeighbors()) != 0 {
+		t.Error("should not have any neighbors yet")
+	}
+	c.AddNeighbor(NodeData{
+		Nickname:  "addedneighbor",
+		UUID:      "test-uuid-2",
+		BaseUrl:   "localhost:8081",
+		Location:  "test",
+		Writeable: true,
+	})
+	if len(c.GetNeighbors()) != 1 {
+		t.Error("should be only one")
+	}
 
-// 	_, c := makeNewClusterData(neighbors)
+}
 
-// 	if len(c.GetNeighbors()) != 4 {
-// 		t.Error(fmt.Sprintf("wrong number of neighbors: %d", len(c.GetNeighbors())))
-// 	}
-// 	if len(c.NeighborsInclusive()) != 5 {
-// 		t.Error(fmt.Sprintf("wrong number of inclusive neighbors: %d",
-// 			len(c.NeighborsInclusive())))
-// 	}
+func Test_RemoveNeighbor(t *testing.T) {
+	n := make([]NodeData, 0)
+	_, c := makeNewClusterData(n)
+	if len(c.GetNeighbors()) != 0 {
+		t.Error("should not have any neighbors yet")
+	}
+	nd := NodeData{
+		Nickname:  "addedneighbor",
+		UUID:      "test-uuid-2",
+		BaseUrl:   "localhost:8081",
+		Location:  "test",
+		Writeable: true,
+	}
+	nd2 := NodeData{
+		Nickname:  "addedneighbor3",
+		UUID:      "test-uuid-3",
+		BaseUrl:   "localhost:8082",
+		Location:  "test",
+		Writeable: true,
+	}
+	c.AddNeighbor(nd)
+	if len(c.GetNeighbors()) != 1 {
+		t.Error("should be only one")
+	}
+	c.AddNeighbor(nd2)
+	if len(c.GetNeighbors()) != 2 {
+		t.Error("should be two")
+	}
+	c.RemoveNeighbor(nd)
+	if len(c.GetNeighbors()) != 1 {
+		t.Error("should be one in there")
+	}
+	c.RemoveNeighbor(nd2)
+	if len(c.GetNeighbors()) != 0 {
+		t.Error("should be back to zero")
+	}
+}
 
-// 	for _, n := range neighbors {
-// 		checkForNeighbor(c, n, t)
-// 	}
+func Test_UpdateNeighbor(t *testing.T) {
+	n := make([]NodeData, 0)
+	_, c := makeNewClusterData(n)
+	if len(c.GetNeighbors()) != 0 {
+		t.Error("should not have any neighbors yet")
+	}
+	nd := NodeData{
+		Nickname:  "addedneighbor",
+		UUID:      "test-uuid-2",
+		BaseUrl:   "localhost:8081",
+		Location:  "test",
+		Writeable: true,
+	}
+	c.AddNeighbor(nd)
+	if len(c.GetNeighbors()) != 1 {
+		t.Error("should be only one")
+	}
+	nd.BaseUrl = "localhost:8082"
+	c.UpdateNeighbor(nd)
+	neighbors := c.GetNeighbors()
+	if neighbors[0].BaseUrl != "localhost:8082" {
+		t.Error("update didn't take")
+	}
+}
 
-// 	c.RemoveNeighbor(neighbors[2])
-// 	if len(c.GetNeighbors()) != 3 {
-// 		t.Error(fmt.Sprintf("wrong number of neighbors: %d", len(c.GetNeighbors())))
-// 	}
-// 	if len(c.NeighborsInclusive()) != 4 {
-// 		t.Error(fmt.Sprintf("wrong number of inclusive neighbors: %d",
-// 			len(c.NeighborsInclusive())))
-// 	}
-
-// 	for i, n := range neighbors {
-// 		checkForNeighborAfterRemoval(c, n, i, t)
-// 	}
-// 	// remove the last one, just to check for off-by-ones
-// 	c.RemoveNeighbor(neighbors[3])
-// 	// same for the first
-// 	c.RemoveNeighbor(neighbors[0])
-// }
+func Test_FailedNeighbor(t *testing.T) {
+	n := make([]NodeData, 0)
+	_, c := makeNewClusterData(n)
+	if len(c.GetNeighbors()) != 0 {
+		t.Error("should not have any neighbors yet")
+	}
+	nd := NodeData{
+		Nickname:  "addedneighbor",
+		UUID:      "test-uuid-2",
+		BaseUrl:   "localhost:8081",
+		Location:  "test",
+		Writeable: true,
+	}
+	c.AddNeighbor(nd)
+	if len(c.GetNeighbors()) != 1 {
+		t.Error("should be only one")
+	}
+	nd.BaseUrl = "localhost:8082"
+	c.FailedNeighbor(nd)
+	neighbors := c.GetNeighbors()
+	if neighbors[0].Writeable {
+		t.Error("failed notification didn't take")
+	}
+}
