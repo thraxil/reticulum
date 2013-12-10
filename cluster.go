@@ -9,6 +9,19 @@ import (
 	"time"
 )
 
+type PeerList interface {
+	Set(peer_urls ...string)
+}
+
+type CacheGetter interface {
+	Get(ctx groupcache.Context, key string, dest groupcache.Sink) error
+}
+
+type Cache interface {
+	MakeInitialPool(url string) PeerList
+	MakeCache(c *Cluster) CacheGetter
+}
+
 // represents what our Node nows about the cluster
 // ie, itself and its neighbors
 // TODO: we do a lot of lookups of neighbors by UUID
@@ -17,31 +30,19 @@ import (
 type Cluster struct {
 	Myself     NodeData
 	neighbors  map[string]NodeData
-	gcpeers    *groupcache.HTTPPool
-	Imagecache *groupcache.Group
+	gcpeers    PeerList
+	Imagecache CacheGetter
 	chF        chan func()
 }
 
-func NewCluster(myself NodeData) *Cluster {
+func NewCluster(myself NodeData, cache Cache) *Cluster {
 	c := &Cluster{
 		Myself:    myself,
 		neighbors: make(map[string]NodeData),
 		chF:       make(chan func()),
-		gcpeers:   groupcache.NewHTTPPool(myself.GroupcacheUrl),
+		gcpeers:   cache.MakeInitialPool(myself.GroupcacheUrl),
 	}
-	c.Imagecache = groupcache.NewGroup(
-		"ReticulumCache", 64<<20, groupcache.GetterFunc(
-			func(ctx groupcache.Context, key string, dest groupcache.Sink) error {
-				// get image from disk
-				ri := NewImageSpecifier(key)
-				img_data, err := c.RetrieveImage(ri)
-				if err != nil {
-					return err
-				}
-				dest.SetBytes([]byte(img_data))
-				return nil
-			}))
-
+	c.Imagecache = cache.MakeCache(c)
 	go c.backend()
 	return c
 }

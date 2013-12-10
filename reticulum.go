@@ -57,7 +57,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	c := NewCluster(f.MyNode())
+	gcp := &GroupCacheProxy{}
+	c := NewCluster(f.MyNode(), gcp)
 	for i := range f.Neighbors {
 		c.AddNeighbor(f.Neighbors[i])
 	}
