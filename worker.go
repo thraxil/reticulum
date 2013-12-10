@@ -8,7 +8,6 @@ import (
 	"image/jpeg"
 	"image/png"
 	"io"
-	"log/syslog"
 	"os"
 	"path/filepath"
 	"time"
@@ -33,7 +32,7 @@ var decoders = map[string](func(io.Reader) (image.Image, error)){
 	"png": png.Decode,
 }
 
-func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer, s *SiteConfig) {
+func ResizeWorker(requests chan ResizeRequest, sl Logger, s *SiteConfig) {
 	for req := range requests {
 		if !s.Writeable {
 			// node is not writeable, so we should never handle a resize
@@ -68,7 +67,7 @@ func ResizeWorker(requests chan ResizeRequest, sl *syslog.Writer, s *SiteConfig)
 // so sometimes we need to bail and have imagemagick do the work
 // this sucks, is redundant, and i'd rather not have this external dependency
 // so this will be removed as soon as Go can handle it all itself
-func imageMagickResize(path, size string, sl *syslog.Writer,
+func imageMagickResize(path, size string, sl Logger,
 	s *SiteConfig) (string, error) {
 
 	args := convertArgs(size, path, s.ImageMagickConvertPath)

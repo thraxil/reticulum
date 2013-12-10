@@ -1,6 +1,6 @@
 all: reticulum
 
-reticulum: reticulum.go models.go views.go worker.go node.go cluster.go verifier.go config.go image_specifier.go
+reticulum: reticulum.go models.go views.go worker.go node.go cluster.go verifier.go config.go image_specifier.go logging.go
 	go build .
 
 cluster: reticulum

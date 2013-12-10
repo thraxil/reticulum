@@ -12,7 +12,6 @@ import (
 	"image/png"
 	"io"
 	"io/ioutil"
-	"log/syslog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -24,7 +23,7 @@ type Context struct {
 	Cluster *Cluster
 	Cfg     SiteConfig
 	Ch      SharedChannels
-	SL      *syslog.Writer
+	SL      Logger
 }
 
 type Page struct {

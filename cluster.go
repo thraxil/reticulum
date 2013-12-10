@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang/groupcache"
-	"log/syslog"
 	"math/rand"
 	"sort"
 	"time"
@@ -295,7 +294,7 @@ func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 
 // periodically pings all the known neighbors to gossip
 // run this as a goroutine
-func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
+func (c *Cluster) Gossip(i, base_time int, sl Logger) {
 	sl.Info("starting gossiper")
 
 	rand.Seed(int64(time.Now().Unix()) + int64(i))
@@ -331,7 +330,7 @@ func (c *Cluster) Gossip(i, base_time int, sl *syslog.Writer) {
 	}
 }
 
-func (c *Cluster) updateNeighbor(neighbor NodeData, sl *syslog.Writer) {
+func (c *Cluster) updateNeighbor(neighbor NodeData, sl Logger) {
 	if neighbor.UUID == c.Myself.UUID {
 		// as usual, skip ourself
 		return

@@ -7,7 +7,6 @@ import (
 	"github.com/thraxil/resize"
 	"io"
 	"io/ioutil"
-	"log/syslog"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -42,7 +41,7 @@ func hashFromPath(path string) (string, error) {
 // checks the image for corruption
 // if it is corrupt, try to repair
 func verify(path string, extension string, hash *Hash, ahash string,
-	c *Cluster, sl *syslog.Writer) error {
+	c *Cluster, sl Logger) error {
 	//    VERIFY PHASE
 	if hash.String() != ahash {
 		sl.Warning(fmt.Sprintf("image %s appears to be corrupted!\n", path))
@@ -68,7 +67,7 @@ func verify(path string, extension string, hash *Hash, ahash string,
 
 // do our best to repair the image
 func repair_image(path string, extension string, hash *Hash,
-	c *Cluster, sl *syslog.Writer) (bool, error) {
+	c *Cluster, sl Logger) (bool, error) {
 	nodes_to_check := c.ReadOrder(hash.String())
 	for _, n := range nodes_to_check {
 		if n.UUID == c.Myself.UUID {
@@ -84,7 +83,7 @@ func repair_image(path string, extension string, hash *Hash,
 }
 
 func checkImageOnNode(n NodeData, hash *Hash, extension string, path string,
-	c *Cluster, sl *syslog.Writer) (bool, bool, error) {
+	c *Cluster, sl Logger) (bool, bool, error) {
 	s := resize.MakeSizeSpec("full")
 	ri := &ImageSpecifier{hash, s, extension}
 
@@ -154,7 +153,7 @@ func clear_cached(path string, extension string) error {
 // and, if at all possible, those should be the ones at the front
 // of the list
 func rebalance(path string, extension string, hash *Hash, c *Cluster,
-	s SiteConfig, sl *syslog.Writer) error {
+	s SiteConfig, sl Logger) error {
 	//    REBALANCE PHASE
 	var delete_local = true
 	var satisfied = false
@@ -196,7 +195,7 @@ func rebalance(path string, extension string, hash *Hash, c *Cluster,
 }
 
 func retrieveReplica(n NodeData, hash *Hash, extension string, path string, satisfied bool,
-	sl *syslog.Writer) int {
+	sl Logger) int {
 
 	s := resize.MakeSizeSpec("full")
 	ri := &ImageSpecifier{hash, s, extension[1:]}
@@ -224,7 +223,7 @@ func retrieveReplica(n NodeData, hash *Hash, extension string, path string, sati
 
 // our node is not at the front of the list, so
 // we have an excess copy. clean that up and make room!
-func clean_up_excess_replica(path string, sl *syslog.Writer) {
+func clean_up_excess_replica(path string, sl Logger) {
 	err := os.RemoveAll(filepath.Dir(path))
 	if err != nil {
 		sl.Err(fmt.Sprintf("could not clear out excess replica: %s\n", path))
@@ -235,7 +234,7 @@ func clean_up_excess_replica(path string, sl *syslog.Writer) {
 }
 
 func visit(path string, f os.FileInfo, err error, c *Cluster,
-	s SiteConfig, sl *syslog.Writer) error {
+	s SiteConfig, sl Logger) error {
 	defer func() {
 		if r := recover(); r != nil {
 			sl.Err(fmt.Sprintf("Error in verifier.visit() [%s] %s", c.Myself.Nickname, path))
@@ -295,14 +294,14 @@ func visit(path string, f os.FileInfo, err error, c *Cluster,
 }
 
 // makes a closure that has access to the cluster and config
-func makeVisitor(fn func(string, os.FileInfo, error, *Cluster, SiteConfig, *syslog.Writer) error,
-	c *Cluster, s SiteConfig, sl *syslog.Writer) func(path string, f os.FileInfo, err error) error {
+func makeVisitor(fn func(string, os.FileInfo, error, *Cluster, SiteConfig, Logger) error,
+	c *Cluster, s SiteConfig, sl Logger) func(path string, f os.FileInfo, err error) error {
 	return func(path string, f os.FileInfo, err error) error {
 		return fn(path, f, err, c, s, sl)
 	}
 }
 
-func Verify(c *Cluster, s SiteConfig, sl *syslog.Writer) {
+func Verify(c *Cluster, s SiteConfig, sl Logger) {
 	sl.Info("starting verifier")
 
 	rand.Seed(int64(time.Now().Unix()) + int64(int(s.Port)))
