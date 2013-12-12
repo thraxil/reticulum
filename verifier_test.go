@@ -27,5 +27,13 @@ func Test_hashFromPath(t *testing.T) {
 		fmt.Println(o3)
 		t.Error("error not handled")
 	}
+}
 
+func Test_basename(t *testing.T) {
+	if basename("foo.jpg") != "foo" {
+		t.Error("basename failed on simplest case")
+	}
+	if basename("/foo/bar/baz.jpg") != "baz" {
+		t.Error("basename(foo/bar/baz.jpg)")
+	}
 }

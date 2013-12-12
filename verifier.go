@@ -82,6 +82,23 @@ func repair_image(path string, extension string, hash *Hash,
 	return false, nil
 }
 
+func replaceImageWithCorrected(path string, img []byte, sl Logger) (bool, bool, error) {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		// can't open for writing!
+		sl.Err(fmt.Sprintf("could not open for writing: %s, %s\n", path, err))
+		f.Close()
+		return false, false, err
+	}
+	_, err = f.Write(img)
+	f.Close()
+	if err != nil {
+		sl.Err(fmt.Sprintf("could not write: %s, %s\n", path, err))
+		return false, false, err
+	}
+	return false, true, nil
+}
+
 func checkImageOnNode(n NodeData, hash *Hash, extension string, path string,
 	c *Cluster, sl Logger) (bool, bool, error) {
 	s := resize.MakeSizeSpec("full")
@@ -97,21 +114,7 @@ func checkImageOnNode(n NodeData, hash *Hash, extension string, path string,
 			// the copy from that node isn't right either
 			return true, true, nil
 		}
-		// replace the full-size with a corrected one
-		f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
-		if err != nil {
-			// can't open for writing!
-			sl.Err(fmt.Sprintf("could not open for writing: %s, %s\n", path, err))
-			f.Close()
-			return false, false, err
-		}
-		_, err = f.Write(img)
-		f.Close()
-		if err != nil {
-			sl.Err(fmt.Sprintf("could not write: %s, %s\n", path, err))
-			return false, false, err
-		}
-		return false, true, nil
+		return replaceImageWithCorrected(path, img, sl)
 	}
 }
 
