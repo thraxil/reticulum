@@ -141,7 +141,8 @@ func clear_cached(path string, extension string) error {
 	}
 	var successful_purge = true
 	for _, file := range files {
-		err = clear_cached_file(file, path, extension)
+		r := func(p string) error { return os.Remove(p) }
+		err = clear_cached_file(file, path, extension, r)
 		successful_purge = successful_purge && (err == nil)
 	}
 	if !successful_purge {
@@ -151,14 +152,16 @@ func clear_cached(path string, extension string) error {
 	return nil
 }
 
-func clear_cached_file(file FileIsh, path, extension string) error {
+type remover func(fullpath string) error
+
+func clear_cached_file(file FileIsh, path, extension string, r remover) error {
 	if file.IsDir() {
 		return nil
 	}
 	if file.Name() == "full"+extension {
 		return nil
 	}
-	return os.Remove(filepath.Join(filepath.Dir(path), file.Name()))
+	return r(filepath.Join(filepath.Dir(path), file.Name()))
 }
 
 // check that the image is stored in at least Replication nodes
