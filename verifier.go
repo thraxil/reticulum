@@ -125,6 +125,11 @@ func doublecheck_replica(img []byte, hash *Hash) bool {
 	return nhash == hash.String()
 }
 
+type FileIsh interface {
+	IsDir() bool
+	Name() string
+}
+
 // cached sizes may have been created off the broken one
 // and the easiest solution is to take off
 // and nuke the site from orbit. It's the only way to be sure.
@@ -136,13 +141,7 @@ func clear_cached(path string, extension string) error {
 	}
 	var successful_purge = true
 	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		if file.Name() == "full"+extension {
-			continue
-		}
-		err := os.Remove(filepath.Join(filepath.Dir(path), file.Name()))
+		err = clear_cached_file(file, path, extension)
 		successful_purge = successful_purge && (err == nil)
 	}
 	if !successful_purge {
@@ -150,6 +149,16 @@ func clear_cached(path string, extension string) error {
 		return errors.New("could not clear potentially corrupted scaled image")
 	}
 	return nil
+}
+
+func clear_cached_file(file FileIsh, path, extension string) error {
+	if file.IsDir() {
+		return nil
+	}
+	if file.Name() == "full"+extension {
+		return nil
+	}
+	return os.Remove(filepath.Join(filepath.Dir(path), file.Name()))
 }
 
 // check that the image is stored in at least Replication nodes
