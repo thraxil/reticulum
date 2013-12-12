@@ -4,6 +4,7 @@ import (
 	_ "fmt"
 	"github.com/thraxil/resize"
 	"testing"
+	"time"
 )
 
 func Test_Hashkeys(t *testing.T) {
@@ -120,5 +121,54 @@ func Test_endswith(t *testing.T) {
 	}
 	if endswith("foo", "foobar") {
 		t.Error("suffix longer than string should be false")
+	}
+}
+
+func Test_NodeString(t *testing.T) {
+	n := NodeData{
+		Nickname:  "test node",
+		UUID:      "test-uuid",
+		BaseUrl:   "localhost:8080",
+		Location:  "test",
+		Writeable: true,
+	}
+	if n.String() != "Node - nickname: test node UUID: test-uuid" {
+		t.Error("wrong stringification")
+	}
+}
+
+func Test_IsCurrent(t *testing.T) {
+	n := NodeData{
+		Nickname:  "test node",
+		UUID:      "test-uuid",
+		BaseUrl:   "localhost:8080",
+		Location:  "test",
+		Writeable: true,
+	}
+	if n.IsCurrent() {
+		t.Error("should be equal for now")
+	}
+	n.LastSeen = time.Now()
+	if !n.IsCurrent() {
+		t.Error("should be current now")
+	}
+}
+
+func Test_makeParams(t *testing.T) {
+	n := NodeData{
+		Nickname:  "test node",
+		UUID:      "test-uuid",
+		BaseUrl:   "localhost:8080",
+		Location:  "test",
+		Writeable: true,
+	}
+	u := makeParams(n)
+	if u.Get("uuid") != n.UUID {
+		t.Error("couldn't make params")
+	}
+	n.Writeable = false
+	u = makeParams(n)
+	if u.Get("writeable") != "false" {
+		t.Error("wrong boolean value")
 	}
 }
