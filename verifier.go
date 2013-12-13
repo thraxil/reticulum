@@ -125,6 +125,8 @@ func doublecheck_replica(img []byte, hash *Hash) bool {
 	return nhash == hash.String()
 }
 
+// the only File methods that we care about
+// makes it easier to mock
 type FileIsh interface {
 	IsDir() bool
 	Name() string
@@ -210,8 +212,7 @@ func (r ImageRebalancer) checkNodesForRebalance(nodes_to_check []NodeData) (bool
 			delete_local = false
 			found_replicas++
 		} else {
-			found_replicas = found_replicas + retrieveReplica(n, r.hash, r.extension, r.path,
-				satisfied, r.sl)
+			found_replicas = found_replicas + r.retrieveReplica(n, satisfied)
 		}
 		if found_replicas >= r.s.Replication {
 			satisfied = true
@@ -226,11 +227,10 @@ func (r ImageRebalancer) checkNodesForRebalance(nodes_to_check []NodeData) (bool
 	return satisfied, delete_local, found_replicas
 }
 
-func retrieveReplica(n NodeData, hash *Hash, extension string, path string, satisfied bool,
-	sl Logger) int {
+func (r ImageRebalancer) retrieveReplica(n NodeData, satisfied bool) int {
 
 	s := resize.MakeSizeSpec("full")
-	ri := &ImageSpecifier{hash, s, extension[1:]}
+	ri := &ImageSpecifier{r.hash, s, r.extension[1:]}
 
 	img_info, err := n.RetrieveImageInfo(ri)
 	if err == nil && img_info != nil && img_info.Local {
@@ -239,8 +239,8 @@ func retrieveReplica(n NodeData, hash *Hash, extension string, path string, sati
 	} else {
 		// that node should have a copy, but doesn't so stash it
 		if !satisfied {
-			if n.Stash(path, "") {
-				sl.Info(fmt.Sprintf("replicated %s\n", path))
+			if n.Stash(r.path, "") {
+				r.sl.Info(fmt.Sprintf("replicated %s\n", r.path))
 				return 1
 			} else {
 				// couldn't stash to that node. not writeable perhaps.
