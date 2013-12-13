@@ -59,3 +59,34 @@ func Test_clear_cached_file(t *testing.T) {
 	}
 
 }
+
+// dummy out a StashableNode
+type sdummy struct {
+	StashValue bool
+}
+
+func (s *sdummy) Stash(filename string, size_hints string) bool { return false }
+func (s *sdummy) RetrieveImageInfo(ri *ImageSpecifier) (*ImageInfoResponse, error) {
+	return nil, nil
+}
+
+func Test_RetrieveReplica(t *testing.T) {
+	sl := DummyLogger{}
+	n := sdummy{}
+	hash, err := HashFromString("fb682e05b9be61797601e60165825c0b089f755e", "")
+	if err != nil {
+		t.Error("bad hash")
+	}
+	cn := make([]NodeData, 0)
+	_, c := makeNewClusterData(cn)
+	s := SiteConfig{}
+	r := NewImageRebalancer("foo", ".jpg", hash, c, s, sl)
+	result := r.retrieveReplica(&n, true)
+	if result != 0 {
+		t.Error("satisfied == true should mean no retrieval")
+	}
+	result = r.retrieveReplica(&n, false)
+	if result != 0 {
+		t.Error("not satisfied but couldn't stash failed")
+	}
+}

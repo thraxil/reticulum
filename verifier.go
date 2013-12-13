@@ -212,7 +212,7 @@ func (r ImageRebalancer) checkNodesForRebalance(nodes_to_check []NodeData) (bool
 			delete_local = false
 			found_replicas++
 		} else {
-			found_replicas = found_replicas + r.retrieveReplica(n, satisfied)
+			found_replicas = found_replicas + r.retrieveReplica(&n, satisfied)
 		}
 		if found_replicas >= r.s.Replication {
 			satisfied = true
@@ -227,7 +227,12 @@ func (r ImageRebalancer) checkNodesForRebalance(nodes_to_check []NodeData) (bool
 	return satisfied, delete_local, found_replicas
 }
 
-func (r ImageRebalancer) retrieveReplica(n NodeData, satisfied bool) int {
+type StashableNode interface {
+	Stash(filename string, size_hints string) bool
+	RetrieveImageInfo(ri *ImageSpecifier) (*ImageInfoResponse, error)
+}
+
+func (r ImageRebalancer) retrieveReplica(n StashableNode, satisfied bool) int {
 
 	s := resize.MakeSizeSpec("full")
 	ri := &ImageSpecifier{r.hash, s, r.extension[1:]}
