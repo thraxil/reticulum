@@ -187,7 +187,7 @@ func (r ImageRebalancer) Rebalance() error {
 		return errors.New("nil cluster")
 	}
 	nodes_to_check := r.c.ReadOrder(r.hash.String())
-	satisfied, delete_local, found_replicas := checkNodesForRebalance(
+	satisfied, delete_local, found_replicas := r.checkNodesForRebalance(
 		r.path, r.extension, r.hash, nodes_to_check, r.s, r.c, r.sl)
 	if !satisfied {
 		r.sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes", r.path, r.s.Replication))
@@ -200,26 +200,24 @@ func (r ImageRebalancer) Rebalance() error {
 	return nil
 }
 
-func checkNodesForRebalance(path string, extension string, hash *Hash,
-	nodes_to_check []NodeData, s SiteConfig,
-	c *Cluster, sl Logger) (bool, bool, int) {
+func (r ImageRebalancer) checkNodesForRebalance(nodes_to_check []NodeData) (bool, bool, int) {
 	var satisfied = false
 	var found_replicas = 0
 	var delete_local = true
 	// TODO: parallelize this
 	for _, n := range nodes_to_check {
-		if n.UUID == c.Myself.UUID {
+		if n.UUID == r.c.Myself.UUID {
 			// don't need to delete it
 			delete_local = false
 			found_replicas++
 		} else {
-			found_replicas = found_replicas + retrieveReplica(n, hash, extension, path,
-				satisfied, sl)
+			found_replicas = found_replicas + retrieveReplica(n, r.hash, r.extension, r.path,
+				satisfied, r.sl)
 		}
-		if found_replicas >= s.Replication {
+		if found_replicas >= r.s.Replication {
 			satisfied = true
 		}
-		if found_replicas >= s.MaxReplication {
+		if found_replicas >= r.s.MaxReplication {
 			// nothing more to do. other nodes that have excess
 			// copies are responsible for deletion. Our job
 			// is just to make sure the first N nodes have a copy
