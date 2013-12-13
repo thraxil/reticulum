@@ -164,26 +164,38 @@ func clear_cached_file(file FileIsh, path, extension string, r remover) error {
 	return r(filepath.Join(filepath.Dir(path), file.Name()))
 }
 
+type ImageRebalancer struct {
+	c         *Cluster
+	s         SiteConfig
+	sl        Logger
+	hash      *Hash
+	path      string
+	extension string
+}
+
+func NewImageRebalancer(path, extension string, hash *Hash, c *Cluster, s SiteConfig, sl Logger) *ImageRebalancer {
+	return &ImageRebalancer{c, s, sl, hash, path, extension}
+}
+
 // check that the image is stored in at least Replication nodes
 // and, if at all possible, those should be the ones at the front
 // of the list
-func rebalance(path string, extension string, hash *Hash, c *Cluster,
-	s SiteConfig, sl Logger) error {
+func (r ImageRebalancer) Rebalance() error {
 	//    REBALANCE PHASE
-	if c == nil {
-		sl.Err("rebalance was given a nil cluster")
+	if r.c == nil {
+		r.sl.Err("rebalance was given a nil cluster")
 		return errors.New("nil cluster")
 	}
-	nodes_to_check := c.ReadOrder(hash.String())
+	nodes_to_check := r.c.ReadOrder(r.hash.String())
 	satisfied, delete_local, found_replicas := checkNodesForRebalance(
-		path, extension, hash, nodes_to_check, s, c, sl)
+		r.path, r.extension, r.hash, nodes_to_check, r.s, r.c, r.sl)
 	if !satisfied {
-		sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes", path, s.Replication))
+		r.sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes", r.path, r.s.Replication))
 	} else {
-		sl.Info(fmt.Sprintf("%s has full replica set (%d of %d)\n", path, found_replicas, s.Replication))
+		r.sl.Info(fmt.Sprintf("%s has full replica set (%d of %d)\n", r.path, found_replicas, r.s.Replication))
 	}
 	if satisfied && delete_local {
-		clean_up_excess_replica(path, sl)
+		clean_up_excess_replica(r.path, r.sl)
 	}
 	return nil
 }
@@ -305,7 +317,8 @@ func visit(path string, f os.FileInfo, err error, c *Cluster,
 	if err != nil {
 		return err
 	}
-	err = rebalance(path, extension, hash, c, s, sl)
+	r := NewImageRebalancer(path, extension, hash, c, s, sl)
+	err = r.Rebalance()
 	if err != nil {
 		return err
 	}
