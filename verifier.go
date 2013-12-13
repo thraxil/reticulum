@@ -187,8 +187,7 @@ func (r ImageRebalancer) Rebalance() error {
 		return errors.New("nil cluster")
 	}
 	nodes_to_check := r.c.ReadOrder(r.hash.String())
-	satisfied, delete_local, found_replicas := r.checkNodesForRebalance(
-		r.path, r.extension, r.hash, nodes_to_check, r.s, r.c, r.sl)
+	satisfied, delete_local, found_replicas := r.checkNodesForRebalance(nodes_to_check)
 	if !satisfied {
 		r.sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes", r.path, r.s.Replication))
 	} else {
