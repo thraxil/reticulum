@@ -170,14 +170,30 @@ func clear_cached_file(file FileIsh, path, extension string, r remover) error {
 func rebalance(path string, extension string, hash *Hash, c *Cluster,
 	s SiteConfig, sl Logger) error {
 	//    REBALANCE PHASE
-	var delete_local = true
-	var satisfied = false
-	var found_replicas = 0
 	if c == nil {
 		sl.Err("rebalance was given a nil cluster")
 		return errors.New("nil cluster")
 	}
 	nodes_to_check := c.ReadOrder(hash.String())
+	satisfied, delete_local, found_replicas := checkNodesForRebalance(
+		path, extension, hash, nodes_to_check, s, c, sl)
+	if !satisfied {
+		sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes", path, s.Replication))
+	} else {
+		sl.Info(fmt.Sprintf("%s has full replica set (%d of %d)\n", path, found_replicas, s.Replication))
+	}
+	if satisfied && delete_local {
+		clean_up_excess_replica(path, sl)
+	}
+	return nil
+}
+
+func checkNodesForRebalance(path string, extension string, hash *Hash,
+	nodes_to_check []NodeData, s SiteConfig,
+	c *Cluster, sl Logger) (bool, bool, int) {
+	var satisfied = false
+	var found_replicas = 0
+	var delete_local = true
 	// TODO: parallelize this
 	for _, n := range nodes_to_check {
 		if n.UUID == c.Myself.UUID {
@@ -195,18 +211,10 @@ func rebalance(path string, extension string, hash *Hash, c *Cluster,
 			// nothing more to do. other nodes that have excess
 			// copies are responsible for deletion. Our job
 			// is just to make sure the first N nodes have a copy
-			break
+			return satisfied, delete_local, found_replicas
 		}
 	}
-	if !satisfied {
-		sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes", path, s.Replication))
-	} else {
-		sl.Info(fmt.Sprintf("%s has full replica set (%d of %d)\n", path, found_replicas, s.Replication))
-	}
-	if satisfied && delete_local {
-		clean_up_excess_replica(path, sl)
-	}
-	return nil
+	return satisfied, delete_local, found_replicas
 }
 
 func retrieveReplica(n NodeData, hash *Hash, extension string, path string, satisfied bool,
