@@ -90,3 +90,29 @@ func Test_RetrieveReplica(t *testing.T) {
 		t.Error("not satisfied but couldn't stash failed")
 	}
 }
+
+func Test_visitPreChecks(t *testing.T) {
+	sl := DummyLogger{}
+	cn := make([]NodeData, 0)
+	_, c := makeNewClusterData(cn)
+	done, err := visitPreChecks("full.jpg", fdummy{}, nil, c, sl)
+	if done {
+		t.Error(fmt.Sprintf("shouldn't have been any problems there: %s", err))
+	}
+	if err != nil {
+		t.Error(fmt.Sprintf("shouldn't have been any problems there: %s", err))
+	}
+	done, err = visitPreChecks("foo.jpg", fdummy{}, nil, c, sl)
+	if !done {
+		t.Error("not 'full.jpg', should not allow")
+	}
+	done, err = visitPreChecks("full.jpg", fdummy{DirValue: true}, nil, c, sl)
+	if !done {
+		t.Error("claims to be a directory")
+	}
+	done, err = visitPreChecks("full.jpg", fdummy{}, nil, nil, sl)
+	if !done {
+		t.Error("nil cluster")
+	}
+
+}

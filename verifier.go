@@ -270,6 +270,25 @@ func clean_up_excess_replica(path string, sl Logger) {
 	}
 }
 
+func visitPreChecks(path string, f FileIsh, err error, c *Cluster, sl Logger) (bool, error) {
+	if err != nil {
+		sl.Err(fmt.Sprintf("verifier.visit was handed an error: %s", err.Error()))
+		return true, err
+	}
+	if c == nil {
+		sl.Err("verifier.visit was given a nil cluster")
+		return true, errors.New("nil cluster")
+	}
+	// all we care about is the "full" version of each
+	if f.IsDir() {
+		return true, nil
+	}
+	if basename(path) != "full" {
+		return true, nil
+	}
+	return false, nil
+}
+
 func visit(path string, f os.FileInfo, err error, c *Cluster,
 	s SiteConfig, sl Logger) error {
 	defer func() {
@@ -278,20 +297,9 @@ func visit(path string, f os.FileInfo, err error, c *Cluster,
 			sl.Err(fmt.Sprintf("%v", r))
 		}
 	}()
-	if err != nil {
-		sl.Err(fmt.Sprintf("verifier.visit was handed an error: %s", err.Error()))
+	done, err := visitPreChecks(path, f, err, c, sl)
+	if done {
 		return err
-	}
-	if c == nil {
-		sl.Err("verifier.visit was given a nil cluster")
-		return errors.New("nil cluster")
-	}
-	// all we care about is the "full" version of each
-	if f.IsDir() {
-		return nil
-	}
-	if basename(path) != "full" {
-		return nil
 	}
 	extension := filepath.Ext(path)
 	if len(extension) < 2 {
