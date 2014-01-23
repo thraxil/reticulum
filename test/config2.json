@@ -3,6 +3,7 @@
 "Port" : 8082,
 "BaseUrl" : "localhost:8082",
 "GroupcacheUrl": "http://localhost:10082",
+"GroupcacheSize": 67108864,
 "UploadDirectory" : "test/uploads2/",
 "NumResizeWorkers" : 4,
 "Writeable" : true,

@@ -10,9 +10,9 @@ func (g *GroupCacheProxy) MakeInitialPool(url string) PeerList {
 	return groupcache.NewHTTPPool(url)
 }
 
-func (g *GroupCacheProxy) MakeCache(c *Cluster) CacheGetter {
+func (g *GroupCacheProxy) MakeCache(c *Cluster, size int64) CacheGetter {
 	return groupcache.NewGroup(
-		"ReticulumCache", 64<<20, groupcache.GetterFunc(
+		"ReticulumCache", size, groupcache.GetterFunc(
 			func(ctx groupcache.Context, key string, dest groupcache.Sink) error {
 				// get image from disk
 				ri := NewImageSpecifier(key)

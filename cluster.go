@@ -19,7 +19,7 @@ type CacheGetter interface {
 
 type Cache interface {
 	MakeInitialPool(url string) PeerList
-	MakeCache(c *Cluster) CacheGetter
+	MakeCache(c *Cluster, size int64) CacheGetter
 }
 
 // represents what our Node nows about the cluster
@@ -35,14 +35,14 @@ type Cluster struct {
 	chF        chan func()
 }
 
-func NewCluster(myself NodeData, cache Cache) *Cluster {
+func NewCluster(myself NodeData, cache Cache, cache_size int64) *Cluster {
 	c := &Cluster{
 		Myself:    myself,
 		neighbors: make(map[string]NodeData),
 		chF:       make(chan func()),
 		gcpeers:   cache.MakeInitialPool(myself.GroupcacheUrl),
 	}
-	c.Imagecache = cache.MakeCache(c)
+	c.Imagecache = cache.MakeCache(c, cache_size)
 	go c.backend()
 	return c
 }

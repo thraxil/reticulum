@@ -2,6 +2,7 @@
 "UUID" : "uuid-node-9",
 "Port" : 8089,
 "BaseUrl" : "localhost:8089",
+"GroupcacheSize": 67108864,
 "GroupcacheUrl": "http://localhost:10089",
 "UploadDirectory" : "test/uploads9/",
 "NumResizeWorkers" : 4,

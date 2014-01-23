@@ -57,13 +57,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	siteconfig := f.MyConfig()
+
 	gcp := &GroupCacheProxy{}
-	c := NewCluster(f.MyNode(), gcp)
+	c := NewCluster(f.MyNode(), gcp, siteconfig.GroupcacheSize)
 	for i := range f.Neighbors {
 		c.AddNeighbor(f.Neighbors[i])
 	}
-
-	siteconfig := f.MyConfig()
 
 	runtime.GOMAXPROCS(siteconfig.GoMaxProcs)
 

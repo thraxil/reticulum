@@ -21,7 +21,7 @@ func makeNewClusterData(neighbors []NodeData) (NodeData, *Cluster) {
 	if cluster == nil {
 
 		gcp := &GroupCacheProxy{}
-		c := NewCluster(myself, gcp)
+		c := NewCluster(myself, gcp, 64)
 		for _, n := range neighbors {
 			c.AddNeighbor(n)
 		}

@@ -23,6 +23,7 @@ type ConfigData struct {
 	ImageMagickConvertPath string
 	GoMaxProcs             int
 	GroupcacheUrl          string
+	GroupcacheSize         int64
 }
 
 func (c ConfigData) MyNode() NodeData {
@@ -78,6 +79,11 @@ func (c ConfigData) MyConfig() SiteConfig {
 		go_max_procs = 1
 	}
 
+	groupcache_size := c.GroupcacheSize
+	if groupcache_size < 1 {
+		groupcache_size = 64 << 20
+	}
+
 	return SiteConfig{
 		Port:                   c.Port,
 		UploadKeys:             c.UploadKeys,
@@ -92,6 +98,7 @@ func (c ConfigData) MyConfig() SiteConfig {
 		GoMaxProcs:             c.GoMaxProcs,
 		Writeable:              c.Writeable,
 		GroupcacheUrl:          c.GroupcacheUrl,
+		GroupcacheSize:         c.GroupcacheSize,
 	}
 }
 
@@ -111,6 +118,7 @@ type SiteConfig struct {
 	GoMaxProcs             int
 	Writeable              bool
 	GroupcacheUrl          string
+	GroupcacheSize         int64
 }
 
 func (s SiteConfig) KeyRequired() bool {
