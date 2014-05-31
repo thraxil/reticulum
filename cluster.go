@@ -3,10 +3,11 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/golang/groupcache"
 	"math/rand"
 	"sort"
 	"time"
+
+	"github.com/golang/groupcache"
 )
 
 type PeerList interface {
