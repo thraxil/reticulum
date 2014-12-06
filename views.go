@@ -566,10 +566,68 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	w.Write(b)
 }
 
+func JoinHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
+	if r.Method == "POST" {
+		if r.FormValue("url") == "" {
+			fmt.Fprint(w, "no url specified")
+			return
+		}
+		url := r.FormValue("url")
+		config_url := url + "/config/"
+		res, err := http.Get(config_url)
+		if err != nil {
+			fmt.Fprint(w, "error retrieving config")
+			return
+		}
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			fmt.Fprintf(w, "error reading body of response")
+			return
+		}
+		var n NodeData
+		err = json.Unmarshal(body, &n)
+		if err != nil {
+			fmt.Fprintf(w, "error parsing json")
+			return
+		}
+
+		if n.UUID == ctx.Cluster.Myself.UUID {
+			fmt.Fprintf(w, "I can't join myself, silly!")
+			return
+		}
+		_, ok := ctx.Cluster.FindNeighborByUUID(n.UUID)
+		if ok {
+			fmt.Fprintf(w, "already have a node with that UUID in the cluster")
+			// let's not do updates through this. Let gossip handle that.
+			return
+		}
+		ctx.Cluster.AddNeighbor(n)
+
+		fmt.Fprintf(w, fmt.Sprintf("Added node %s [%s]", n.Nickname, n.UUID))
+
+	} else {
+		// show form
+		w.Write([]byte(join_template))
+	}
+}
+
 func FaviconHandler(w http.ResponseWriter, r *http.Request) {
 	// just give it nothing to make it go away
 	w.Write(nil)
 }
+
+const join_template = `
+<html><head><title>Add Node</title></head>
+<body>
+<h1>Add Node</h1>
+<form action="." method="post">
+<input type="text" name="url" placeholder="Base URL" size="128" /><br />
+<input type="submit" value="add node" />
+</form>
+</body>
+</html>
+`
 
 const add_template = `
 <html>

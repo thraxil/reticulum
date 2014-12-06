@@ -91,6 +91,7 @@ func main() {
 	http.HandleFunc("/announce/", makeHandler(AnnounceHandler, ctx))
 	http.HandleFunc("/status/", makeHandler(StatusHandler, ctx))
 	http.HandleFunc("/config/", makeHandler(ConfigHandler, ctx))
+	http.HandleFunc("/join/", makeHandler(JoinHandler, ctx))
 	http.HandleFunc("/favicon.ico", FaviconHandler)
 
 	// everything is ready, let's go
