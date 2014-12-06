@@ -1,7 +1,5 @@
 package main
 
-import ()
-
 // the structure of the config.json file
 // where config info is stored
 type ConfigData struct {

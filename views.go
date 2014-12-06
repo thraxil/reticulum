@@ -4,8 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"github.com/golang/groupcache"
-	"github.com/thraxil/resize"
 	"html/template"
 	"image"
 	"image/jpeg"
@@ -17,6 +15,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/golang/groupcache"
+	"github.com/thraxil/resize"
 )
 
 type Context struct {
@@ -313,6 +314,15 @@ func StatusHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	t, _ := template.New("status").Parse(status_template)
 	t.Execute(w, p)
+}
+
+func ConfigHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
+	b, err := json.Marshal(ctx.Cluster.Myself)
+	if err != nil {
+		ctx.SL.Err(err.Error())
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(b)
 }
 
 func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
