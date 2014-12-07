@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
-	"github.com/thraxil/resize"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -12,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/thraxil/resize"
 )
 
 // part of the path that's not a directory or extension
@@ -291,6 +292,14 @@ func visitPreChecks(path string, f FileIsh, err error, c *Cluster, sl Logger) (b
 
 func visit(path string, f os.FileInfo, err error, c *Cluster,
 	s SiteConfig, sl Logger) error {
+	// first, if it's our first time through
+	// skip ahead a bunch so every node starts
+	// at a different point and we don't just
+	// go from the very beginning on every restart on every node
+	VERIFY_SKIP++
+	if VERIFY_SKIP < VERIFY_OFFSET {
+		return nil
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			sl.Err(fmt.Sprintf("Error in verifier.visit() [%s] %s", c.Myself.Nickname, path))
@@ -358,6 +367,7 @@ func Verify(c *Cluster, s SiteConfig, sl Logger) {
 		jitter = rand.Intn(5)
 		time.Sleep(time.Duration(base_time+jitter) * time.Second)
 		sl.Info("verifier starting at the top")
+		sl.Info(fmt.Sprintf("%d/%d", VERIFY_SKIP, VERIFY_OFFSET))
 
 		root := s.UploadDirectory
 		err := filepath.Walk(root, makeVisitor(visit, c, s, sl))

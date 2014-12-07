@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"log/syslog"
+	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
@@ -33,6 +34,9 @@ func Log(handler http.Handler, logger *syslog.Writer, node_name string) http.Han
 			r.URL, t1.Sub(t0)))
 	})
 }
+
+var VERIFY_OFFSET = 0
+var VERIFY_SKIP = 0
 
 func main() {
 	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
@@ -79,6 +83,8 @@ func main() {
 	// start our gossiper
 	go c.Gossip(int(f.Port), siteconfig.GossiperSleep, sl)
 
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	VERIFY_OFFSET = r.Intn(10000)
 	go Verify(c, siteconfig, sl)
 
 	ctx := Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
