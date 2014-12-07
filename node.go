@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -51,29 +52,14 @@ func (n NodeData) IsCurrent() bool {
 	return n.LastSeen.Unix() > n.LastFailed.Unix()
 }
 
-// I come from Python, what can I say?
-func startswith(s, prefix string) bool {
-	if len(s) < len(prefix) {
-		return false
-	}
-	return s[:len(prefix)] == prefix
-}
-
-func endswith(s, suffix string) bool {
-	if len(s) < len(suffix) {
-		return false
-	}
-	return s[len(s)-len(suffix):] == suffix
-}
-
 // returns version of the BaseUrl that we know
 // starts with 'http://' and does not end with '/'
 func (n NodeData) goodBaseUrl() string {
 	url := n.BaseUrl
-	if !startswith(n.BaseUrl, "http://") {
+	if !strings.HasPrefix(n.BaseUrl, "http://") {
 		url = "http://" + url
 	}
-	if endswith(url, "/") {
+	if strings.HasSuffix(url, "/") {
 		url = url[:len(url)-1]
 	}
 	return url

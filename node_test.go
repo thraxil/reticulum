@@ -2,9 +2,10 @@ package main
 
 import (
 	_ "fmt"
-	"github.com/thraxil/resize"
 	"testing"
 	"time"
+
+	"github.com/thraxil/resize"
 )
 
 func Test_Hashkeys(t *testing.T) {
@@ -104,24 +105,6 @@ func Test_Urls(t *testing.T) {
 		"http://localhost:8081/stash/",
 		"http://localhost:8081/announce/",
 	)
-}
-
-func Test_startswith(t *testing.T) {
-	if !startswith("foo", "f") {
-		t.Error("basic startswith functionality broken")
-	}
-	if startswith("foo", "foobar") {
-		t.Error("prefix longer than string should be false")
-	}
-}
-
-func Test_endswith(t *testing.T) {
-	if !endswith("foo", "o") {
-		t.Error("basic endswith functionality broken")
-	}
-	if endswith("foo", "foobar") {
-		t.Error("suffix longer than string should be false")
-	}
 }
 
 func Test_NodeString(t *testing.T) {
