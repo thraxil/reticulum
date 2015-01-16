@@ -259,7 +259,11 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		}
 		path := ctx.Cfg.UploadDirectory + ahash.AsPath()
 		os.MkdirAll(path, 0755)
-		mimetype := fh.Header["Content-Type"][0]
+		mimetype := fh.Header.Get("Content-Type")
+		if mimetype == "" {
+			// they left off a mimetype, so default to jpg
+			mimetype = "image/jpeg"
+		}
 		ext := mimeexts[mimetype]
 		fullpath := path + "/full." + ext
 		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
@@ -275,7 +279,6 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 		// now stash it to other nodes in the cluster too
 		nodes := ctx.Cluster.Stash(ahash, fullpath, size_hints, ctx.Cfg.Replication, ctx.Cfg.MinReplication)
-
 		id := ImageData{
 			Hash:      ahash.String(),
 			Extension: ext,

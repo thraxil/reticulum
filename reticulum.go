@@ -23,7 +23,7 @@ func Log(handler http.Handler, logger *syslog.Writer, node_name string) http.Han
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rc := recover(); rc != nil {
-				fmt.Println("Server Error", rc)
+				fmt.Println("Server Error:", rc)
 				logger.Err(fmt.Sprintf("%s", r.URL))
 			}
 		}()
