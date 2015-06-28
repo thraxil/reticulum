@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"log/syslog"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -19,18 +18,18 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Conte
 	}
 }
 
-func Log(handler http.Handler, logger *syslog.Writer, node_name string) http.Handler {
+func Log(handler http.Handler, node_name string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rc := recover(); rc != nil {
-				fmt.Println("Server Error:", rc)
-				logger.Err(fmt.Sprintf("%s", r.URL))
+				log.Println("Server Error:", rc)
+				log.Println(r.URL.String())
 			}
 		}()
 		t0 := time.Now()
 		handler.ServeHTTP(w, r)
 		t1 := time.Now()
-		logger.Info(fmt.Sprintf("%s: %s %s %s [%v]", node_name, r.RemoteAddr, r.Method,
+		log.Println(fmt.Sprintf("%s: %s %s %s [%v]", node_name, r.RemoteAddr, r.Method,
 			r.URL, t1.Sub(t0)))
 	})
 }
@@ -39,12 +38,6 @@ var VERIFY_OFFSET = 0
 var VERIFY_SKIP = 0
 
 func main() {
-	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
-	if err != nil {
-		log.Fatal("couldn't log to syslog")
-	}
-	sl.Info("starting up")
-
 	// read the config file
 	var configfile string
 	flag.StringVar(&configfile, "config", "./config.json", "JSON config file")
@@ -75,7 +68,7 @@ func main() {
 	var channels = SharedChannels{
 		ResizeQueue: make(chan ResizeRequest),
 	}
-
+	sl := STDLogger{}
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
 		go ResizeWorker(channels.ResizeQueue, sl, &siteconfig)
 	}
@@ -101,5 +94,5 @@ func main() {
 	http.HandleFunc("/favicon.ico", FaviconHandler)
 
 	// everything is ready, let's go
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, sl, c.Myself.Nickname)))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, c.Myself.Nickname)))
 }
