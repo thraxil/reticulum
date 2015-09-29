@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	_ "expvar"
 	"flag"
 	"fmt"
 	"io/ioutil"
