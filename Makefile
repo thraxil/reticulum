@@ -1,3 +1,4 @@
+ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 all: reticulum
 
 reticulum: *.go
@@ -55,3 +56,9 @@ startall:
 	sudo start reticulum-sata10
 	sudo start reticulum-sata11
 	sudo start reticulum-sata12
+
+build:
+	docker run --rm -v $(ROOT_DIR):/src -v /var/run/docker.sock:/var/run/docker.sock centurylink/golang-builder thraxil/reticulum
+
+push: build
+	docker push thraxil/reticulum
