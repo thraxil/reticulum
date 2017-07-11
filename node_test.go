@@ -8,6 +8,32 @@ import (
 	"github.com/thraxil/resize"
 )
 
+func Test_LastSeenFormatted(t *testing.T) {
+	n := NodeData{
+		Nickname:  "test node",
+		UUID:      "test-uuid",
+		BaseUrl:   "localhost:8080",
+		Location:  "test",
+		Writeable: true,
+	}
+	if len(n.LastSeenFormatted()) != 19 {
+		t.Error("looks like a badly formatted date")
+	}
+}
+
+func Test_LastFailedFormatted(t *testing.T) {
+	n := NodeData{
+		Nickname:  "test node",
+		UUID:      "test-uuid",
+		BaseUrl:   "localhost:8080",
+		Location:  "test",
+		Writeable: true,
+	}
+	if len(n.LastFailedFormatted()) != 19 {
+		t.Error("looks like a badly formatted date")
+	}
+}
+
 func Test_Hashkeys(t *testing.T) {
 	n := NodeData{
 		Nickname:  "test node",
