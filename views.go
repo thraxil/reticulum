@@ -712,8 +712,8 @@ const status_template = `
 		<td><a href="http://{{.BaseUrl}}">{{ .BaseUrl }}</a></td>
 		<td>{{ .Location }}</td>
 		<td>{{if .Writeable}}<span class="text-success">yes</span>{{else}}<span class="text-danger">read-only</span>{{end}}</td>
-		<td>{{ if .LastSeen.IsZero}}-{{else}}{{ .LastSeen }}{{end}}</td>
-		<td>{{ if .LastFailed.IsZero }}-{{else}}{{.LastFailed}}{{end}}</td>
+		<td>{{ if .LastSeen.IsZero}}-{{else}}{{ .LastSeenFormatted }}{{end}}</td>
+		<td>{{ if .LastFailed.IsZero }}-{{else}}{{.LastFailedFormatted}}{{end}}</td>
 	</tr>
 	
 {{ end }}

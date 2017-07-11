@@ -37,6 +37,14 @@ func (n NodeData) String() string {
 	return "Node - nickname: " + n.Nickname + " UUID: " + n.UUID
 }
 
+func (n NodeData) LastSeenFormatted() string {
+	return n.LastSeen.Format("2006-01-02 15:04:05")
+}
+
+func (n NodeData) LastFailedFormatted() string {
+	return n.LastFailed.Format("2006-01-02 15:04:05")
+}
+
 func (n NodeData) HashKeys() []string {
 	keys := make([]string, REPLICAS)
 	h := sha1.New()
