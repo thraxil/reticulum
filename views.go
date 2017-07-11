@@ -97,6 +97,7 @@ func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
 	} else {
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(img_data)
+		servedFromCluster.Add(1)
 	}
 }
 
@@ -106,6 +107,7 @@ func (ctx Context) serveDirect(ri *ImageSpecifier, w http.ResponseWriter) bool {
 		// we've got it, so serve it directly
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(contents)
+		servedLocally.Add(1)
 		return true
 	}
 	return false

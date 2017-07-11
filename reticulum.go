@@ -51,6 +51,9 @@ var (
 	rebalanceFailures  *expvar.Int
 	rebalanceSuccesses *expvar.Int
 	rebalanceCleanups  *expvar.Int
+
+	servedLocally     *expvar.Int
+	servedFromCluster *expvar.Int
 )
 
 func main() {
@@ -66,6 +69,9 @@ func main() {
 	rebalanceFailures = expvar.NewInt("rebalanceFailures")
 	rebalanceSuccesses = expvar.NewInt("rebalanceSuccesses")
 	rebalanceCleanups = expvar.NewInt("rebalanceCleanups")
+
+	servedLocally = expvar.NewInt("servedLocally")
+	servedFromCluster = expvar.NewInt("servedFromCluster")
 
 	// read the config file
 	var configfile string
