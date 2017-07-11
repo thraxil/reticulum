@@ -182,7 +182,9 @@ func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWri
 func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
 	c := make(chan ResizeResponse)
 	ctx.Ch.ResizeQueue <- ResizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size.String(), c}
+	resizeQueueLength.Add(1)
 	result := <-c
+	resizeQueueLength.Add(-1)
 	return result
 }
 

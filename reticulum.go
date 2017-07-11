@@ -2,7 +2,7 @@ package main // import "github.com/thraxil/reticulum"
 
 import (
 	"encoding/json"
-	_ "expvar"
+	"expvar"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -11,6 +11,10 @@ import (
 	"net/http"
 	"runtime"
 	"time"
+)
+
+var (
+	resizeQueueLength *expvar.Int
 )
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Context) http.HandlerFunc {
@@ -39,6 +43,9 @@ var VERIFY_OFFSET = 0
 var VERIFY_SKIP = 0
 
 func main() {
+	// prep expvar values
+	resizeQueueLength = expvar.NewInt("resizeQueue")
+
 	// read the config file
 	var configfile string
 	flag.StringVar(&configfile, "config", "./config.json", "JSON config file")
