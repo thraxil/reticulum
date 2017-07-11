@@ -621,7 +621,9 @@ func FaviconHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 const join_template = `
-<html><head><title>Add Node</title></head>
+<html><head><title>Add Node</title>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
+</head>
 <body>
 <h1>Add Node</h1>
 <form action="." method="post">
@@ -636,6 +638,7 @@ const add_template = `
 <html>
 <head>
 <title>{{.Title}}</title>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
 </head>
 
 <body>
@@ -658,14 +661,16 @@ const status_template = `
 <html>
 <head>
 <title>{{.Title}}</title>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
 </head>
 
 <body>
-<h1>{{.Title}}</h1>
+<div class="container">
+<h1>Reticulum Node: {{ .Cluster.Myself.Nickname }}</h1>
 
 <h2>Config</h2>
 
-<table>
+<table class="table">
 	<tr><th>Port</th><td>{{ .Config.Port }}</td></tr>
 	<tr><th>Replication</th><td>{{ .Config.Replication }}</td></tr>
 	<tr><th>MinReplication</th><td>{{ .Config.MinReplication }}</td></tr>
@@ -676,17 +681,19 @@ const status_template = `
 
 <h2>This Node</h2>
 
-<table>
+<table class="table">
 	<tr><th>Nickname</th><td>{{ .Cluster.Myself.Nickname }}</td></tr>
 	<tr><th>UUID</th><td>{{ .Cluster.Myself.UUID }}</td></tr>
 	<tr><th>Location</th><td>{{ .Cluster.Myself.Location }}</td></tr>
-	<tr><th>Writeable</th><td>{{ .Cluster.Myself.Writeable }}</td></tr>
+
+	<tr><th>Writeable</th><td>{{if .Cluster.Myself.Writeable}}<span class="text-success">yes</span>{{else}}<span class="text-danger">read-only</span>{{end}}</td></tr>
+
 	<tr><th>Base URL</th><td>{{ .Cluster.Myself.BaseUrl }}</td></tr>
 </table>
 
 <h2>Neighbors</h2>
 
-<table>
+<table class="table table-condensed table-striped">
 	<tr>
 		<th>Nickname</th>
 		<th>UUID</th>
@@ -702,9 +709,9 @@ const status_template = `
 	<tr>
 		<th>{{ .Nickname }}</th>
 		<td>{{ .UUID }}</td>
-		<td>{{ .BaseUrl }}</td>
+		<td><a href="http://{{.BaseUrl}}">{{ .BaseUrl }}</a></td>
 		<td>{{ .Location }}</td>
-		<td>{{ .Writeable }}</td>
+		<td>{{if .Writeable}}<span class="text-success">yes</span>{{else}}<span class="text-danger">read-only</span>{{end}}</td>
 		<td>{{ .LastSeen }}</td>
 		<td>{{ .LastFailed }}</td>
 	</tr>
@@ -712,7 +719,7 @@ const status_template = `
 {{ end }}
 
 </table>
-
+</div>
 
 </body>
 </html>
