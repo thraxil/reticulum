@@ -56,7 +56,7 @@ var (
 	servedFromCluster *expvar.Int
 )
 
-func main() {
+func init() {
 	// prep expvar values
 	resizeQueueLength = expvar.NewInt("resizeQueue")
 	numNeighbors = expvar.NewInt("numNeighbors")
@@ -72,7 +72,9 @@ func main() {
 
 	servedLocally = expvar.NewInt("servedLocally")
 	servedFromCluster = expvar.NewInt("servedFromCluster")
+}
 
+func main() {
 	// read the config file
 	var configfile string
 	flag.StringVar(&configfile, "config", "./config.json", "JSON config file")
