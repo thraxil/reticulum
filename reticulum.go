@@ -13,11 +13,6 @@ import (
 	"time"
 )
 
-var (
-	resizeQueueLength *expvar.Int
-	numNeighbors      *expvar.Int
-)
-
 func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, ctx)
@@ -43,10 +38,17 @@ func Log(handler http.Handler, node_name string) http.Handler {
 var VERIFY_OFFSET = 0
 var VERIFY_SKIP = 0
 
+var (
+	resizeQueueLength *expvar.Int
+	numNeighbors      *expvar.Int
+	neighborFailures  *expvar.Int
+)
+
 func main() {
 	// prep expvar values
 	resizeQueueLength = expvar.NewInt("resizeQueue")
 	numNeighbors = expvar.NewInt("numNeighbors")
+	neighborFailures = expvar.NewInt("neighborFailures")
 
 	// read the config file
 	var configfile string

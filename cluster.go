@@ -141,6 +141,7 @@ func (c *Cluster) FailedNeighbor(neighbor NodeData) {
 			n.Writeable = false
 			n.LastFailed = time.Now()
 			c.neighbors[neighbor.UUID] = n
+			neighborFailures.Add(1)
 		}
 	}
 }
