@@ -15,6 +15,7 @@ import (
 
 var (
 	resizeQueueLength *expvar.Int
+	numNeighbors      *expvar.Int
 )
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Context) http.HandlerFunc {
@@ -45,6 +46,7 @@ var VERIFY_SKIP = 0
 func main() {
 	// prep expvar values
 	resizeQueueLength = expvar.NewInt("resizeQueue")
+	numNeighbors = expvar.NewInt("numNeighbors")
 
 	// read the config file
 	var configfile string

@@ -66,6 +66,7 @@ func (c *Cluster) AddNeighbor(nd NodeData) {
 		c.gcpeers.Set(peerUrls...)
 		// TODO: handle a node changing its groupcache URL
 	}
+	numNeighbors.Add(1)
 }
 
 type gnresp struct {
@@ -98,6 +99,7 @@ func (c *Cluster) RemoveNeighbor(nd NodeData) {
 		}
 		c.gcpeers.Set(peerUrls...)
 	}
+	numNeighbors.Add(-1)
 }
 
 type fResp struct {
