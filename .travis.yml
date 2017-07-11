@@ -10,4 +10,4 @@ install:
  - go get github.com/golang/groupcache
 
 script:
-  - $HOME/gopath/bin/goveralls -service=travis-ci
+  - $HOME/gopath/goveralls -service=travis-ci -package=.
