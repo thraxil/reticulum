@@ -198,11 +198,14 @@ func (r ImageRebalancer) Rebalance() error {
 	satisfied, delete_local, found_replicas := r.checkNodesForRebalance(nodes_to_check)
 	if !satisfied {
 		r.sl.Warning(fmt.Sprintf("could not replicate %s to %d nodes", r.path, r.s.Replication))
+		rebalanceFailures.Add(1)
 	} else {
 		r.sl.Info(fmt.Sprintf("%s has full replica set (%d of %d)\n", r.path, found_replicas, r.s.Replication))
+		rebalanceSuccesses.Add(1)
 	}
 	if satisfied && delete_local {
 		clean_up_excess_replica(r.path, r.sl)
+		rebalanceCleanups.Add(1)
 	}
 	return nil
 }
@@ -379,5 +382,8 @@ func Verify(c *Cluster, s SiteConfig, sl Logger) {
 		if err != nil {
 			sl.Info(fmt.Sprintf("filepath.Walk() returned %v\n", err))
 		}
+		verifierPass.Add(1)
+		// offset should only be applied on the first pass through
+		VERIFY_OFFSET = 0
 	}
 }

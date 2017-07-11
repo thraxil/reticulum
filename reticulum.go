@@ -46,6 +46,11 @@ var (
 	repairedImages     *expvar.Int
 	unrepairableImages *expvar.Int
 	verifiedImages     *expvar.Int
+	verifierPass       *expvar.Int
+
+	rebalanceFailures  *expvar.Int
+	rebalanceSuccesses *expvar.Int
+	rebalanceCleanups  *expvar.Int
 )
 
 func main() {
@@ -57,6 +62,10 @@ func main() {
 	repairedImages = expvar.NewInt("repairedImages")
 	unrepairableImages = expvar.NewInt("unrepairableImages")
 	verifiedImages = expvar.NewInt("verifiedImages")
+	verifierPass = expvar.NewInt("verifierPass")
+	rebalanceFailures = expvar.NewInt("rebalanceFailures")
+	rebalanceSuccesses = expvar.NewInt("rebalanceSuccesses")
+	rebalanceCleanups = expvar.NewInt("rebalanceCleanups")
 
 	// read the config file
 	var configfile string
