@@ -46,23 +46,28 @@ func verify(path string, extension string, hash *Hash, ahash string,
 	//    VERIFY PHASE
 	if hash.String() != ahash {
 		sl.Warning(fmt.Sprintf("image %s appears to be corrupted!\n", path))
+		corruptedImages.Add(1)
 		// trust that the hash was correct on upload
 		// ask other nodes for a copy
 		repaired, err := repair_image(path, extension, hash, c, sl)
 		if err != nil {
+			sl.Err(fmt.Sprintf("error attempting to repair image: %s\n", err))
 			return err
 		}
 		if repaired {
+			repairedImages.Add(1)
 			err := clear_cached(path, extension)
 			if err != nil {
 				return err
 			}
 		} else {
 			sl.Err(fmt.Sprintf("could not repair corrupted image: %s\n", path))
+			unrepairableImages.Add(1)
 			// return here so we don't try to rebalance a corrupted image
 			return errors.New("unrepairable image")
 		}
 	}
+	verifiedImages.Add(1)
 	return nil
 }
 

@@ -39,9 +39,13 @@ var VERIFY_OFFSET = 0
 var VERIFY_SKIP = 0
 
 var (
-	resizeQueueLength *expvar.Int
-	numNeighbors      *expvar.Int
-	neighborFailures  *expvar.Int
+	resizeQueueLength  *expvar.Int
+	numNeighbors       *expvar.Int
+	neighborFailures   *expvar.Int
+	corruptedImages    *expvar.Int
+	repairedImages     *expvar.Int
+	unrepairableImages *expvar.Int
+	verifiedImages     *expvar.Int
 )
 
 func main() {
@@ -49,6 +53,10 @@ func main() {
 	resizeQueueLength = expvar.NewInt("resizeQueue")
 	numNeighbors = expvar.NewInt("numNeighbors")
 	neighborFailures = expvar.NewInt("neighborFailures")
+	corruptedImages = expvar.NewInt("corruptedImages")
+	repairedImages = expvar.NewInt("repairedImages")
+	unrepairableImages = expvar.NewInt("unrepairableImages")
+	verifiedImages = expvar.NewInt("verifiedImages")
 
 	// read the config file
 	var configfile string
