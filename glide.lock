@@ -1,0 +1,17 @@
+hash: 5a079d20ffc86beda6b02437e72f0ce4675e6ec6084c41fc271e3c693921e5fc
+updated: 2017-07-11T11:48:06.187099459+01:00
+imports:
+- name: github.com/golang/groupcache
+  version: b710c8433bd175204919eb38776e944233235d03
+  subpackages:
+  - consistenthash
+  - groupcachepb
+  - lru
+  - singleflight
+- name: github.com/golang/protobuf
+  version: 6a1fa9404c0aebf36c879bc50152edcc953910d2
+  subpackages:
+  - proto
+- name: github.com/thraxil/resize
+  version: edd092fb768d8caa68d2d1ca0159e48b9fc7744f
+testImports: []
