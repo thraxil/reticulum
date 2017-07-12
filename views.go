@@ -295,6 +295,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			ctx.SL.Err(err.Error())
 		}
 		w.Write(b)
+		ctx.Cluster.Uploaded(ImageRecord{*ahash, "." + ext})
 	} else {
 		p := Page{
 			Title:      "upload image",
@@ -320,6 +321,22 @@ func StatusHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		Neighbors: ctx.Cluster.GetNeighbors(),
 	}
 	t, _ := template.New("status").Parse(status_template)
+	t.Execute(w, p)
+}
+
+type DashboardPage struct {
+	RecentlyVerified []ImageRecord
+	RecentlyUploaded []ImageRecord
+	RecentlyStashed  []ImageRecord
+}
+
+func DashboardHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
+	p := DashboardPage{
+		RecentlyVerified: ctx.Cluster.recentlyVerified,
+		RecentlyUploaded: ctx.Cluster.recentlyUploaded,
+		RecentlyStashed:  ctx.Cluster.recentlyStashed,
+	}
+	t, _ := template.New("dashboard").Parse(dashboard_template)
 	t.Execute(w, p)
 }
 
@@ -382,6 +399,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			}
 		}
 	}()
+	ctx.Cluster.Stashed(ImageRecord{*ahash, ext})
 }
 
 func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
@@ -723,6 +741,41 @@ const status_template = `
 {{ end }}
 
 </table>
+</div>
+
+</body>
+</html>
+`
+
+const dashboard_template = `
+<html>
+<head>
+<title>Reticulum Dashboard</title>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
+</head>
+
+<body>
+<div class="container">
+
+<h2>Recently Verified</h2>
+
+{{ range .RecentlyVerified }}
+<a href="/image/{{.Hash.String}}/full/image{{.Extension}}"><img src="/image/{{ .Hash.String }}/100s/image{{.Extension}}"></a>
+{{ end }}
+
+<h2>Recently Uploaded</h2>
+
+{{ range .RecentlyUploaded }}
+<a href="/image/{{.Hash.String}}/full/image{{.Extension}}"><img src="/image/{{ .Hash.String }}/100s/image{{.Extension}}"></a>
+{{ end }}
+
+<h2>Recently Stashed</h2>
+
+{{ range .RecentlyStashed }}
+<a href="/image/{{.Hash.String}}/full/image{{.Extension}}"><img src="/image/{{ .Hash.String }}/100s/image{{.Extension}}"></a>
+{{ end }}
+
+
 </div>
 
 </body>

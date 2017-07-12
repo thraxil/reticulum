@@ -126,6 +126,7 @@ func main() {
 	http.HandleFunc("/retrieve_info/", makeHandler(RetrieveInfoHandler, ctx))
 	http.HandleFunc("/announce/", makeHandler(AnnounceHandler, ctx))
 	http.HandleFunc("/status/", makeHandler(StatusHandler, ctx))
+	http.HandleFunc("/dashboard/", makeHandler(DashboardHandler, ctx))
 	http.HandleFunc("/config/", makeHandler(ConfigHandler, ctx))
 	http.HandleFunc("/join/", makeHandler(JoinHandler, ctx))
 	http.HandleFunc("/favicon.ico", FaviconHandler)

@@ -34,6 +34,10 @@ type Cluster struct {
 	gcpeers    PeerList
 	Imagecache CacheGetter
 	chF        chan func()
+
+	recentlyVerified []ImageRecord
+	recentlyUploaded []ImageRecord
+	recentlyStashed  []ImageRecord
 }
 
 func NewCluster(myself NodeData, cache Cache, cache_size int64) *Cluster {
@@ -53,6 +57,36 @@ func (c *Cluster) backend() {
 	// need to come through this
 	for f := range c.chF {
 		f()
+	}
+}
+
+func (c *Cluster) Verified(ir ImageRecord) {
+	c.chF <- func() {
+		rv := append(c.recentlyVerified, ir)
+		if len(rv) > 20 {
+			rv = rv[1:]
+		}
+		c.recentlyVerified = rv
+	}
+}
+
+func (c *Cluster) Uploaded(ir ImageRecord) {
+	c.chF <- func() {
+		rv := append(c.recentlyUploaded, ir)
+		if len(rv) > 20 {
+			rv = rv[1:]
+		}
+		c.recentlyUploaded = rv
+	}
+}
+
+func (c *Cluster) Stashed(ir ImageRecord) {
+	c.chF <- func() {
+		rv := append(c.recentlyStashed, ir)
+		if len(rv) > 20 {
+			rv = rv[1:]
+		}
+		c.recentlyStashed = rv
 	}
 }
 
