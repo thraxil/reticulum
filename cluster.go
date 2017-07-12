@@ -304,6 +304,8 @@ func (c *Cluster) Gossip(i, base_time int, sl Logger) {
 
 	rand.Seed(int64(time.Now().Unix()) + int64(i))
 	var jitter int
+	first_run := true
+
 	for {
 		// run forever
 		for _, n := range c.GetNeighbors() {
@@ -313,7 +315,12 @@ func (c *Cluster) Gossip(i, base_time int, sl Logger) {
 			}
 			// avoid thundering herd
 			jitter = rand.Intn(30)
-			time.Sleep(time.Duration(base_time+jitter) * time.Second)
+			if first_run {
+				time.Sleep(time.Duration(jitter) * time.Second)
+			} else {
+				time.Sleep(time.Duration(base_time+jitter) * time.Second)
+			}
+			first_run = false
 			sl.Info(fmt.Sprintf("node %s pinging %s", c.Myself.Nickname, n.Nickname))
 			resp, err := n.Ping(c.Myself)
 			if err != nil {
