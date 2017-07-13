@@ -647,6 +647,15 @@ const join_template = `
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
 </head>
 <body>
+
+<ol class="breadcrumb">
+  <li><a href="/">Upload</a></li>
+  <li><a href="/status/">Status</a></li>
+  <li><a href="/dashboard/">Dashboard</a></li>
+  <li><a href="/debug/vars">expvar</a></li>
+  <li><a href="/join/">Add Node</a></li>
+</ol>
+
 <h1>Add Node</h1>
 <form action="." method="post">
 <input type="text" name="url" placeholder="Base URL" size="128" /><br />
@@ -664,6 +673,15 @@ const add_template = `
 </head>
 
 <body>
+
+<ol class="breadcrumb">
+  <li><a href="/">Upload</a></li>
+  <li><a href="/status/">Status</a></li>
+  <li><a href="/dashboard/">Dashboard</a></li>
+  <li><a href="/debug/vars">expvar</a></li>
+  <li><a href="/join/">Add Node</a></li>
+</ol>
+
 <h1>{{.Title}}</h1>
 
 <form action="." method="post" enctype="multipart/form-data" >
@@ -685,6 +703,14 @@ const status_template = `
 <title>{{.Title}}</title>
 <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
 </head>
+
+<ol class="breadcrumb">
+  <li><a href="/">Upload</a></li>
+  <li><a href="/status/">Status</a></li>
+  <li><a href="/dashboard/">Dashboard</a></li>
+  <li><a href="/debug/vars">expvar</a></li>
+  <li><a href="/join/">Add Node</a></li>
+</ol>
 
 <body>
 <div class="container">
@@ -755,6 +781,15 @@ const dashboard_template = `
 </head>
 
 <body>
+<ol class="breadcrumb">
+  <li><a href="/">Upload</a></li>
+  <li><a href="/status/">Status</a></li>
+  <li><a href="/dashboard/">Dashboard</a></li>
+  <li><a href="/debug/vars">expvar</a></li>
+  <li><a href="/join/">Add Node</a></li>
+</ol>
+
+
 <div class="container">
 
 <h2>Recently Verified</h2>
