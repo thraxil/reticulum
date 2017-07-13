@@ -1,5 +1,5 @@
-hash: 5a079d20ffc86beda6b02437e72f0ce4675e6ec6084c41fc271e3c693921e5fc
-updated: 2017-07-11T11:48:06.187099459+01:00
+hash: 5ea279c66b9471eb90bea13e5073a81cb77d46081166b807aa72be74776cffbe
+updated: 2017-07-13T15:46:24.547030677+01:00
 imports:
 - name: github.com/golang/groupcache
   version: b710c8433bd175204919eb38776e944233235d03
@@ -9,9 +9,11 @@ imports:
   - lru
   - singleflight
 - name: github.com/golang/protobuf
-  version: 6a1fa9404c0aebf36c879bc50152edcc953910d2
+  version: 0a4f71a498b7c4812f64969510bcb4eca251e33a
   subpackages:
   - proto
+- name: github.com/thraxil/randwalk
+  version: 615038b03cd6af5fcda4a5084728a7e1786241f2
 - name: github.com/thraxil/resize
   version: edd092fb768d8caa68d2d1ca0159e48b9fc7744f
 testImports: []

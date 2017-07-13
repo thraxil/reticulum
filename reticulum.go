@@ -35,9 +35,6 @@ func Log(handler http.Handler, node_name string) http.Handler {
 	})
 }
 
-var VERIFY_OFFSET = 0
-var VERIFY_SKIP = 0
-
 var (
 	resizeQueueLength  *expvar.Int
 	numNeighbors       *expvar.Int
@@ -113,8 +110,8 @@ func main() {
 	// start our gossiper
 	go c.Gossip(int(f.Port), siteconfig.GossiperSleep, sl)
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	VERIFY_OFFSET = r.Intn(10000)
+	// seed the RNG
+	rand.New(rand.NewSource(time.Now().UnixNano()))
 	go Verify(c, siteconfig, sl)
 
 	ctx := Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
