@@ -757,7 +757,13 @@ const status_template = `
 	<tr>
 		<th>{{ .Nickname }}</th>
 		<td>{{ .UUID }}</td>
-		<td><a href="http://{{.BaseUrl}}">{{ .BaseUrl }}</a></td>
+		<td><a href="http://{{.BaseUrl}}">{{ .BaseUrl }}</a>
+        <div class="btn-group btn-group-sm" role="group">
+        <a class="btn btn-default" href="http://{{.BaseUrl}}/status/">S</a>
+        <a class="btn btn-default" href="http://{{.BaseUrl}}/dashboard/">D</a>
+        <a class="btn btn-default" href="http://{{.BaseUrl}}/debug/vars">E</a>
+        </div>
+    </td>
 		<td>{{ .Location }}</td>
 		<td>{{if .Writeable}}<span class="text-success">yes</span>{{else}}<span class="text-danger">read-only</span>{{end}}</td>
 		<td>{{ if .LastSeen.IsZero}}-{{else}}{{ .LastSeenFormatted }}{{end}}</td>
