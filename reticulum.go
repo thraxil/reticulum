@@ -102,7 +102,8 @@ func main() {
 	var channels = SharedChannels{
 		ResizeQueue: make(chan ResizeRequest),
 	}
-	sl := STDLogger{}
+	sl := NewSTDLogger()
+	sl.Info("starting logger")
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
 		go ResizeWorker(channels.ResizeQueue, sl, &siteconfig)
 	}

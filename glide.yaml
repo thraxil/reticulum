@@ -3,3 +3,9 @@ import:
 - package: github.com/golang/groupcache
 - package: github.com/thraxil/resize
 - package: github.com/thraxil/randwalk
+- package: github.com/go-kit/kit
+  version: ^0.5.0
+  subpackages:
+  - log
+- package: github.com/go-stack/stack
+  version: ^1.5.4

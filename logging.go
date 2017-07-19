@@ -1,6 +1,10 @@
 package main
 
-import "log"
+import (
+	"os"
+
+	"github.com/go-kit/kit/log"
+)
 
 type Logger interface {
 	Info(m string) (err error)
@@ -24,17 +28,25 @@ type STDLogger struct {
 	InfoResponse    error
 	ErrResponse     error
 	WarningResponse error
+	writer          log.Logger
+}
+
+func NewSTDLogger() *STDLogger {
+	s := STDLogger{}
+	w := log.NewSyncWriter(os.Stderr)
+	s.writer = log.NewJSONLogger(w)
+	return &s
 }
 
 func (s STDLogger) Info(m string) error {
-	log.Println("INFO", m)
+	s.writer.Log("level", "INFO", "msg", m)
 	return s.InfoResponse
 }
 func (s STDLogger) Err(m string) error {
-	log.Println("ERR", m)
+	s.writer.Log("level", "ERR", "msg", m)
 	return s.ErrResponse
 }
 func (s STDLogger) Warning(m string) error {
-	log.Println("WARN", m)
+	s.writer.Log("level", "WARN", "msg", m)
 	return s.WarningResponse
 }
