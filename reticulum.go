@@ -19,18 +19,18 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Conte
 	}
 }
 
-func Log(handler http.Handler, node_name string) http.Handler {
+func Log(handler http.Handler, node_name string, sl *STDLogger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rc := recover(); rc != nil {
-				log.Println("Server Error:", rc)
-				log.Println(r.URL.String())
+				sl.Err(fmt.Sprintf("Server Error: %s", rc))
+				sl.Err(fmt.Sprintf(r.URL.String()))
 			}
 		}()
 		t0 := time.Now()
 		handler.ServeHTTP(w, r)
 		t1 := time.Now()
-		log.Println(fmt.Sprintf("%s: %s %s %s [%v]", node_name, r.RemoteAddr, r.Method,
+		sl.Info(fmt.Sprintf("%s: %s %s %s [%v]", node_name, r.RemoteAddr, r.Method,
 			r.URL, t1.Sub(t0)))
 	})
 }
@@ -130,5 +130,5 @@ func main() {
 	http.HandleFunc("/favicon.ico", FaviconHandler)
 
 	// everything is ready, let's go
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, c.Myself.Nickname)))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, c.Myself.Nickname, sl)))
 }
