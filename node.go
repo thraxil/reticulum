@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
-	"log/syslog"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -224,11 +222,7 @@ func makeParams(originator NodeData) url.Values {
 	return params
 }
 
-func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
-	sl, err := syslog.New(syslog.LOG_INFO, "reticulum")
-	if err != nil {
-		log.Fatal("couldn't log to syslog")
-	}
+func (n *NodeData) Ping(originator NodeData, sl Logger) (AnnounceResponse, error) {
 	params := makeParams(originator)
 
 	var response AnnounceResponse
@@ -243,7 +237,7 @@ func (n *NodeData) Ping(originator NodeData) (AnnounceResponse, error) {
 	select {
 	case pr := <-rc:
 		resp := pr.Resp
-		err = pr.Err
+		err := pr.Err
 		if err != nil {
 			sl.Info(fmt.Sprintf("node %s returned an error on ping: %s", n.Nickname, err.Error()))
 			n.LastFailed = time.Now()

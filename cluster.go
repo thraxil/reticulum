@@ -356,7 +356,7 @@ func (c *Cluster) Gossip(i, base_time int, sl Logger) {
 			}
 			first_run = false
 			sl.Info(fmt.Sprintf("node %s pinging %s", c.Myself.Nickname, n.Nickname))
-			resp, err := n.Ping(c.Myself)
+			resp, err := n.Ping(c.Myself, sl)
 			if err != nil {
 				sl.Info(fmt.Sprintf("error on node %s pinging %s", c.Myself.Nickname, n.Nickname))
 				c.FailedNeighbor(n)
