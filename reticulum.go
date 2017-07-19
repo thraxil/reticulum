@@ -6,9 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"runtime"
 	"time"
 )
@@ -72,6 +72,9 @@ func init() {
 }
 
 func main() {
+	sl := NewSTDLogger()
+	sl.Info("starting logger")
+
 	// read the config file
 	var configfile string
 	flag.StringVar(&configfile, "config", "./config.json", "JSON config file")
@@ -79,13 +82,15 @@ func main() {
 
 	file, err := ioutil.ReadFile(configfile)
 	if err != nil {
-		log.Fatal(err)
+		sl.Err(err.Error())
+		os.Exit(1)
 	}
 
 	f := ConfigData{}
 	err = json.Unmarshal(file, &f)
 	if err != nil {
-		log.Fatal(err)
+		sl.Err(err.Error())
+		os.Exit(1)
 	}
 
 	siteconfig := f.MyConfig()
@@ -102,8 +107,6 @@ func main() {
 	var channels = SharedChannels{
 		ResizeQueue: make(chan ResizeRequest),
 	}
-	sl := NewSTDLogger()
-	sl.Info("starting logger")
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
 		go ResizeWorker(channels.ResizeQueue, sl, &siteconfig)
 	}
@@ -130,5 +133,5 @@ func main() {
 	http.HandleFunc("/favicon.ico", FaviconHandler)
 
 	// everything is ready, let's go
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, c.Myself.Nickname, sl)))
+	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, c.Myself.Nickname, sl))
 }
