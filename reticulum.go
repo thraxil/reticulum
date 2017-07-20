@@ -19,7 +19,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Conte
 	}
 }
 
-func Log(handler http.Handler, node_name string, sl *STDLogger) http.Handler {
+func Log(handler http.Handler, node_name string, sl Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rc := recover(); rc != nil {
