@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-kit/kit/log"
 	"github.com/golang/groupcache"
 	"github.com/thraxil/resize"
 )
@@ -24,7 +25,7 @@ type Context struct {
 	Cluster *Cluster
 	Cfg     SiteConfig
 	Ch      SharedChannels
-	SL      Logger
+	SL      log.Logger
 }
 
 type Page struct {
@@ -292,7 +293,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		}
 		b, err := json.Marshal(id)
 		if err != nil {
-			ctx.SL.Err(err.Error())
+			ctx.SL.Log("level", "ERR", "error", err.Error())
 		}
 		w.Write(b)
 		ctx.Cluster.Uploaded(ImageRecord{*ahash, "." + ext})
@@ -343,7 +344,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 func ConfigHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	b, err := json.Marshal(ctx.Cluster.Myself)
 	if err != nil {
-		ctx.SL.Err(err.Error())
+		ctx.SL.Log("level", "ERR", "error", err.Error())
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
@@ -395,7 +396,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			ctx.Ch.ResizeQueue <- ResizeRequest{fullpath, ext, size, c}
 			result := <-c
 			if !result.Success {
-				ctx.SL.Err("could not pre-resize")
+				ctx.SL.Log("level", "ERR", "msg", "could not pre-resize")
 			}
 		}
 	}()
@@ -438,7 +439,7 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	b, err := json.Marshal(ImageInfoResponse{ahash.String(), extension, local})
 	if err != nil {
-		ctx.SL.Err(err.Error())
+		ctx.SL.Log("level", "ERR", "error", err.Error())
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(b)
@@ -553,14 +554,14 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			}
 			neighbor.LastSeen = time.Now()
 			ctx.Cluster.UpdateNeighbor(*neighbor)
-			ctx.SL.Info("updated existing neighbor")
+			ctx.SL.Log("level", "INFO", "msg", "updated existing neighbor")
 			// TODO: gossip enable by accepting the list of neighbors
 			// from the client and merging that data in.
 			// for now, just let it update its own entry
 
 		} else {
 			// otherwise, add them to the Neighbors list
-			ctx.SL.Info("adding neighbor")
+			ctx.SL.Log("level", "INFO", "msg", "adding neighbor")
 			nd := NodeData{
 				Nickname: r.FormValue("nickname"),
 				UUID:     r.FormValue("uuid"),
@@ -586,7 +587,7 @@ func AnnounceHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {
-		ctx.SL.Err(err.Error())
+		ctx.SL.Log("level", "ERR", "error", err.Error())
 	}
 	w.Write(b)
 }

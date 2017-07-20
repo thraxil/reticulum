@@ -14,6 +14,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/go-kit/kit/log"
 )
 
 // what we know about a single node
@@ -222,14 +224,14 @@ func makeParams(originator NodeData) url.Values {
 	return params
 }
 
-func (n *NodeData) Ping(originator NodeData, sl Logger) (AnnounceResponse, error) {
+func (n *NodeData) Ping(originator NodeData, sl log.Logger) (AnnounceResponse, error) {
 	params := makeParams(originator)
 
 	var response AnnounceResponse
-	sl.Info(n.announceUrl())
+	sl.Log("level", "INFO", "msg", n.announceUrl())
 	rc := make(chan pingResponse, 1)
 	go func() {
-		sl.Info("made request")
+		sl.Log("level", "INFO", "msg", "made request")
 		resp, err := http.PostForm(n.announceUrl(), params)
 		rc <- pingResponse{resp, err}
 	}()
@@ -239,7 +241,7 @@ func (n *NodeData) Ping(originator NodeData, sl Logger) (AnnounceResponse, error
 		resp := pr.Resp
 		err := pr.Err
 		if err != nil {
-			sl.Info(fmt.Sprintf("node %s returned an error on ping: %s", n.Nickname, err.Error()))
+			sl.Log("level", "INFO", "msg", "node returned an error on ping", "node", n.Nickname, "error", err.Error())
 			n.LastFailed = time.Now()
 			return response, err
 		} else {
@@ -249,8 +251,7 @@ func (n *NodeData) Ping(originator NodeData, sl Logger) (AnnounceResponse, error
 			err = json.Unmarshal(b, &response)
 			resp.Body.Close()
 			if err != nil {
-				sl.Err("bad json response")
-				sl.Err(fmt.Sprintf("%s", b))
+				sl.Log("level", "ERR", "bad json response", "value", fmt.Sprintf("%s", b))
 				return response, errors.New("bad JSON response")
 			}
 			return response, nil
@@ -258,7 +259,7 @@ func (n *NodeData) Ping(originator NodeData, sl Logger) (AnnounceResponse, error
 	case <-time.After(1 * time.Second):
 		// if they take more than a second to respond
 		// let's cut them out
-		sl.Err("response timed out")
+		sl.Log("level", "ERR", "msg", "response timed out")
 		n.LastFailed = time.Now()
 		return response, errors.New("response timed out")
 	}

@@ -2,11 +2,11 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 	"sort"
 	"time"
 
+	"github.com/go-kit/kit/log"
 	"github.com/golang/groupcache"
 )
 
@@ -333,8 +333,8 @@ func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 
 // periodically pings all the known neighbors to gossip
 // run this as a goroutine
-func (c *Cluster) Gossip(i, base_time int, sl Logger) {
-	sl.Info("starting gossiper")
+func (c *Cluster) Gossip(i, base_time int, sl log.Logger) {
+	sl.Log("level", "info", "msg", "starting gossiper")
 
 	rand.Seed(int64(time.Now().Unix()) + int64(i))
 	var jitter int
@@ -355,10 +355,17 @@ func (c *Cluster) Gossip(i, base_time int, sl Logger) {
 				time.Sleep(time.Duration(base_time+jitter) * time.Second)
 			}
 			first_run = false
-			sl.Info(fmt.Sprintf("node %s pinging %s", c.Myself.Nickname, n.Nickname))
+			sl.Log("level", "INFO",
+				"action", "ping",
+				"source", c.Myself.Nickname,
+				"destination", n.Nickname)
 			resp, err := n.Ping(c.Myself, sl)
 			if err != nil {
-				sl.Info(fmt.Sprintf("error on node %s pinging %s", c.Myself.Nickname, n.Nickname))
+				sl.Log("level", "INFO",
+					"msg", "ping error",
+					"source", c.Myself.Nickname,
+					"destination", n.Nickname,
+					"error", err.Error())
 				c.FailedNeighbor(n)
 				continue
 			}
@@ -376,7 +383,7 @@ func (c *Cluster) Gossip(i, base_time int, sl Logger) {
 	}
 }
 
-func (c *Cluster) updateNeighbor(neighbor NodeData, sl Logger) {
+func (c *Cluster) updateNeighbor(neighbor NodeData, sl log.Logger) {
 	if neighbor.UUID == c.Myself.UUID {
 		// as usual, skip ourself
 		return
@@ -387,7 +394,7 @@ func (c *Cluster) updateNeighbor(neighbor NodeData, sl Logger) {
 		c.UpdateNeighbor(neighbor)
 	} else {
 		// heard about another node second hand
-		sl.Info("adding neighbor via gossip")
+		sl.Log("level", "INFO", "msg", "adding neighbor via gossip")
 		c.AddNeighbor(neighbor)
 	}
 }

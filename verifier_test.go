@@ -71,7 +71,7 @@ func (s *sdummy) RetrieveImageInfo(ri *ImageSpecifier) (*ImageInfoResponse, erro
 }
 
 func Test_RetrieveReplica(t *testing.T) {
-	sl := DummyLogger{}
+	sl := NewDummyLogger()
 	n := sdummy{}
 	hash, err := HashFromString("fb682e05b9be61797601e60165825c0b089f755e", "")
 	if err != nil {
@@ -92,7 +92,7 @@ func Test_RetrieveReplica(t *testing.T) {
 }
 
 func Test_visitPreChecks(t *testing.T) {
-	sl := DummyLogger{}
+	sl := NewDummyLogger()
 	cn := make([]NodeData, 0)
 	_, c := makeNewClusterData(cn)
 	done, err := visitPreChecks("full.jpg", fdummy{}, nil, c, sl)

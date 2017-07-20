@@ -81,7 +81,7 @@ func init() {
 
 func main() {
 	sl := NewSTDLogger()
-	sl.Info("starting logger")
+	sl.Log("level", "INFO", "msg", "starting logger")
 
 	// read the config file
 	var configfile string
@@ -90,14 +90,14 @@ func main() {
 
 	file, err := ioutil.ReadFile(configfile)
 	if err != nil {
-		sl.Err(err.Error())
+		sl.Log("level", "ERR", "error", err.Error())
 		os.Exit(1)
 	}
 
 	f := ConfigData{}
 	err = json.Unmarshal(file, &f)
 	if err != nil {
-		sl.Err(err.Error())
+		sl.Log("level", "ERR", "error", err.Error())
 		os.Exit(1)
 	}
 
@@ -141,5 +141,5 @@ func main() {
 	http.HandleFunc("/favicon.ico", FaviconHandler)
 
 	// everything is ready, let's go
-	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, c.Myself.Nickname, sl.writer))
+	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, c.Myself.Nickname, sl))
 }

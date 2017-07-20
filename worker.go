@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/thraxil/resize"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -11,6 +10,10 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/thraxil/resize"
+
+	"github.com/go-kit/kit/log"
 )
 
 type ResizeRequest struct {
@@ -32,33 +35,34 @@ var decoders = map[string](func(io.Reader) (image.Image, error)){
 	"png": png.Decode,
 }
 
-func ResizeWorker(requests chan ResizeRequest, sl Logger, s *SiteConfig) {
+func ResizeWorker(requests chan ResizeRequest, sl log.Logger, s *SiteConfig) {
 	for req := range requests {
 		if !s.Writeable {
 			// node is not writeable, so we should never handle a resize
 			req.Response <- ResizeResponse{nil, false, false}
 			continue
 		}
-		sl.Info("handling a resize request")
+		sl.Log("level", "INFO", "msg", "handling a resize request")
 		t0 := time.Now()
 		origFile, err := os.Open(req.Path)
 		if err != nil {
 			origFile.Close()
-			sl.Err(fmt.Sprintf("resize worker could not open %s: %s", req.Path, err.Error()))
+			sl.Log("level", "ERR", "msg", "resize worker could not open image",
+				"image", req.Path, "error", err.Error())
 			req.Response <- ResizeResponse{nil, false, false}
 			continue
 		}
 		_, err = imageMagickResize(req.Path, req.Size, sl, s)
 		if err != nil {
 			// imagemagick couldn't handle it either
-			sl.Err(fmt.Sprintf("imagemagick couldn't handle it: %s", err.Error()))
+			sl.Log("level", "ERR", "msg", "imagemagick couldn't handle it", "error", err.Error())
 			req.Response <- ResizeResponse{nil, false, false}
 		} else {
 			// imagemagick saved the day
-			sl.Info("rescued by imagemagick")
+			sl.Log("level", "INFO", "msg", "rescued by imagemagick")
 			req.Response <- ResizeResponse{nil, true, true}
 			t1 := time.Now()
-			sl.Info(fmt.Sprintf("finished resize [%v]", t1.Sub(t0)))
+			sl.Log("level", "INFO", "msg", "finished resize", "time", t1.Sub(t0))
 		}
 	}
 }
@@ -67,7 +71,7 @@ func ResizeWorker(requests chan ResizeRequest, sl Logger, s *SiteConfig) {
 // so sometimes we need to bail and have imagemagick do the work
 // this sucks, is redundant, and i'd rather not have this external dependency
 // so this will be removed as soon as Go can handle it all itself
-func imageMagickResize(path, size string, sl Logger,
+func imageMagickResize(path, size string, sl log.Logger,
 	s *SiteConfig) (string, error) {
 
 	args := convertArgs(size, path, s.ImageMagickConvertPath)
@@ -76,14 +80,14 @@ func imageMagickResize(path, size string, sl Logger,
 	p, err := os.StartProcess(args[0], args, &os.ProcAttr{Files: fds})
 	defer p.Release()
 	if err != nil {
-		sl.Err("imagemagick failed to start")
-		sl.Err(err.Error())
+		sl.Log("level", "ERR", "msg", "imagemagick failed to start",
+			"error", err.Error())
 		return "", err
 	}
 	_, err = p.Wait()
 	if err != nil {
-		sl.Err("imagemagick failed")
-		sl.Err(err.Error())
+		sl.Log("level", "ERR", "msg", "imagemagick failed",
+			"error", err.Error())
 		return "", err
 	}
 	return resizedPath(path, size), nil
