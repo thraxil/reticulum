@@ -11,6 +11,8 @@ import (
 	"os"
 	"runtime"
 	"time"
+
+	"github.com/go-kit/kit/log"
 )
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Context) http.HandlerFunc {
@@ -19,19 +21,24 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Conte
 	}
 }
 
-func Log(handler http.Handler, node_name string, sl Logger) http.Handler {
+func Log(handler http.Handler, node_name string, sl log.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rc := recover(); rc != nil {
-				sl.Err(fmt.Sprintf("Server Error: %s", rc))
-				sl.Err(fmt.Sprintf(r.URL.String()))
+				sl.Log("level", "ERR", "path", r.URL.String(), "msg", rc)
 			}
 		}()
 		t0 := time.Now()
 		handler.ServeHTTP(w, r)
 		t1 := time.Now()
-		sl.Info(fmt.Sprintf("%s: %s %s %s [%v]", node_name, r.RemoteAddr, r.Method,
-			r.URL, t1.Sub(t0)))
+		sl.Log(
+			"level", "INFO",
+			"node", node_name,
+			"remote_addr", r.RemoteAddr,
+			"method", r.Method,
+			"path", r.URL.String(),
+			"time",
+			fmt.Sprintf("%v", t1.Sub(t0)))
 	})
 }
 
@@ -133,5 +140,5 @@ func main() {
 	http.HandleFunc("/favicon.ico", FaviconHandler)
 
 	// everything is ready, let's go
-	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, c.Myself.Nickname, sl))
+	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, c.Myself.Nickname, sl.writer))
 }
