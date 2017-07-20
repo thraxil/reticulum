@@ -22,6 +22,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Conte
 }
 
 func Log(handler http.Handler, node_name string, sl log.Logger) http.Handler {
+	sl = log.With(sl, "component", "web")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rc := recover(); rc != nil {
