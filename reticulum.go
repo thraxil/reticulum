@@ -111,20 +111,23 @@ func main() {
 
 	runtime.GOMAXPROCS(siteconfig.GoMaxProcs)
 
+	rw_sl := log.With(sl, "component", "resize_worker")
 	// start our resize worker goroutines
 	var channels = SharedChannels{
 		ResizeQueue: make(chan ResizeRequest),
 	}
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
-		go ResizeWorker(channels.ResizeQueue, sl, &siteconfig)
+		go ResizeWorker(channels.ResizeQueue, rw_sl, &siteconfig)
 	}
 
+	g_sl := log.With(sl, "component", "gossiper")
 	// start our gossiper
-	go c.Gossip(int(f.Port), siteconfig.GossiperSleep, sl)
+	go c.Gossip(int(f.Port), siteconfig.GossiperSleep, g_sl)
 
 	// seed the RNG
 	rand.New(rand.NewSource(time.Now().UnixNano()))
-	go Verify(c, siteconfig, sl)
+	v_sl := log.With(sl, "component", "verifier")
+	go Verify(c, siteconfig, v_sl)
 
 	ctx := Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
 	// set up HTTP Handlers
