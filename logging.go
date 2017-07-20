@@ -34,7 +34,10 @@ type STDLogger struct {
 func NewSTDLogger() *STDLogger {
 	s := STDLogger{}
 	w := log.NewSyncWriter(os.Stderr)
+
 	s.writer = log.NewJSONLogger(w)
+	s.writer = log.With(s.writer, "timestamp", log.DefaultTimestampUTC,
+		"caller", log.DefaultCaller)
 	return &s
 }
 
