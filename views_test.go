@@ -1,35 +1,24 @@
 package main
 
 import (
-	_ "fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
-func Test_hashToPath(t *testing.T) {
-}
+func Test_StatusHandler(t *testing.T) {
+	req, err := http.NewRequest("GET", "localhost:8080/status/", nil)
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+	n := make([]NodeData, 0)
+	_, c := makeNewClusterData(n)
+	ctx := Context{Cluster: c}
+	rec := httptest.NewRecorder()
+	StatusHandler(rec, req, ctx)
 
-type hstp_testcase struct {
-	Input  string
-	Output string
-}
-
-func Test_hashStringToPath(t *testing.T) {
-	// var testcases = []hstp_testcase{
-	// 	hstp_testcase{
-	// 		"30de73dcec0ab2de54035edda643ada69dcd60c4",
-	// 		"30/de/73/dc/ec/0a/b2/de/54/03/5e/dd/a6/43/ad/a6/9d/cd/60/c4",
-	// 	},
-	// }
-	// for _, tc := range testcases {
-	// 	if tc.Output != hashStringToPath(tc.Input) {
-	// 		t.Error("bad path from hash string")
-	// 	}
-	// }
-	// // try round-tripping with hashFromPath()
-	// var h = "30de73dcec0ab2de54035edda643ada69dcd60c4"
-	// o, err := hashFromPath(hashStringToPath(h) + "/file.jpg")
-	// if err != nil || o != h {
-	// 	fmt.Println(err.Error())
-	// 	t.Error("can't round-trip")
-	// }
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("expected status OK; got %v", res.Status)
+	}
 }
