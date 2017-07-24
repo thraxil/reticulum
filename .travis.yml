@@ -1,5 +1,7 @@
 language: go
 go: 1.7
+sudo: false
+dist: trusty
 
 before_install:
   - go get golang.org/x/tools/cmd/cover
