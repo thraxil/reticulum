@@ -124,10 +124,12 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	err := ctx.Cluster.Imagecache.Get(nil, ri.String(),
 		groupcache.AllocatingByteSliceSink(&data))
 	if err == nil {
+		cacheHits.Add(1)
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(data)
 		return
 	}
+	cacheMisses.Add(1)
 
 	if ctx.serveDirect(ri, w) {
 		return
@@ -149,15 +151,18 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 
 	result := ctx.makeResizeJob(ri)
 	if !result.Success {
+		resizeFailures.Add(1)
 		http.Error(w, "could not resize image", 500)
 		return
 	}
 	if result.Magick {
 		// imagemagick did the resize, so we just spit out
 		// the sized file
+		servedByMagick.Add(1)
 		ctx.serveMagick(ri, w)
 		return
 	}
+	servedScaled.Add(1)
 	ctx.serveScaledByExtension(ri, w, *result.OutputImage)
 }
 
@@ -176,6 +181,7 @@ func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWri
 		// for now we just have to 404
 		http.Error(w, "not found (serveScaledFromCluster)", 404)
 	} else {
+		servedFromCluster.Add(1)
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(img_data)
 	}

@@ -59,6 +59,11 @@ var (
 
 	servedLocally     *expvar.Int
 	servedFromCluster *expvar.Int
+	cacheHits         *expvar.Int
+	cacheMisses       *expvar.Int
+	resizeFailures    *expvar.Int
+	servedByMagick    *expvar.Int
+	servedScaled      *expvar.Int
 )
 
 func init() {
@@ -77,6 +82,12 @@ func init() {
 
 	servedLocally = expvar.NewInt("servedLocally")
 	servedFromCluster = expvar.NewInt("servedFromCluster")
+
+	cacheHits = expvar.NewInt("cacheHits")
+	cacheMisses = expvar.NewInt("cacheMisses")
+	resizeFailures = expvar.NewInt("resizeFailures")
+	servedByMagick = expvar.NewInt("servedByMagick")
+	servedScaled = expvar.NewInt("servedScaled")
 }
 
 func main() {
