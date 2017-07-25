@@ -54,23 +54,23 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 	ctx Context) (*ImageSpecifier, bool) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
-		http.Error(w, "bad request", 404)
+		http.Error(w, "bad request", http.StatusNotFound)
 		return nil, true
 	}
 	ahash, err := HashFromString(parts[2], "")
 	if err != nil {
-		http.Error(w, "invalid hash", 404)
+		http.Error(w, "invalid hash", http.StatusNotFound)
 		return nil, true
 	}
 	size := parts[3]
 	if size == "" {
-		http.Error(w, "missing size", 404)
+		http.Error(w, "missing size", http.StatusNotFound)
 		return nil, true
 	}
 	s := resize.MakeSizeSpec(size)
 	if s.String() != size {
 		// force normalization of size spec
-		http.Redirect(w, r, "/image/"+ahash.String()+"/"+s.String()+"/"+parts[4], 301)
+		http.Redirect(w, r, "/image/"+ahash.String()+"/"+s.String()+"/"+parts[4], http.StatusMovedPermanently)
 		return nil, true
 	}
 	filename := parts[4]
@@ -81,7 +81,7 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 
 	if extension == ".jpeg" {
 		fixed_filename := strings.Replace(parts[4], ".jpeg", ".jpg", 1)
-		http.Redirect(w, r, "/image/"+ahash.String()+"/"+s.String()+"/"+fixed_filename, 301)
+		http.Redirect(w, r, "/image/"+ahash.String()+"/"+s.String()+"/"+fixed_filename, http.StatusMovedPermanently)
 		return nil, true
 	}
 	ri := &ImageSpecifier{ahash, s, extension}
@@ -94,7 +94,7 @@ func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
 	img_data, err := ctx.Cluster.RetrieveImage(ri)
 	if err != nil {
 		// for now we just have to 404
-		http.Error(w, "not found (serve from cluster)", 404)
+		http.Error(w, "not found (serve from cluster)", http.StatusNotFound)
 	} else {
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(img_data)
@@ -179,7 +179,7 @@ func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWri
 	img_data, err := ctx.Cluster.RetrieveImage(ri)
 	if err != nil {
 		// for now we just have to 404
-		http.Error(w, "not found (serveScaledFromCluster)", 404)
+		http.Error(w, "not found (serveScaledFromCluster)", http.StatusNotFound)
 	} else {
 		servedFromCluster.Add(1)
 		w = setCacheHeaders(w, ri.Extension)
@@ -377,7 +377,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	io.Copy(h, i)
 	ahash, err := HashFromString(fmt.Sprintf("%x", h.Sum(nil)), "")
 	if err != nil {
-		http.Error(w, "bad hash", 404)
+		http.Error(w, "bad hash", http.StatusNotFound)
 		return
 	}
 
@@ -413,12 +413,12 @@ func RetrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	// request will look like /retrieve_info/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) != 6) || (parts[1] != "retrieve_info") {
-		http.Error(w, "bad request", 404)
+		http.Error(w, "bad request", http.StatusNotFound)
 		return
 	}
 	ahash, err := HashFromString(parts[2], "")
 	if err != nil {
-		http.Error(w, "bad hash", 404)
+		http.Error(w, "bad hash", http.StatusNotFound)
 		return
 	}
 	extension := parts[4]
@@ -456,12 +456,12 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	// request will look like /retrieve/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) != 6) || (parts[1] != "retrieve") {
-		http.Error(w, "bad request", 404)
+		http.Error(w, "bad request", http.StatusNotFound)
 		return
 	}
 	ahash, err := HashFromString(parts[2], "")
 	if err != nil {
-		http.Error(w, "bad hash", 404)
+		http.Error(w, "bad hash", http.StatusNotFound)
 		return
 	}
 	size := parts[3]
@@ -481,7 +481,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	_, err = ioutil.ReadFile(path)
 	if err != nil {
 		// we don't have the full-size on this node either
-		http.Error(w, "not found (retrieveHandler)", 404)
+		http.Error(w, "not found (retrieveHandler)", http.StatusNotFound)
 		return
 	}
 	// we do have the full-size, but not the scaled one
@@ -491,7 +491,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	// 404 and let another node handle it
 	n := ctx.Cluster.Myself
 	if !n.Writeable {
-		http.Error(w, "could not resize image", 404)
+		http.Error(w, "could not resize image", http.StatusNotFound)
 		return
 	}
 
