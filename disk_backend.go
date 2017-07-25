@@ -1,6 +1,7 @@
 package main
 
 import (
+	"image"
 	"io"
 	"io/ioutil"
 	"os"
@@ -51,4 +52,17 @@ func (d diskBackend) Exists(img ImageSpecifier) bool {
 func (d diskBackend) Delete(img ImageSpecifier) error {
 	path := img.sizedPath(d.Root)
 	return os.RemoveAll(path)
+}
+
+func (d diskBackend) writeLocalType(ri ImageSpecifier, outputImage image.Image, encFunc encfunc) {
+	wFile, err := os.OpenFile(ri.sizedPath(d.Root), os.O_CREATE|os.O_RDWR, 0644)
+	defer wFile.Close()
+	if err != nil {
+		// what do we do if we can't write?
+		// we still have the resized image, so we can serve the response
+		// we just can't cache it.
+		return
+	}
+
+	encFunc(wFile, outputImage)
 }

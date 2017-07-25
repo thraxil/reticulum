@@ -203,24 +203,11 @@ func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWri
 	outputImage image.Image) {
 
 	w = setCacheHeaders(w, ri.Extension)
-	ctx.writeLocalType(*ri, outputImage, extencoders[ri.Extension])
+	ctx.Cfg.Backend.writeLocalType(*ri, outputImage, extencoders[ri.Extension])
 	serveType(w, outputImage, extencoders[ri.Extension])
 }
 
 type encfunc func(io.Writer, image.Image) error
-
-func (ctx Context) writeLocalType(ri ImageSpecifier, outputImage image.Image, encFunc encfunc) {
-	wFile, err := os.OpenFile(ri.sizedPath(ctx.Cfg.UploadDirectory), os.O_CREATE|os.O_RDWR, 0644)
-	defer wFile.Close()
-	if err != nil {
-		// what do we do if we can't write?
-		// we still have the resized image, so we can serve the response
-		// we just can't cache it.
-		return
-	}
-
-	encFunc(wFile, outputImage)
-}
 
 func serveType(w http.ResponseWriter, outputImage image.Image, encFunc encfunc) {
 	encFunc(w, outputImage)
@@ -502,7 +489,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	outputImage := *result.OutputImage
 
 	w.Header().Set("Content-Type", extmimes[extension])
-	ctx.writeLocalType(ri, outputImage, extencoders[ri.Extension])
+	ctx.Cfg.Backend.writeLocalType(ri, outputImage, extencoders[ri.Extension])
 	serveType(w, outputImage, extencoders[ri.Extension])
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"io"
 )
 
@@ -11,4 +12,5 @@ type backend interface {
 	Read(ImageSpecifier) ([]byte, error)
 	Exists(ImageSpecifier) bool
 	Delete(ImageSpecifier) error
+	writeLocalType(ImageSpecifier, image.Image, encfunc)
 }
