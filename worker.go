@@ -51,6 +51,8 @@ func ResizeWorker(requests chan ResizeRequest, sl log.Logger, s *SiteConfig) {
 				"image", req.Path, "error", err.Error())
 			req.Response <- ResizeResponse{nil, false, false}
 			continue
+		} else {
+			origFile.Close()
 		}
 		_, err = imageMagickResize(req.Path, req.Size, sl, s)
 		if err != nil {
