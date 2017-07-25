@@ -210,15 +210,17 @@ func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWri
 		// we just can't cache it.
 	}
 	w = setCacheHeaders(w, ri.Extension)
-
-	serveType(wFile, outputImage, w, ctx, extencoders[ri.Extension])
+	writeLocalType(wFile, outputImage, extencoders[ri.Extension])
+	serveType(w, outputImage, extencoders[ri.Extension])
 }
 
 type encfunc func(io.Writer, image.Image) error
 
-func serveType(wFile *os.File, outputImage image.Image, w http.ResponseWriter, ctx Context,
-	encFunc encfunc) {
+func writeLocalType(wFile *os.File, outputImage image.Image, encFunc encfunc) {
 	encFunc(wFile, outputImage)
+}
+
+func serveType(w http.ResponseWriter, outputImage image.Image, encFunc encfunc) {
 	encFunc(w, outputImage)
 }
 
@@ -505,7 +507,8 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	defer wFile.Close()
 	w.Header().Set("Content-Type", extmimes[extension])
-	serveType(wFile, outputImage, w, ctx, extencoders[ri.Extension])
+	writeLocalType(wFile, outputImage, extencoders[ri.Extension])
+	serveType(w, outputImage, extencoders[ri.Extension])
 }
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
