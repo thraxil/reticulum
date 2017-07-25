@@ -145,3 +145,35 @@ func Test_ServeImageHandler(t *testing.T) {
 		}
 	}
 }
+
+type RetreiveInfoHandlerTestCase struct {
+	path   string
+	status int
+}
+
+func Test_RetrieveInfoImageHandler(t *testing.T) {
+	n := make([]NodeData, 0)
+	_, c := makeNewClusterData(n)
+	ctx := Context{Cluster: c}
+
+	cases := []ServeImageHandlerTestCase{
+		{"/retrieve_info/0051ec03fb813e8731224ee06feee7c828ceae22/100s/jpg/", http.StatusOK},
+		{"/foo", http.StatusNotFound},
+		{"/retrieve_info/invalidahash/full/jpg/", http.StatusNotFound},
+		// TODO: this one should not be OK
+		{"/retrieve_info/0051ec03fb813e8731224ee06feee7c828ceae22//jpg/", http.StatusOK},
+	}
+	for _, c := range cases {
+		req, err := http.NewRequest("GET", "localhost:8080"+c.path, nil)
+		if err != nil {
+			t.Fatalf("could not create request: %v", err)
+		}
+		rec := httptest.NewRecorder()
+		RetrieveInfoHandler(rec, req, ctx)
+
+		res := rec.Result()
+		if res.StatusCode != c.status {
+			t.Errorf("for %s expected status %v; got %v", c.path, c.status, res.Status)
+		}
+	}
+}
