@@ -6,9 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"image"
-	"image/gif"
-	"image/jpeg"
-	"image/png"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -42,9 +39,6 @@ type ImageData struct {
 	Satisfied bool     `json:"satisfied"`
 	Nodes     []string `json:"nodes"`
 }
-
-var jpeg_options = jpeg.Options{Quality: 90}
-var gif_options = gif.Options{}
 
 func setCacheHeaders(w http.ResponseWriter, extension string) http.ResponseWriter {
 	w.Header().Set("Content-Type", extmimes[extension[1:]])
@@ -238,20 +232,6 @@ var extmimes = map[string]string{
 	"jpg": "image/jpeg",
 	"gif": "image/gif",
 	"png": "image/png",
-}
-
-func jpgencode(out io.Writer, in image.Image) error {
-	return jpeg.Encode(out, in, &jpeg_options)
-}
-
-func gifencode(out io.Writer, in image.Image) error {
-	return gif.Encode(out, in, &gif_options)
-}
-
-var extencoders = map[string]encfunc{
-	".jpg": jpgencode,
-	".png": png.Encode,
-	".gif": gifencode,
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
