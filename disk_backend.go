@@ -19,7 +19,7 @@ func (d diskBackend) String() string {
 	return "Disk"
 }
 
-func (d diskBackend) Write(img ImageSpecifier, r io.ReadCloser) error {
+func (d diskBackend) WriteSized(img ImageSpecifier, r io.ReadCloser) error {
 	path := img.baseDir(d.Root)
 
 	err := os.MkdirAll(path, 0755)
@@ -27,6 +27,23 @@ func (d diskBackend) Write(img ImageSpecifier, r io.ReadCloser) error {
 		return err
 	}
 	fullpath := img.sizedPath(d.Root)
+	f, err := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = io.Copy(f, r)
+	return err
+}
+
+func (d diskBackend) WriteFull(img ImageSpecifier, r io.ReadCloser) error {
+	path := img.baseDir(d.Root)
+
+	err := os.MkdirAll(path, 0755)
+	if err != nil {
+		return err
+	}
+	fullpath := img.fullSizePath(d.Root)
 	f, err := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		return err
