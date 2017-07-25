@@ -207,8 +207,6 @@ func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWri
 	serveType(w, outputImage, extencoders[ri.Extension])
 }
 
-type encfunc func(io.Writer, image.Image) error
-
 func serveType(w http.ResponseWriter, outputImage image.Image, encFunc encfunc) {
 	encFunc(w, outputImage)
 }

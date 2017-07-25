@@ -11,6 +11,8 @@ import (
 var jpeg_options = jpeg.Options{Quality: 90}
 var gif_options = gif.Options{}
 
+type encfunc func(io.Writer, image.Image) error
+
 func jpgencode(out io.Writer, in image.Image) error {
 	return jpeg.Encode(out, in, &jpeg_options)
 }
