@@ -70,3 +70,45 @@ func Test_FaviconHandler(t *testing.T) {
 		t.Errorf("expected status OK; got %v", res.Status)
 	}
 }
+
+type parsePathServeImageTestCase struct {
+	path   string
+	status int
+	served bool
+	size   string
+}
+
+func Test_parsePathServeImage(t *testing.T) {
+	n := make([]NodeData, 0)
+	_, c := makeNewClusterData(n)
+	ctx := Context{Cluster: c}
+
+	cases := []parsePathServeImageTestCase{
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpg", http.StatusOK, false, "100s"},
+		{"/foo", http.StatusNotFound, true, ""},
+		{"/image/invalidahash/full/image.jpg", http.StatusNotFound, true, ""},
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22//image.jpg", http.StatusNotFound, true, ""},
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/", http.StatusOK, false, "100s"},
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpeg", http.StatusMovedPermanently, true, ""},
+	}
+	for _, c := range cases {
+		req, err := http.NewRequest("GET", "localhost:8080"+c.path, nil)
+		if err != nil {
+			t.Fatalf("could not create request: %v", err)
+		}
+		rec := httptest.NewRecorder()
+		spec, served := parsePathServeImage(rec, req, ctx)
+
+		if served != c.served {
+			t.Errorf("%s served: %v != %v", c.path, c.served, served)
+		}
+		if !served && c.size != spec.Size.String() {
+			t.Errorf("bad size spec")
+		}
+
+		res := rec.Result()
+		if res.StatusCode != c.status {
+			t.Errorf("for %s expected status %v; got %v", c.path, c.status, res.Status)
+		}
+	}
+}
