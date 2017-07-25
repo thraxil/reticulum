@@ -112,3 +112,36 @@ func Test_parsePathServeImage(t *testing.T) {
 		}
 	}
 }
+
+type ServeImageHandlerTestCase struct {
+	path   string
+	status int
+}
+
+func Test_ServeImageHandler(t *testing.T) {
+	n := make([]NodeData, 0)
+	_, c := makeNewClusterData(n)
+	ctx := Context{Cluster: c}
+
+	cases := []ServeImageHandlerTestCase{
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpg", http.StatusNotFound},
+		{"/foo", http.StatusNotFound},
+		{"/image/invalidahash/full/image.jpg", http.StatusNotFound},
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22//image.jpg", http.StatusNotFound},
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/", http.StatusNotFound},
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpeg", http.StatusMovedPermanently},
+	}
+	for _, c := range cases {
+		req, err := http.NewRequest("GET", "localhost:8080"+c.path, nil)
+		if err != nil {
+			t.Fatalf("could not create request: %v", err)
+		}
+		rec := httptest.NewRecorder()
+		ServeImageHandler(rec, req, ctx)
+
+		res := rec.Result()
+		if res.StatusCode != c.status {
+			t.Errorf("for %s expected status %v; got %v", c.path, c.status, res.Status)
+		}
+	}
+}
