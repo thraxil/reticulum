@@ -202,6 +202,14 @@ func (ctx Context) serveMagick(ri *ImageSpecifier, w http.ResponseWriter) {
 func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWriter,
 	outputImage image.Image) {
 
+	w = setCacheHeaders(w, ri.Extension)
+	ctx.writeLocalType(*ri, outputImage, extencoders[ri.Extension])
+	serveType(w, outputImage, extencoders[ri.Extension])
+}
+
+type encfunc func(io.Writer, image.Image) error
+
+func (ctx Context) writeLocalType(ri ImageSpecifier, outputImage image.Image, encFunc encfunc) {
 	wFile, err := os.OpenFile(ri.sizedPath(ctx.Cfg.UploadDirectory), os.O_CREATE|os.O_RDWR, 0644)
 	defer wFile.Close()
 	if err != nil {
@@ -209,14 +217,7 @@ func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWri
 		// we still have the resized image, so we can serve the response
 		// we just can't cache it.
 	}
-	w = setCacheHeaders(w, ri.Extension)
-	writeLocalType(wFile, outputImage, extencoders[ri.Extension])
-	serveType(w, outputImage, extencoders[ri.Extension])
-}
 
-type encfunc func(io.Writer, image.Image) error
-
-func writeLocalType(wFile *os.File, outputImage image.Image, encFunc encfunc) {
 	encFunc(wFile, outputImage)
 }
 
@@ -499,15 +500,8 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	outputImage := *result.OutputImage
 
-	wFile, err := os.OpenFile(ri.sizedPath(ctx.Cfg.UploadDirectory), os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		// what do we do if we can't write?
-		// we still have the resized image, so we can serve the response
-		// we just can't cache it.
-	}
-	defer wFile.Close()
 	w.Header().Set("Content-Type", extmimes[extension])
-	writeLocalType(wFile, outputImage, extencoders[ri.Extension])
+	ctx.writeLocalType(ri, outputImage, extencoders[ri.Extension])
 	serveType(w, outputImage, extencoders[ri.Extension])
 }
 
