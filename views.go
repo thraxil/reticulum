@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"image"
+	"image/gif"
 	"image/jpeg"
 	"image/png"
 	"io"
@@ -43,6 +44,7 @@ type ImageData struct {
 }
 
 var jpeg_options = jpeg.Options{Quality: 90}
+var gif_options = gif.Options{}
 
 func setCacheHeaders(w http.ResponseWriter, extension string) http.ResponseWriter {
 	w.Header().Set("Content-Type", extmimes[extension[1:]])
@@ -242,13 +244,14 @@ func jpgencode(out io.Writer, in image.Image) error {
 	return jpeg.Encode(out, in, &jpeg_options)
 }
 
+func gifencode(out io.Writer, in image.Image) error {
+	return gif.Encode(out, in, &gif_options)
+}
+
 var extencoders = map[string]encfunc{
 	".jpg": jpgencode,
 	".png": png.Encode,
-	// image/gif doesn't include an Encode()
-	// so we'll use png for now.
-	// :(
-	".gif": png.Encode,
+	".gif": gifencode,
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
@@ -528,11 +531,8 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 	if extension == "gif" {
-		// image/gif doesn't include an Encode()
-		// so we'll use png for now.
-		// :(
-		png.Encode(wFile, outputImage)
-		png.Encode(w, outputImage)
+		gif.Encode(wFile, outputImage, &gif_options)
+		gif.Encode(w, outputImage, &gif_options)
 		return
 	}
 	if extension == "png" {
