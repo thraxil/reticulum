@@ -216,6 +216,7 @@ func (ctx Context) writeLocalType(ri ImageSpecifier, outputImage image.Image, en
 		// what do we do if we can't write?
 		// we still have the resized image, so we can serve the response
 		// we just can't cache it.
+		return
 	}
 
 	encFunc(wFile, outputImage)
