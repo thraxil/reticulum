@@ -35,7 +35,7 @@ func (d diskBackend) Write(img ImageSpecifier, r io.ReadCloser) error {
 	return err
 }
 
-func (d diskBackend) Read(img *ImageSpecifier) ([]byte, error) {
+func (d diskBackend) Read(img ImageSpecifier) ([]byte, error) {
 	path := img.sizedPath(d.Root)
 	return ioutil.ReadFile(path)
 }

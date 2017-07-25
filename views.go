@@ -103,7 +103,7 @@ func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
 }
 
 func (ctx Context) serveDirect(ri *ImageSpecifier, w http.ResponseWriter) bool {
-	contents, err := ctx.Cfg.Backend.Read(ri)
+	contents, err := ctx.Cfg.Backend.Read(*ri)
 	if err == nil {
 		// we've got it, so serve it directly
 		w = setCacheHeaders(w, ri.Extension)
@@ -171,7 +171,7 @@ func (ctx Context) locallyWriteable() bool {
 }
 
 func (ctx Context) haveImageFullsizeLocally(ri *ImageSpecifier) bool {
-	_, err := ioutil.ReadFile(ri.fullSizePath(ctx.Cfg.UploadDirectory))
+	_, err := ctx.Cfg.Backend.Read(ri.fullVersion())
 	return err == nil
 }
 
@@ -198,7 +198,7 @@ func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
 }
 
 func (ctx Context) serveMagick(ri *ImageSpecifier, w http.ResponseWriter) {
-	img_contents, _ := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
+	img_contents, _ := ctx.Cfg.Backend.Read(*ri)
 	w = setCacheHeaders(w, ri.Extension)
 	w.Write(img_contents)
 }
@@ -467,18 +467,20 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	size := parts[3]
 	extension := parts[4]
 
-	baseDir := ctx.Cfg.UploadDirectory + ahash.AsPath()
-	path := baseDir + "/full" + "." + extension
-	sizedPath := baseDir + "/" + size + "." + extension
+	ri := ImageSpecifier{
+		ahash,
+		resize.MakeSizeSpec(size),
+		extension,
+	}
 
-	contents, err := ioutil.ReadFile(sizedPath)
+	contents, err := ctx.Cfg.Backend.Read(ri)
 	if err == nil {
 		// we've got it, so serve it directly
 		w.Header().Set("Content-Type", extmimes[extension])
 		w.Write(contents)
 		return
 	}
-	_, err = ioutil.ReadFile(path)
+	_, err = ctx.Cfg.Backend.Read(ri.fullVersion())
 	if err != nil {
 		// we don't have the full-size on this node either
 		http.Error(w, "not found (retrieveHandler)", http.StatusNotFound)
@@ -496,7 +498,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 
 	c := make(chan ResizeResponse)
-	ctx.Ch.ResizeQueue <- ResizeRequest{path, "." + extension, size, c}
+	ctx.Ch.ResizeQueue <- ResizeRequest{ri.baseDir(ctx.Cfg.UploadDirectory), "." + extension, size, c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
@@ -506,13 +508,13 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// imagemagick did the resize, so we just spit out
 		// the sized file
 		w.Header().Set("Content-Type", extmimes[extension])
-		img_contents, _ := ioutil.ReadFile(sizedPath)
+		img_contents, _ := ctx.Cfg.Backend.Read(ri)
 		w.Write(img_contents)
 		return
 	}
 	outputImage := *result.OutputImage
 
-	wFile, err := os.OpenFile(sizedPath, os.O_CREATE|os.O_RDWR, 0644)
+	wFile, err := os.OpenFile(ri.sizedPath(ctx.Cfg.UploadDirectory), os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		// what do we do if we can't write?
 		// we still have the resized image, so we can serve the response

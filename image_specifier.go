@@ -48,3 +48,8 @@ func (i ImageSpecifier) retrieveUrlPath() string {
 func (i ImageSpecifier) retrieveInfoUrlPath() string {
 	return "/retrieve_info/" + i.Hash.String() + "/" + i.Size.String() + "/" + i.Extension + "/"
 }
+
+func (i ImageSpecifier) fullVersion() ImageSpecifier {
+	i.Size = resize.MakeSizeSpec("full")
+	return i
+}
