@@ -6,14 +6,20 @@ import (
 	"testing"
 )
 
+func makeTestContext() Context {
+	n := make([]NodeData, 0)
+	_, c := makeNewClusterData(n)
+	b := newDiskBackend("")
+	cfg := SiteConfig{Backend: b}
+	return Context{Cluster: c, Cfg: cfg}
+}
+
 func Test_StatusHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/status/", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
-	n := make([]NodeData, 0)
-	_, c := makeNewClusterData(n)
-	ctx := Context{Cluster: c}
+	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
 	StatusHandler(rec, req, ctx)
 
@@ -28,9 +34,7 @@ func Test_DashboardHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
-	n := make([]NodeData, 0)
-	_, c := makeNewClusterData(n)
-	ctx := Context{Cluster: c}
+	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
 	DashboardHandler(rec, req, ctx)
 
@@ -45,9 +49,7 @@ func Test_AddFormHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
-	n := make([]NodeData, 0)
-	_, c := makeNewClusterData(n)
-	ctx := Context{Cluster: c}
+	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
 	AddHandler(rec, req, ctx)
 
@@ -79,9 +81,7 @@ type parsePathServeImageTestCase struct {
 }
 
 func Test_parsePathServeImage(t *testing.T) {
-	n := make([]NodeData, 0)
-	_, c := makeNewClusterData(n)
-	ctx := Context{Cluster: c}
+	ctx := makeTestContext()
 
 	cases := []parsePathServeImageTestCase{
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpg", http.StatusOK, false, "100s"},
@@ -119,9 +119,7 @@ type ServeImageHandlerTestCase struct {
 }
 
 func Test_ServeImageHandler(t *testing.T) {
-	n := make([]NodeData, 0)
-	_, c := makeNewClusterData(n)
-	ctx := Context{Cluster: c}
+	ctx := makeTestContext()
 
 	cases := []ServeImageHandlerTestCase{
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpg", http.StatusNotFound},
@@ -152,9 +150,7 @@ type RetreiveInfoHandlerTestCase struct {
 }
 
 func Test_RetrieveInfoImageHandler(t *testing.T) {
-	n := make([]NodeData, 0)
-	_, c := makeNewClusterData(n)
-	ctx := Context{Cluster: c}
+	ctx := makeTestContext()
 
 	cases := []ServeImageHandlerTestCase{
 		{"/retrieve_info/0051ec03fb813e8731224ee06feee7c828ceae22/100s/jpg/", http.StatusOK},
@@ -183,9 +179,7 @@ func Test_ConfigHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
-	n := make([]NodeData, 0)
-	_, c := makeNewClusterData(n)
-	ctx := Context{Cluster: c}
+	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
 	ConfigHandler(rec, req, ctx)
 
@@ -200,9 +194,7 @@ func Test_AnnounceHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
-	n := make([]NodeData, 0)
-	_, c := makeNewClusterData(n)
-	ctx := Context{Cluster: c}
+	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
 	AnnounceHandler(rec, req, ctx)
 
@@ -217,9 +209,7 @@ func Test_JoinHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
-	n := make([]NodeData, 0)
-	_, c := makeNewClusterData(n)
-	ctx := Context{Cluster: c}
+	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
 	JoinHandler(rec, req, ctx)
 

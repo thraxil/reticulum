@@ -103,7 +103,7 @@ func (ctx Context) serveFromCluster(ri *ImageSpecifier, w http.ResponseWriter) {
 }
 
 func (ctx Context) serveDirect(ri *ImageSpecifier, w http.ResponseWriter) bool {
-	contents, err := ioutil.ReadFile(ri.sizedPath(ctx.Cfg.UploadDirectory))
+	contents, err := ctx.Cfg.Backend.Read(ri)
 	if err == nil {
 		// we've got it, so serve it directly
 		w = setCacheHeaders(w, ri.Extension)

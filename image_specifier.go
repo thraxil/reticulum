@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/thraxil/resize"
 	"strings"
+
+	"github.com/thraxil/resize"
 )
 
 // combination of field that uniquely specify an image
@@ -31,9 +32,12 @@ func (i ImageSpecifier) sizedPath(upload_dir string) string {
 	return resizedPath(i.fullSizePath(upload_dir), i.Size.String())
 }
 
+func (i ImageSpecifier) baseDir(upload_dir string) string {
+	return upload_dir + i.Hash.AsPath()
+}
+
 func (i ImageSpecifier) fullSizePath(upload_dir string) string {
-	baseDir := upload_dir + i.Hash.AsPath()
-	return baseDir + "/full" + i.Extension
+	return i.baseDir(upload_dir) + "/full" + i.Extension
 }
 
 func (i ImageSpecifier) retrieveUrlPath() string {

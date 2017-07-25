@@ -82,6 +82,8 @@ func (c ConfigData) MyConfig() SiteConfig {
 		groupcache_size = 64 << 20
 	}
 
+	b := newDiskBackend(c.UploadDirectory)
+
 	return SiteConfig{
 		Port:                   c.Port,
 		UploadKeys:             c.UploadKeys,
@@ -97,6 +99,7 @@ func (c ConfigData) MyConfig() SiteConfig {
 		Writeable:              c.Writeable,
 		GroupcacheUrl:          c.GroupcacheUrl,
 		GroupcacheSize:         c.GroupcacheSize,
+		Backend:                b,
 	}
 }
 
@@ -117,6 +120,7 @@ type SiteConfig struct {
 	Writeable              bool
 	GroupcacheUrl          string
 	GroupcacheSize         int64
+	Backend                backend
 }
 
 func (s SiteConfig) KeyRequired() bool {
