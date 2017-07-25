@@ -217,13 +217,13 @@ func (ctx Context) serveScaledByExtension(ri *ImageSpecifier, w http.ResponseWri
 	}
 	w = setCacheHeaders(w, ri.Extension)
 
-	serveType(wFile, outputImage, w, ctx, ri, extencoders[ri.Extension])
+	serveType(wFile, outputImage, w, ctx, extencoders[ri.Extension])
 }
 
 type encfunc func(io.Writer, image.Image) error
 
 func serveType(wFile *os.File, outputImage image.Image, w http.ResponseWriter, ctx Context,
-	ri *ImageSpecifier, encFunc encfunc) {
+	encFunc encfunc) {
 	encFunc(wFile, outputImage)
 	encFunc(w, outputImage)
 }
@@ -525,21 +525,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 	defer wFile.Close()
 	w.Header().Set("Content-Type", extmimes[extension])
-	if extension == "jpg" {
-		jpeg.Encode(wFile, outputImage, &jpeg_options)
-		jpeg.Encode(w, outputImage, &jpeg_options)
-		return
-	}
-	if extension == "gif" {
-		gif.Encode(wFile, outputImage, &gif_options)
-		gif.Encode(w, outputImage, &gif_options)
-		return
-	}
-	if extension == "png" {
-		png.Encode(wFile, outputImage)
-		png.Encode(w, outputImage)
-		return
-	}
+	serveType(wFile, outputImage, w, ctx, extencoders[ri.Extension])
 }
 
 func AnnounceHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
