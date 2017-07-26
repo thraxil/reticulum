@@ -348,7 +348,7 @@ func visit(path string, f os.FileInfo, err error, c *Cluster,
 	if err != nil {
 		return err
 	}
-	c.Verified(ImageRecord{*hash, extension})
+	c.verified(ImageRecord{*hash, extension})
 	// slow things down a little to keep server load down
 	var base_time = s.VerifierSleep
 	jitter := rand.Intn(5)

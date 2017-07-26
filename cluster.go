@@ -40,7 +40,7 @@ type Cluster struct {
 	recentlyStashed  []ImageRecord
 }
 
-func NewCluster(myself NodeData, cache cache, cache_size int64) *Cluster {
+func newCluster(myself NodeData, cache cache, cache_size int64) *Cluster {
 	c := &Cluster{
 		Myself:    myself,
 		neighbors: make(map[string]NodeData),
@@ -60,7 +60,7 @@ func (c *Cluster) backend() {
 	}
 }
 
-func (c *Cluster) Verified(ir ImageRecord) {
+func (c *Cluster) verified(ir ImageRecord) {
 	c.chF <- func() {
 		rv := append(c.recentlyVerified, ir)
 		if len(rv) > 20 {
