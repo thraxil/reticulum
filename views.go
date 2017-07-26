@@ -321,7 +321,7 @@ func DashboardHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		RecentlyUploaded: ctx.Cluster.recentlyUploaded,
 		RecentlyStashed:  ctx.Cluster.recentlyStashed,
 	}
-	t, _ := template.New("dashboard").Parse(dashboard_template)
+	t, _ := template.New("dashboard").Parse(dashboardTemplate)
 	t.Execute(w, p)
 }
 
@@ -743,7 +743,7 @@ const status_template = `
 </html>
 `
 
-const dashboard_template = `
+const dashboardTemplate = `
 <html>
 <head>
 <title>Reticulum Dashboard</title>
