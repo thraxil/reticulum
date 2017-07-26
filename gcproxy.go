@@ -4,11 +4,11 @@ import "github.com/golang/groupcache"
 
 type GroupCacheProxy struct{}
 
-func (g *GroupCacheProxy) MakeInitialPool(url string) PeerList {
+func (g *GroupCacheProxy) MakeInitialPool(url string) peerList {
 	return groupcache.NewHTTPPool(url)
 }
 
-func (g *GroupCacheProxy) MakeCache(c *Cluster, size int64) CacheGetter {
+func (g *GroupCacheProxy) MakeCache(c *Cluster, size int64) cacheGetter {
 	return groupcache.NewGroup(
 		"ReticulumCache", size, groupcache.GetterFunc(
 			func(ctx groupcache.Context, key string, dest groupcache.Sink) error {

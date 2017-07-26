@@ -10,17 +10,17 @@ import (
 	"github.com/golang/groupcache"
 )
 
-type PeerList interface {
+type peerList interface {
 	Set(peer_urls ...string)
 }
 
-type CacheGetter interface {
+type cacheGetter interface {
 	Get(ctx groupcache.Context, key string, dest groupcache.Sink) error
 }
 
-type Cache interface {
-	MakeInitialPool(url string) PeerList
-	MakeCache(c *Cluster, size int64) CacheGetter
+type cache interface {
+	MakeInitialPool(url string) peerList
+	MakeCache(c *Cluster, size int64) cacheGetter
 }
 
 // represents what our Node nows about the cluster
@@ -31,8 +31,8 @@ type Cache interface {
 type Cluster struct {
 	Myself     NodeData
 	neighbors  map[string]NodeData
-	gcpeers    PeerList
-	Imagecache CacheGetter
+	gcpeers    peerList
+	Imagecache cacheGetter
 	chF        chan func()
 
 	recentlyVerified []ImageRecord
@@ -40,7 +40,7 @@ type Cluster struct {
 	recentlyStashed  []ImageRecord
 }
 
-func NewCluster(myself NodeData, cache Cache, cache_size int64) *Cluster {
+func NewCluster(myself NodeData, cache cache, cache_size int64) *Cluster {
 	c := &Cluster{
 		Myself:    myself,
 		neighbors: make(map[string]NodeData),
