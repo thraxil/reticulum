@@ -115,7 +115,6 @@ func ServeImageHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	if handled {
 		return
 	}
-
 	var data []byte
 	err := ctx.Cluster.Imagecache.Get(nil, ri.String(),
 		groupcache.AllocatingByteSliceSink(&data))
@@ -186,6 +185,7 @@ func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWri
 
 func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
 	c := make(chan ResizeResponse)
+	fmt.Println(ri.fullSizePath(ctx.Cfg.UploadDirectory))
 	ctx.Ch.ResizeQueue <- ResizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size.String(), c}
 	resizeQueueLength.Add(1)
 	result := <-c
@@ -194,7 +194,12 @@ func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
 }
 
 func (ctx Context) serveMagick(ri *ImageSpecifier, w http.ResponseWriter) {
-	img_contents, _ := ctx.Cfg.Backend.Read(*ri)
+	img_contents, err := ctx.Cfg.Backend.Read(*ri)
+	if err != nil {
+		ctx.SL.Log("level", "ERR", "msg", "couldn't read image resized by magick",
+			"error", err)
+		return
+	}
 	w = setCacheHeaders(w, ri.Extension)
 	w.Write(img_contents)
 }
@@ -240,19 +245,20 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			http.Error(w, "bad hash", 500)
 			return
 		}
-		path := ctx.Cfg.UploadDirectory + ahash.AsPath()
-		os.MkdirAll(path, 0755)
+		i.Seek(0, 0)
 		mimetype := fh.Header.Get("Content-Type")
 		if mimetype == "" {
 			// they left off a mimetype, so default to jpg
 			mimetype = "image/jpeg"
 		}
 		ext := mimeexts[mimetype]
-		fullpath := path + "/full." + ext
-		f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
-		defer f.Close()
-		i.Seek(0, 0)
-		io.Copy(f, i)
+		ri := ImageSpecifier{
+			ahash,
+			resize.MakeSizeSpec("full"),
+			"." + ext,
+		}
+		ctx.Cfg.Backend.WriteFull(ri, i)
+
 		size_hints := r.FormValue("size_hints")
 		// yes, the full-size for this image gets written to disk on
 		// this node even if it may not be one of the "right" ones
@@ -261,7 +267,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		// at some point in the future.
 
 		// now stash it to other nodes in the cluster too
-		nodes := ctx.Cluster.Stash(ahash, fullpath, size_hints, ctx.Cfg.Replication, ctx.Cfg.MinReplication)
+		nodes := ctx.Cluster.Stash(ri, size_hints, ctx.Cfg.Replication, ctx.Cfg.MinReplication, ctx.Cfg.Backend)
 		id := ImageData{
 			Hash:      ahash.String(),
 			Extension: ext,
@@ -470,7 +476,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 
 	c := make(chan ResizeResponse)
-	ctx.Ch.ResizeQueue <- ResizeRequest{ri.baseDir(ctx.Cfg.UploadDirectory), "." + extension, size, c}
+	ctx.Ch.ResizeQueue <- ResizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), "." + extension, size, c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)

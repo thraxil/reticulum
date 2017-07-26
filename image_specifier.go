@@ -10,7 +10,7 @@ import (
 type ImageSpecifier struct {
 	Hash      *Hash
 	Size      *resize.SizeSpec
-	Extension string
+	Extension string // with leading '.'
 }
 
 func (i ImageSpecifier) String() string {

@@ -86,12 +86,14 @@ func (n NodeData) stashUrl() string {
 }
 
 func (n *NodeData) RetrieveImage(ri *ImageSpecifier) ([]byte, error) {
+
 	resp, err := http.Get(n.retrieveUrl(ri))
-	defer resp.Body.Close()
+
 	if err != nil {
 		n.LastFailed = time.Now()
 		return nil, err
 	} // otherwise, we got the image
+	defer resp.Body.Close()
 	n.LastSeen = time.Now()
 	if resp.Status != "200 OK" {
 		return nil, errors.New("404, probably")
@@ -177,7 +179,8 @@ func postFile(filename string, target_url string, size_hints string) (*http.Resp
 	return http.Post(target_url, content_type, body_buf)
 }
 
-func (n *NodeData) Stash(filename string, size_hints string) bool {
+func (n *NodeData) Stash(ri ImageSpecifier, size_hints string, backend backend) bool {
+	filename := backend.fullPath(ri)
 	resp, err := postFile(filename, n.stashUrl(), size_hints)
 	if err != nil {
 		return false

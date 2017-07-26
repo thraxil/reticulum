@@ -65,7 +65,7 @@ type sdummy struct {
 	StashValue bool
 }
 
-func (s *sdummy) Stash(filename string, size_hints string) bool { return false }
+func (s *sdummy) Stash(ri ImageSpecifier, size_hints string, backend backend) bool { return false }
 func (s *sdummy) RetrieveImageInfo(ri *ImageSpecifier) (*ImageInfoResponse, error) {
 	return nil, nil
 }

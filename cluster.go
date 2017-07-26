@@ -238,9 +238,9 @@ func (c Cluster) WriteRing() RingEntryList {
 	return neighborsToRing(c.WriteableNeighbors())
 }
 
-func (cluster *Cluster) Stash(ahash *Hash, filename string, size_hints string, replication int, min_replication int) []string {
+func (cluster *Cluster) Stash(ri ImageSpecifier, size_hints string, replication int, min_replication int, backend backend) []string {
 	// we don't have the full-size, so check the cluster
-	nodes_to_check := cluster.WriteOrder(ahash.String())
+	nodes_to_check := cluster.WriteOrder(ri.Hash.String())
 	saved_to := make([]string, replication)
 	var save_count = 0
 	// TODO: parallelize this
@@ -251,7 +251,7 @@ func (cluster *Cluster) Stash(ahash *Hash, filename string, size_hints string, r
 			// only have the first node on the list eagerly resize images
 			size_hints = ""
 		}
-		if n.Stash(filename, size_hints) {
+		if n.Stash(ri, size_hints, backend) {
 			saved_to[save_count] = n.Nickname
 			save_count++
 			n.LastSeen = time.Now()

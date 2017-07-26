@@ -14,4 +14,5 @@ type backend interface {
 	Exists(ImageSpecifier) bool
 	Delete(ImageSpecifier) error
 	writeLocalType(ImageSpecifier, image.Image, encfunc)
+	fullPath(ImageSpecifier) string
 }

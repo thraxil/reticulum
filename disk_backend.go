@@ -83,3 +83,7 @@ func (d diskBackend) writeLocalType(ri ImageSpecifier, outputImage image.Image, 
 
 	encFunc(wFile, outputImage)
 }
+
+func (d diskBackend) fullPath(ri ImageSpecifier) string {
+	return ri.fullSizePath(d.Root)
+}

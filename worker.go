@@ -42,8 +42,21 @@ func ResizeWorker(requests chan ResizeRequest, sl log.Logger, s *SiteConfig) {
 			req.Response <- ResizeResponse{nil, false, false}
 			continue
 		}
-		sl.Log("level", "INFO", "msg", "handling a resize request")
+		sl.Log("level", "INFO", "msg", "handling a resize request", "path", req.Path)
 		t0 := time.Now()
+		fi, err := os.Stat(req.Path)
+		if err != nil {
+			sl.Log("level", "ERR", "msg", "resize worker couldn't stat path",
+				"path", req.Path, "error", err)
+			req.Response <- ResizeResponse{nil, false, false}
+			continue
+		}
+		if fi.IsDir() {
+			sl.Log("level", "ERR", "msg", "can't resize a directory",
+				"path", req.Path)
+			req.Response <- ResizeResponse{nil, false, false}
+			continue
+		}
 		origFile, err := os.Open(req.Path)
 		if err != nil {
 			origFile.Close()
