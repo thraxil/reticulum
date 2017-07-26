@@ -13,10 +13,10 @@ type rptestcase struct {
 
 func Test_resizedPath(t *testing.T) {
 	var testCases = []rptestcase{
-		rptestcase{"/foo/bar/image.jpg", "100w", "/foo/bar/100w.jpg"},
-		rptestcase{"image.jpg", "200w", "./200w.jpg"},
+		{"/foo/bar/image.jpg", "100w", "/foo/bar/100w.jpg"},
+		{"image.jpg", "200w", "./200w.jpg"},
 		// this is current behavior, but should it fail instead?
-		rptestcase{"/foo/bar/image.jpg", "", "/foo/bar/.jpg"},
+		{"/foo/bar/image.jpg", "", "/foo/bar/.jpg"},
 	}
 	for _, tc := range testCases {
 		if tc.Output != resizedPath(tc.Path, tc.Size) {
@@ -34,7 +34,7 @@ type catestcase struct {
 
 func Test_convertArgs(t *testing.T) {
 	var testCases = []catestcase{
-		catestcase{"100s", "/foo/bar/image.jpg", "/usr/bin/convert",
+		{"100s", "/foo/bar/image.jpg", "/usr/bin/convert",
 			[]string{
 				"/usr/bin/convert",
 				"-resize",
@@ -48,7 +48,7 @@ func Test_convertArgs(t *testing.T) {
 				"/foo/bar/100s.jpg",
 			},
 		},
-		catestcase{"100w", "/foo/bar/image.jpg", "/usr/bin/convert",
+		{"100w", "/foo/bar/image.jpg", "/usr/bin/convert",
 			[]string{
 				"/usr/bin/convert",
 				"-auto-orient",
