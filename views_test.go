@@ -7,7 +7,7 @@ import (
 )
 
 func makeTestContext() Context {
-	n := make([]NodeData, 0)
+	var n []NodeData
 	_, c := makeNewClusterData(n)
 	b := newDiskBackend("")
 	cfg := SiteConfig{Backend: b}
