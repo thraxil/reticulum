@@ -183,8 +183,8 @@ func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWri
 	return
 }
 
-func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
-	c := make(chan ResizeResponse)
+func (ctx Context) makeResizeJob(ri *ImageSpecifier) resizeResponse {
+	c := make(chan resizeResponse)
 	fmt.Println(ri.fullSizePath(ctx.Cfg.UploadDirectory))
 	ctx.Ch.ResizeQueue <- resizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size.String(), c}
 	resizeQueueLength.Add(1)
@@ -376,7 +376,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 			if size == "" {
 				continue
 			}
-			c := make(chan ResizeResponse)
+			c := make(chan resizeResponse)
 			ctx.Ch.ResizeQueue <- resizeRequest{fullpath, ext, size, c}
 			result := <-c
 			if !result.Success {
@@ -475,7 +475,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 		return
 	}
 
-	c := make(chan ResizeResponse)
+	c := make(chan resizeResponse)
 	ctx.Ch.ResizeQueue <- resizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), "." + extension, size, c}
 	result := <-c
 	if !result.Success {

@@ -20,10 +20,10 @@ type resizeRequest struct {
 	Path      string
 	Extension string
 	Size      string
-	Response  chan ResizeResponse
+	Response  chan resizeResponse
 }
 
-type ResizeResponse struct {
+type resizeResponse struct {
 	OutputImage *image.Image
 	Success     bool
 	Magick      bool
@@ -39,7 +39,7 @@ func ResizeWorker(requests chan resizeRequest, sl log.Logger, s *SiteConfig) {
 	for req := range requests {
 		if !s.Writeable {
 			// node is not writeable, so we should never handle a resize
-			req.Response <- ResizeResponse{nil, false, false}
+			req.Response <- resizeResponse{nil, false, false}
 			continue
 		}
 		sl.Log("level", "INFO", "msg", "handling a resize request", "path", req.Path)
@@ -48,13 +48,13 @@ func ResizeWorker(requests chan resizeRequest, sl log.Logger, s *SiteConfig) {
 		if err != nil {
 			sl.Log("level", "ERR", "msg", "resize worker couldn't stat path",
 				"path", req.Path, "error", err)
-			req.Response <- ResizeResponse{nil, false, false}
+			req.Response <- resizeResponse{nil, false, false}
 			continue
 		}
 		if fi.IsDir() {
 			sl.Log("level", "ERR", "msg", "can't resize a directory",
 				"path", req.Path)
-			req.Response <- ResizeResponse{nil, false, false}
+			req.Response <- resizeResponse{nil, false, false}
 			continue
 		}
 		origFile, err := os.Open(req.Path)
@@ -62,7 +62,7 @@ func ResizeWorker(requests chan resizeRequest, sl log.Logger, s *SiteConfig) {
 			origFile.Close()
 			sl.Log("level", "ERR", "msg", "resize worker could not open image",
 				"image", req.Path, "error", err.Error())
-			req.Response <- ResizeResponse{nil, false, false}
+			req.Response <- resizeResponse{nil, false, false}
 			continue
 		} else {
 			origFile.Close()
@@ -71,11 +71,11 @@ func ResizeWorker(requests chan resizeRequest, sl log.Logger, s *SiteConfig) {
 		if err != nil {
 			// imagemagick couldn't handle it either
 			sl.Log("level", "ERR", "msg", "imagemagick couldn't handle it", "error", err.Error())
-			req.Response <- ResizeResponse{nil, false, false}
+			req.Response <- resizeResponse{nil, false, false}
 		} else {
 			// imagemagick saved the day
 			sl.Log("level", "INFO", "msg", "rescued by imagemagick")
-			req.Response <- ResizeResponse{nil, true, true}
+			req.Response <- resizeResponse{nil, true, true}
 			t1 := time.Now()
 			sl.Log("level", "INFO", "msg", "finished resize", "time", t1.Sub(t0))
 		}
