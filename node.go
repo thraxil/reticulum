@@ -31,7 +31,7 @@ type nodeData struct {
 	LastFailed    time.Time `json:"last_failed"`
 }
 
-// how many times to duplicate each node entry in the ring
+// REPLICAS specifies how many times to duplicate each node entry in the ring
 var REPLICAS = 16
 
 func (n nodeData) String() string {
