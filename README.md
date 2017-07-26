@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/thraxil/reticulum.png)](https://travis-ci.org/thraxil/reticulum)
 [![Coverage Status](https://coveralls.io/repos/github/thraxil/reticulum/badge.svg?branch=master)](https://coveralls.io/github/thraxil/reticulum?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/thraxil/reticulum)](https://goreportcard.com/report/github.com/thraxil/reticulum)
 
 Reticulum
 =========
