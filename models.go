@@ -1,7 +1,7 @@
 package main
 
 type SharedChannels struct {
-	ResizeQueue chan ResizeRequest
+	ResizeQueue chan resizeRequest
 }
 
 type ImageRecord struct {

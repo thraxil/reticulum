@@ -186,7 +186,7 @@ func (ctx Context) serveScaledFromCluster(ri *ImageSpecifier, w http.ResponseWri
 func (ctx Context) makeResizeJob(ri *ImageSpecifier) ResizeResponse {
 	c := make(chan ResizeResponse)
 	fmt.Println(ri.fullSizePath(ctx.Cfg.UploadDirectory))
-	ctx.Ch.ResizeQueue <- ResizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size.String(), c}
+	ctx.Ch.ResizeQueue <- resizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size.String(), c}
 	resizeQueueLength.Add(1)
 	result := <-c
 	resizeQueueLength.Add(-1)
@@ -377,7 +377,7 @@ func StashHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 				continue
 			}
 			c := make(chan ResizeResponse)
-			ctx.Ch.ResizeQueue <- ResizeRequest{fullpath, ext, size, c}
+			ctx.Ch.ResizeQueue <- resizeRequest{fullpath, ext, size, c}
 			result := <-c
 			if !result.Success {
 				ctx.SL.Log("level", "ERR", "msg", "could not pre-resize")
@@ -476,7 +476,7 @@ func RetrieveHandler(w http.ResponseWriter, r *http.Request, ctx Context) {
 	}
 
 	c := make(chan ResizeResponse)
-	ctx.Ch.ResizeQueue <- ResizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), "." + extension, size, c}
+	ctx.Ch.ResizeQueue <- resizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), "." + extension, size, c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)

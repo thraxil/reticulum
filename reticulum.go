@@ -125,7 +125,7 @@ func main() {
 	rw_sl := log.With(sl, "component", "resize_worker")
 	// start our resize worker goroutines
 	var channels = SharedChannels{
-		ResizeQueue: make(chan ResizeRequest),
+		ResizeQueue: make(chan resizeRequest),
 	}
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
 		go ResizeWorker(channels.ResizeQueue, rw_sl, &siteconfig)
