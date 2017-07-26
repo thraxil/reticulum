@@ -128,7 +128,7 @@ func main() {
 		ResizeQueue: make(chan resizeRequest),
 	}
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
-		go ResizeWorker(channels.ResizeQueue, rw_sl, &siteconfig)
+		go resizeWorker(channels.ResizeQueue, rw_sl, &siteconfig)
 	}
 
 	g_sl := log.With(sl, "component", "gossiper")

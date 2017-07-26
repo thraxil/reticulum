@@ -35,7 +35,7 @@ var decoders = map[string](func(io.Reader) (image.Image, error)){
 	"png": png.Decode,
 }
 
-func ResizeWorker(requests chan resizeRequest, sl log.Logger, s *SiteConfig) {
+func resizeWorker(requests chan resizeRequest, sl log.Logger, s *SiteConfig) {
 	for req := range requests {
 		if !s.Writeable {
 			// node is not writeable, so we should never handle a resize
