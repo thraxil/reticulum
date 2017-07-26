@@ -1,10 +1,10 @@
 package main
 
-type SharedChannels struct {
+type sharedChannels struct {
 	ResizeQueue chan resizeRequest
 }
 
-type ImageRecord struct {
-	Hash      Hash
+type imageRecord struct {
+	Hash      hash
 	Extension string
 }

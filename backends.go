@@ -8,11 +8,11 @@ import (
 
 type backend interface {
 	fmt.Stringer
-	WriteSized(ImageSpecifier, io.ReadCloser) error
-	WriteFull(ImageSpecifier, io.ReadCloser) error
-	Read(ImageSpecifier) ([]byte, error)
-	Exists(ImageSpecifier) bool
-	Delete(ImageSpecifier) error
-	writeLocalType(ImageSpecifier, image.Image, encfunc)
-	fullPath(ImageSpecifier) string
+	WriteSized(imageSpecifier, io.ReadCloser) error
+	WriteFull(imageSpecifier, io.ReadCloser) error
+	Read(imageSpecifier) ([]byte, error)
+	Exists(imageSpecifier) bool
+	Delete(imageSpecifier) error
+	writeLocalType(imageSpecifier, image.Image, encfunc)
+	fullPath(imageSpecifier) string
 }

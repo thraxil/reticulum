@@ -9,10 +9,10 @@ import (
 )
 
 func Test_LastSeenFormatted(t *testing.T) {
-	n := NodeData{
+	n := nodeData{
 		Nickname:  "test node",
 		UUID:      "test-uuid",
-		BaseUrl:   "localhost:8080",
+		BaseURL:   "localhost:8080",
 		Location:  "test",
 		Writeable: true,
 	}
@@ -22,10 +22,10 @@ func Test_LastSeenFormatted(t *testing.T) {
 }
 
 func Test_LastFailedFormatted(t *testing.T) {
-	n := NodeData{
+	n := nodeData{
 		Nickname:  "test node",
 		UUID:      "test-uuid",
-		BaseUrl:   "localhost:8080",
+		BaseURL:   "localhost:8080",
 		Location:  "test",
 		Writeable: true,
 	}
@@ -34,15 +34,15 @@ func Test_LastFailedFormatted(t *testing.T) {
 	}
 }
 
-func Test_Hashkeys(t *testing.T) {
-	n := NodeData{
+func Test_hashkeys(t *testing.T) {
+	n := nodeData{
 		Nickname:  "test node",
 		UUID:      "test-uuid",
-		BaseUrl:   "localhost:8080",
+		BaseURL:   "localhost:8080",
 		Location:  "test",
 		Writeable: true,
 	}
-	keys := n.HashKeys()
+	keys := n.hashKeys()
 	if len(keys) != REPLICAS {
 		t.Error("not the right number of keys")
 	}
@@ -70,62 +70,62 @@ func Test_Hashkeys(t *testing.T) {
 	}
 }
 
-func testOneUrl(n NodeData, ri *ImageSpecifier, t *testing.T,
-	retrieveUrl, retrieveInfoUrl, stashUrl, announceUrl string) {
-	if n.retrieveUrl(ri) != retrieveUrl {
+func testOneURL(n nodeData, ri *imageSpecifier, t *testing.T,
+	retrieveURL, retrieveInfoURL, stashURL, announceURL string) {
+	if n.retrieveURL(ri) != retrieveURL {
 		t.Error("bad retrieve url")
 	}
-	if n.retrieveInfoUrl(ri) != retrieveInfoUrl {
+	if n.retrieveInfoURL(ri) != retrieveInfoURL {
 		t.Error("bad retrieve info url")
 	}
-	if n.stashUrl() != stashUrl {
+	if n.stashURL() != stashURL {
 		t.Error("bad stash url")
 	}
-	if n.announceUrl() != announceUrl {
+	if n.announceURL() != announceURL {
 		t.Error("bad announce url")
 	}
 }
 
 func Test_Urls(t *testing.T) {
-	n := NodeData{
+	n := nodeData{
 		Nickname:  "test node",
 		UUID:      "test-uuid",
-		BaseUrl:   "localhost:8080",
+		BaseURL:   "localhost:8080",
 		Location:  "test",
 		Writeable: true,
 	}
-	hash, err := HashFromString("fb682e05b9be61797601e60165825c0b089f755e", "")
+	hash, err := hashFromString("fb682e05b9be61797601e60165825c0b089f755e", "")
 	if err != nil {
 		t.Error("bad hash")
 	}
 	s := resize.MakeSizeSpec("full")
-	ri := &ImageSpecifier{hash, s, "jpg"}
+	ri := &imageSpecifier{hash, s, "jpg"}
 
-	testOneUrl(n, ri, t,
+	testOneURL(n, ri, t,
 		"http://localhost:8080/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/",
 		"http://localhost:8080/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/",
 		"http://localhost:8080/stash/",
 		"http://localhost:8080/announce/",
 	)
 
-	n.BaseUrl = "localhost:8080/"
-	testOneUrl(n, ri, t,
+	n.BaseURL = "localhost:8080/"
+	testOneURL(n, ri, t,
 		"http://localhost:8080/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/",
 		"http://localhost:8080/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/",
 		"http://localhost:8080/stash/",
 		"http://localhost:8080/announce/",
 	)
 
-	n.BaseUrl = "http://localhost:8081/"
-	testOneUrl(n, ri, t,
+	n.BaseURL = "http://localhost:8081/"
+	testOneURL(n, ri, t,
 		"http://localhost:8081/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/",
 		"http://localhost:8081/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/",
 		"http://localhost:8081/stash/",
 		"http://localhost:8081/announce/",
 	)
 
-	n.BaseUrl = "http://localhost:8081"
-	testOneUrl(n, ri, t,
+	n.BaseURL = "http://localhost:8081"
+	testOneURL(n, ri, t,
 		"http://localhost:8081/retrieve/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/",
 		"http://localhost:8081/retrieve_info/fb682e05b9be61797601e60165825c0b089f755e/full/jpg/",
 		"http://localhost:8081/stash/",
@@ -134,10 +134,10 @@ func Test_Urls(t *testing.T) {
 }
 
 func Test_NodeString(t *testing.T) {
-	n := NodeData{
+	n := nodeData{
 		Nickname:  "test node",
 		UUID:      "test-uuid",
-		BaseUrl:   "localhost:8080",
+		BaseURL:   "localhost:8080",
 		Location:  "test",
 		Writeable: true,
 	}
@@ -147,10 +147,10 @@ func Test_NodeString(t *testing.T) {
 }
 
 func Test_IsCurrent(t *testing.T) {
-	n := NodeData{
+	n := nodeData{
 		Nickname:  "test node",
 		UUID:      "test-uuid",
-		BaseUrl:   "localhost:8080",
+		BaseURL:   "localhost:8080",
 		Location:  "test",
 		Writeable: true,
 	}
@@ -164,10 +164,10 @@ func Test_IsCurrent(t *testing.T) {
 }
 
 func Test_makeParams(t *testing.T) {
-	n := NodeData{
+	n := nodeData{
 		Nickname:  "test node",
 		UUID:      "test-uuid",
-		BaseUrl:   "localhost:8080",
+		BaseURL:   "localhost:8080",
 		Location:  "test",
 		Writeable: true,
 	}

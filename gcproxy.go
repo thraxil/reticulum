@@ -2,24 +2,24 @@ package main
 
 import "github.com/golang/groupcache"
 
-type GroupCacheProxy struct{}
+type groupCacheProxy struct{}
 
-func (g *GroupCacheProxy) MakeInitialPool(url string) peerList {
+func (g *groupCacheProxy) MakeInitialPool(url string) peerList {
 	return groupcache.NewHTTPPool(url)
 }
 
-func (g *GroupCacheProxy) MakeCache(c *Cluster, size int64) cacheGetter {
+func (g *groupCacheProxy) MakeCache(c *cluster, size int64) cacheGetter {
 	return groupcache.NewGroup(
 		"ReticulumCache", size, groupcache.GetterFunc(
 			func(ctx groupcache.Context, key string, dest groupcache.Sink) error {
 
 				// get image from disk
-				ri := NewImageSpecifier(key)
-				img_data, err := c.RetrieveImage(ri)
+				ri := newImageSpecifier(key)
+				imgData, err := c.RetrieveImage(ri)
 				if err != nil {
 					return err
 				}
-				dest.SetBytes([]byte(img_data))
+				dest.SetBytes([]byte(imgData))
 				return nil
 			}))
 }

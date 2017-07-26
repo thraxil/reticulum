@@ -7,36 +7,36 @@ import (
 
 // need a global one to avoid calling groupcache.NewHTTPool
 // multiple times
-var cluster *Cluster
+var gCluster *cluster
 
-func makeNewClusterData(neighbors []NodeData) (NodeData, *Cluster) {
-	myself := NodeData{
+func makeNewClusterData(neighbors []nodeData) (nodeData, *cluster) {
+	myself := nodeData{
 		Nickname:  "myself",
 		UUID:      "test-uuid",
-		BaseUrl:   "localhost:8080",
+		BaseURL:   "localhost:8080",
 		Location:  "test",
 		Writeable: true,
 	}
 
-	if cluster == nil {
+	if gCluster == nil {
 
-		gcp := &GroupCacheProxy{}
+		gcp := &groupCacheProxy{}
 		c := newCluster(myself, gcp, 64)
 		for _, n := range neighbors {
 			c.AddNeighbor(n)
 		}
-		cluster = c
-		return myself, cluster
-	} else {
-		cluster.Myself = myself
-		cluster.neighbors = map[string]NodeData{}
-		cluster.gcpeers.Set()
-		return myself, cluster
+		gCluster = c
+		return myself, gCluster
 	}
+	gCluster.Myself = myself
+	gCluster.neighbors = map[string]nodeData{}
+	gCluster.gcpeers.Set()
+	return myself, gCluster
+
 }
 
 func Test_ClusterOfOneInitialNeighbors(t *testing.T) {
-	n := make([]NodeData, 0)
+	var n []nodeData
 	_, c := makeNewClusterData(n)
 	if len(c.GetNeighbors()) != 0 {
 		t.Error("should not have any neighbors yet")
@@ -44,7 +44,7 @@ func Test_ClusterOfOneInitialNeighbors(t *testing.T) {
 }
 
 func Test_ClusterOfOneNeighborsInclusive(t *testing.T) {
-	n := make([]NodeData, 0)
+	var n []nodeData
 	myself, c := makeNewClusterData(n)
 
 	neighbors := c.NeighborsInclusive()
@@ -57,7 +57,7 @@ func Test_ClusterOfOneNeighborsInclusive(t *testing.T) {
 }
 
 func Test_ClusterOfOneFindNeighbors(t *testing.T) {
-	n := make([]NodeData, 0)
+	var n []nodeData
 	myself, c := makeNewClusterData(n)
 	neighbors := c.NeighborsInclusive()
 
@@ -101,7 +101,7 @@ func Test_ClusterOfOneFindNeighbors(t *testing.T) {
 	}
 }
 
-func checkForNeighbor(c *Cluster, n NodeData, t *testing.T) {
+func checkForNeighbor(c *cluster, n nodeData, t *testing.T) {
 	rn, found := c.FindNeighborByUUID(n.UUID)
 	if !found {
 		t.Error(fmt.Sprintf("couldn't find %s by UUID", n.UUID))
@@ -111,7 +111,7 @@ func checkForNeighbor(c *Cluster, n NodeData, t *testing.T) {
 	}
 }
 
-func checkForNeighborAfterRemoval(c *Cluster, n NodeData, i int, t *testing.T) {
+func checkForNeighborAfterRemoval(c *cluster, n nodeData, i int, t *testing.T) {
 	rn, found := c.FindNeighborByUUID(n.UUID)
 	if i == 2 {
 		// the one that was removed
@@ -129,15 +129,15 @@ func checkForNeighborAfterRemoval(c *Cluster, n NodeData, i int, t *testing.T) {
 }
 
 func Test_AddNeighbor(t *testing.T) {
-	n := make([]NodeData, 0)
+	var n []nodeData
 	_, c := makeNewClusterData(n)
 	if len(c.GetNeighbors()) != 0 {
 		t.Error("should not have any neighbors yet")
 	}
-	c.AddNeighbor(NodeData{
+	c.AddNeighbor(nodeData{
 		Nickname:  "addedneighbor",
 		UUID:      "test-uuid-2",
-		BaseUrl:   "localhost:8081",
+		BaseURL:   "localhost:8081",
 		Location:  "test",
 		Writeable: true,
 	})
@@ -148,22 +148,22 @@ func Test_AddNeighbor(t *testing.T) {
 }
 
 func Test_RemoveNeighbor(t *testing.T) {
-	n := make([]NodeData, 0)
+	var n []nodeData
 	_, c := makeNewClusterData(n)
 	if len(c.GetNeighbors()) != 0 {
 		t.Error("should not have any neighbors yet")
 	}
-	nd := NodeData{
+	nd := nodeData{
 		Nickname:  "addedneighbor",
 		UUID:      "test-uuid-2",
-		BaseUrl:   "localhost:8081",
+		BaseURL:   "localhost:8081",
 		Location:  "test",
 		Writeable: true,
 	}
-	nd2 := NodeData{
+	nd2 := nodeData{
 		Nickname:  "addedneighbor3",
 		UUID:      "test-uuid-3",
-		BaseUrl:   "localhost:8082",
+		BaseURL:   "localhost:8082",
 		Location:  "test",
 		Writeable: true,
 	}
@@ -186,15 +186,15 @@ func Test_RemoveNeighbor(t *testing.T) {
 }
 
 func Test_UpdateNeighbor(t *testing.T) {
-	n := make([]NodeData, 0)
+	var n []nodeData
 	_, c := makeNewClusterData(n)
 	if len(c.GetNeighbors()) != 0 {
 		t.Error("should not have any neighbors yet")
 	}
-	nd := NodeData{
+	nd := nodeData{
 		Nickname:  "addedneighbor",
 		UUID:      "test-uuid-2",
-		BaseUrl:   "localhost:8081",
+		BaseURL:   "localhost:8081",
 		Location:  "test",
 		Writeable: true,
 	}
@@ -202,24 +202,24 @@ func Test_UpdateNeighbor(t *testing.T) {
 	if len(c.GetNeighbors()) != 1 {
 		t.Error("should be only one")
 	}
-	nd.BaseUrl = "localhost:8082"
+	nd.BaseURL = "localhost:8082"
 	c.UpdateNeighbor(nd)
 	neighbors := c.GetNeighbors()
-	if neighbors[0].BaseUrl != "localhost:8082" {
+	if neighbors[0].BaseURL != "localhost:8082" {
 		t.Error("update didn't take")
 	}
 }
 
 func Test_FailedNeighbor(t *testing.T) {
-	n := make([]NodeData, 0)
+	var n []nodeData
 	_, c := makeNewClusterData(n)
 	if len(c.GetNeighbors()) != 0 {
 		t.Error("should not have any neighbors yet")
 	}
-	nd := NodeData{
+	nd := nodeData{
 		Nickname:  "addedneighbor",
 		UUID:      "test-uuid-2",
-		BaseUrl:   "localhost:8081",
+		BaseURL:   "localhost:8081",
 		Location:  "test",
 		Writeable: true,
 	}
@@ -227,7 +227,7 @@ func Test_FailedNeighbor(t *testing.T) {
 	if len(c.GetNeighbors()) != 1 {
 		t.Error("should be only one")
 	}
-	nd.BaseUrl = "localhost:8082"
+	nd.BaseURL = "localhost:8082"
 	c.FailedNeighbor(nd)
 	neighbors := c.GetNeighbors()
 	if neighbors[0].Writeable {

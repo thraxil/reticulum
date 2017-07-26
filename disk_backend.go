@@ -19,7 +19,7 @@ func (d diskBackend) String() string {
 	return "Disk"
 }
 
-func (d diskBackend) WriteSized(img ImageSpecifier, r io.ReadCloser) error {
+func (d diskBackend) WriteSized(img imageSpecifier, r io.ReadCloser) error {
 	path := img.baseDir(d.Root)
 
 	err := os.MkdirAll(path, 0755)
@@ -36,7 +36,7 @@ func (d diskBackend) WriteSized(img ImageSpecifier, r io.ReadCloser) error {
 	return err
 }
 
-func (d diskBackend) WriteFull(img ImageSpecifier, r io.ReadCloser) error {
+func (d diskBackend) WriteFull(img imageSpecifier, r io.ReadCloser) error {
 	path := img.baseDir(d.Root)
 
 	err := os.MkdirAll(path, 0755)
@@ -53,12 +53,12 @@ func (d diskBackend) WriteFull(img ImageSpecifier, r io.ReadCloser) error {
 	return err
 }
 
-func (d diskBackend) Read(img ImageSpecifier) ([]byte, error) {
+func (d diskBackend) Read(img imageSpecifier) ([]byte, error) {
 	path := img.sizedPath(d.Root)
 	return ioutil.ReadFile(path)
 }
 
-func (d diskBackend) Exists(img ImageSpecifier) bool {
+func (d diskBackend) Exists(img imageSpecifier) bool {
 	path := img.sizedPath(d.Root)
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false
@@ -66,12 +66,12 @@ func (d diskBackend) Exists(img ImageSpecifier) bool {
 	return true
 }
 
-func (d diskBackend) Delete(img ImageSpecifier) error {
+func (d diskBackend) Delete(img imageSpecifier) error {
 	path := img.sizedPath(d.Root)
 	return os.RemoveAll(path)
 }
 
-func (d diskBackend) writeLocalType(ri ImageSpecifier, outputImage image.Image, encFunc encfunc) {
+func (d diskBackend) writeLocalType(ri imageSpecifier, outputImage image.Image, encFunc encfunc) {
 	wFile, err := os.OpenFile(ri.sizedPath(d.Root), os.O_CREATE|os.O_RDWR, 0644)
 	defer wFile.Close()
 	if err != nil {
@@ -84,6 +84,6 @@ func (d diskBackend) writeLocalType(ri ImageSpecifier, outputImage image.Image, 
 	encFunc(wFile, outputImage)
 }
 
-func (d diskBackend) fullPath(ri ImageSpecifier) string {
+func (d diskBackend) fullPath(ri imageSpecifier) string {
 	return ri.fullSizePath(d.Root)
 }

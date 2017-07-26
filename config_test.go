@@ -5,23 +5,23 @@ import (
 )
 
 func Test_MyNode(t *testing.T) {
-	c := ConfigData{}
+	c := configData{}
 	n := c.MyNode()
 	if n.Writeable {
-		t.Error("couldn't make NodeData")
+		t.Error("couldn't make nodeData")
 	}
 }
 
 func Test_MyConfig(t *testing.T) {
-	c := ConfigData{}
+	c := configData{}
 	s := c.MyConfig()
 	if s.Writeable {
-		t.Error("couldn't make SiteConfig")
+		t.Error("couldn't make siteConfig")
 	}
 }
 
 func Test_KeyRequired(t *testing.T) {
-	s := SiteConfig{}
+	s := siteConfig{}
 	if s.KeyRequired() {
 		t.Error("shouldn't be any keys listed by default")
 	}
@@ -33,7 +33,7 @@ func Test_KeyRequired(t *testing.T) {
 }
 
 func Test_ValidKey(t *testing.T) {
-	s := SiteConfig{}
+	s := siteConfig{}
 	if s.ValidKey("foo") {
 		t.Error("key definitely does not exist, should not pass")
 	}

@@ -8,12 +8,12 @@ import (
 	"strings"
 )
 
-type Hash struct {
+type hash struct {
 	Algorithm string
 	Value     []byte
 }
 
-func HashFromPath(path string) (*Hash, error) {
+func hashFromPath(path string) (*hash, error) {
 	dir := filepath.Dir(path)
 	parts := strings.Split(dir, "/")
 	// only want the last 20 parts
@@ -22,22 +22,22 @@ func HashFromPath(path string) (*Hash, error) {
 	}
 	hash := strings.Join(parts[len(parts)-20:], "")
 	if len(hash) != 40 {
-		return nil, errors.New(fmt.Sprintf("invalid hash length: %d (%s)", len(hash), hash))
+		return nil, fmt.Errorf("invalid hash length: %d (%s)", len(hash), hash)
 	}
-	return HashFromString(hash, "sha1")
+	return hashFromString(hash, "sha1")
 }
 
-func HashFromString(str, algorithm string) (*Hash, error) {
+func hashFromString(str, algorithm string) (*hash, error) {
 	if algorithm == "" {
 		algorithm = "sha1"
 	}
 	if len(str) != 40 {
 		return nil, errors.New("invalid hash")
 	}
-	return &Hash{algorithm, []byte(str)}, nil
+	return &hash{algorithm, []byte(str)}, nil
 }
 
-func (h Hash) AsPath() string {
+func (h hash) AsPath() string {
 	var parts []string
 	s := h.String()
 	for i := range s {
@@ -48,10 +48,10 @@ func (h Hash) AsPath() string {
 	return strings.Join(parts, "/")
 }
 
-func (h Hash) String() string {
+func (h hash) String() string {
 	return string(h.Value)
 }
 
-func (h Hash) Valid() bool {
+func (h hash) Valid() bool {
 	return h.Algorithm == "sha1" && len(h.String()) == 40
 }

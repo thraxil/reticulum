@@ -6,22 +6,22 @@ import (
 	"testing"
 )
 
-func makeTestContext() Context {
-	var n []NodeData
+func makeTestContext() context {
+	var n []nodeData
 	_, c := makeNewClusterData(n)
 	b := newDiskBackend("")
-	cfg := SiteConfig{Backend: b}
-	return Context{Cluster: c, Cfg: cfg}
+	cfg := siteConfig{Backend: b}
+	return context{cluster: c, Cfg: cfg}
 }
 
-func Test_StatusHandler(t *testing.T) {
+func Test_statusHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/status/", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
 	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
-	StatusHandler(rec, req, ctx)
+	statusHandler(rec, req, ctx)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
@@ -29,14 +29,14 @@ func Test_StatusHandler(t *testing.T) {
 	}
 }
 
-func Test_DashboardHandler(t *testing.T) {
+func Test_dashboardHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/dashboard/", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
 	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
-	DashboardHandler(rec, req, ctx)
+	dashboardHandler(rec, req, ctx)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
@@ -51,7 +51,7 @@ func Test_AddFormHandler(t *testing.T) {
 	}
 	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
-	AddHandler(rec, req, ctx)
+	addHandler(rec, req, ctx)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
@@ -59,13 +59,13 @@ func Test_AddFormHandler(t *testing.T) {
 	}
 }
 
-func Test_FaviconHandler(t *testing.T) {
+func Test_faviconHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/favicon.ico", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
 	rec := httptest.NewRecorder()
-	FaviconHandler(rec, req)
+	faviconHandler(rec, req)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
@@ -113,15 +113,15 @@ func Test_parsePathServeImage(t *testing.T) {
 	}
 }
 
-type ServeImageHandlerTestCase struct {
+type serveImageHandlerTestCase struct {
 	path   string
 	status int
 }
 
-func Test_ServeImageHandler(t *testing.T) {
+func Test_serveImageHandler(t *testing.T) {
 	ctx := makeTestContext()
 
-	cases := []ServeImageHandlerTestCase{
+	cases := []serveImageHandlerTestCase{
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpg", http.StatusNotFound},
 		{"/foo", http.StatusNotFound},
 		{"/image/invalidahash/full/image.jpg", http.StatusNotFound},
@@ -135,7 +135,7 @@ func Test_ServeImageHandler(t *testing.T) {
 			t.Fatalf("could not create request: %v", err)
 		}
 		rec := httptest.NewRecorder()
-		ServeImageHandler(rec, req, ctx)
+		serveImageHandler(rec, req, ctx)
 
 		res := rec.Result()
 		if res.StatusCode != c.status {
@@ -152,7 +152,7 @@ type RetreiveInfoHandlerTestCase struct {
 func Test_RetrieveInfoImageHandler(t *testing.T) {
 	ctx := makeTestContext()
 
-	cases := []ServeImageHandlerTestCase{
+	cases := []serveImageHandlerTestCase{
 		{"/retrieve_info/0051ec03fb813e8731224ee06feee7c828ceae22/100s/jpg/", http.StatusOK},
 		{"/foo", http.StatusNotFound},
 		{"/retrieve_info/invalidahash/full/jpg/", http.StatusNotFound},
@@ -165,7 +165,7 @@ func Test_RetrieveInfoImageHandler(t *testing.T) {
 			t.Fatalf("could not create request: %v", err)
 		}
 		rec := httptest.NewRecorder()
-		RetrieveInfoHandler(rec, req, ctx)
+		retrieveInfoHandler(rec, req, ctx)
 
 		res := rec.Result()
 		if res.StatusCode != c.status {
@@ -182,7 +182,7 @@ type RetreiveHandlerTestCase struct {
 func Test_RetrieveImageHandler(t *testing.T) {
 	ctx := makeTestContext()
 
-	cases := []ServeImageHandlerTestCase{
+	cases := []serveImageHandlerTestCase{
 		{"/retrieve/0051ec03fb813e8731224ee06feee7c828ceae22/100s/jpg/", http.StatusNotFound},
 		{"/foo", http.StatusNotFound},
 		{"/retrieve/invalidahash/full/jpg/", http.StatusNotFound},
@@ -195,7 +195,7 @@ func Test_RetrieveImageHandler(t *testing.T) {
 			t.Fatalf("could not create request: %v", err)
 		}
 		rec := httptest.NewRecorder()
-		RetrieveHandler(rec, req, ctx)
+		retrieveHandler(rec, req, ctx)
 
 		res := rec.Result()
 		if res.StatusCode != c.status {
@@ -204,14 +204,14 @@ func Test_RetrieveImageHandler(t *testing.T) {
 	}
 }
 
-func Test_ConfigHandler(t *testing.T) {
+func Test_configHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
 	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
-	ConfigHandler(rec, req, ctx)
+	configHandler(rec, req, ctx)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
@@ -219,14 +219,14 @@ func Test_ConfigHandler(t *testing.T) {
 	}
 }
 
-func Test_AnnounceHandler(t *testing.T) {
+func Test_announceHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
 	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
-	AnnounceHandler(rec, req, ctx)
+	announceHandler(rec, req, ctx)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
@@ -234,14 +234,14 @@ func Test_AnnounceHandler(t *testing.T) {
 	}
 }
 
-func Test_JoinHandler(t *testing.T) {
+func Test_joinHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
 	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
-	JoinHandler(rec, req, ctx)
+	joinHandler(rec, req, ctx)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {

@@ -8,17 +8,17 @@ import (
 	"io"
 )
 
-var jpeg_options = jpeg.Options{Quality: 90}
-var gif_options = gif.Options{}
+var jpegOptions = jpeg.Options{Quality: 90}
+var gifOptions = gif.Options{}
 
 type encfunc func(io.Writer, image.Image) error
 
 func jpgencode(out io.Writer, in image.Image) error {
-	return jpeg.Encode(out, in, &jpeg_options)
+	return jpeg.Encode(out, in, &jpegOptions)
 }
 
 func gifencode(out io.Writer, in image.Image) error {
-	return gif.Encode(out, in, &gif_options)
+	return gif.Encode(out, in, &gifOptions)
 }
 
 var extencoders = map[string]encfunc{

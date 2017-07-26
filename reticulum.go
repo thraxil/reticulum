@@ -15,13 +15,13 @@ import (
 	"github.com/go-kit/kit/log"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, Context), ctx Context) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, context), ctx context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, ctx)
 	}
 }
 
-func Log(handler http.Handler, node_name string, sl log.Logger) http.Handler {
+func logTop(handler http.Handler, nodeName string, sl log.Logger) http.Handler {
 	sl = log.With(sl, "component", "web")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -34,7 +34,7 @@ func Log(handler http.Handler, node_name string, sl log.Logger) http.Handler {
 		t1 := time.Now()
 		sl.Log(
 			"level", "INFO",
-			"node", node_name,
+			"node", nodeName,
 			"remote_addr", r.RemoteAddr,
 			"method", r.Method,
 			"path", r.URL.String(),
@@ -91,7 +91,7 @@ func init() {
 }
 
 func main() {
-	sl := NewSTDLogger()
+	sl := newSTDLogger()
 	sl.Log("level", "INFO", "msg", "starting logger")
 
 	// read the config file
@@ -105,7 +105,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	f := ConfigData{}
+	f := configData{}
 	err = json.Unmarshal(file, &f)
 	if err != nil {
 		sl.Log("level", "ERR", "error", err.Error())
@@ -114,7 +114,7 @@ func main() {
 
 	siteconfig := f.MyConfig()
 
-	gcp := &GroupCacheProxy{}
+	gcp := &groupCacheProxy{}
 	c := newCluster(f.MyNode(), gcp, siteconfig.GroupcacheSize)
 	for i := range f.Neighbors {
 		c.AddNeighbor(f.Neighbors[i])
@@ -122,38 +122,38 @@ func main() {
 
 	runtime.GOMAXPROCS(siteconfig.GoMaxProcs)
 
-	rw_sl := log.With(sl, "component", "resize_worker")
+	rwSL := log.With(sl, "component", "resize_worker")
 	// start our resize worker goroutines
-	var channels = SharedChannels{
+	var channels = sharedChannels{
 		ResizeQueue: make(chan resizeRequest),
 	}
 	for i := 0; i < siteconfig.NumResizeWorkers; i++ {
-		go resizeWorker(channels.ResizeQueue, rw_sl, &siteconfig)
+		go resizeWorker(channels.ResizeQueue, rwSL, &siteconfig)
 	}
 
-	g_sl := log.With(sl, "component", "gossiper")
+	gSL := log.With(sl, "component", "gossiper")
 	// start our gossiper
-	go c.Gossip(int(f.Port), siteconfig.GossiperSleep, g_sl)
+	go c.Gossip(int(f.Port), siteconfig.GossiperSleep, gSL)
 
 	// seed the RNG
 	rand.New(rand.NewSource(time.Now().UnixNano()))
-	v_sl := log.With(sl, "component", "verifier")
-	go Verify(c, siteconfig, v_sl)
+	vSL := log.With(sl, "component", "verifier")
+	go verify(c, siteconfig, vSL)
 
-	ctx := Context{Cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
+	ctx := context{cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
 	// set up HTTP Handlers
-	http.HandleFunc("/", makeHandler(AddHandler, ctx))
-	http.HandleFunc("/stash/", makeHandler(StashHandler, ctx))
-	http.HandleFunc("/image/", makeHandler(ServeImageHandler, ctx))
-	http.HandleFunc("/retrieve/", makeHandler(RetrieveHandler, ctx))
-	http.HandleFunc("/retrieve_info/", makeHandler(RetrieveInfoHandler, ctx))
-	http.HandleFunc("/announce/", makeHandler(AnnounceHandler, ctx))
-	http.HandleFunc("/status/", makeHandler(StatusHandler, ctx))
-	http.HandleFunc("/dashboard/", makeHandler(DashboardHandler, ctx))
-	http.HandleFunc("/config/", makeHandler(ConfigHandler, ctx))
-	http.HandleFunc("/join/", makeHandler(JoinHandler, ctx))
-	http.HandleFunc("/favicon.ico", FaviconHandler)
+	http.HandleFunc("/", makeHandler(addHandler, ctx))
+	http.HandleFunc("/stash/", makeHandler(stashHandler, ctx))
+	http.HandleFunc("/image/", makeHandler(serveImageHandler, ctx))
+	http.HandleFunc("/retrieve/", makeHandler(retrieveHandler, ctx))
+	http.HandleFunc("/retrieve_info/", makeHandler(retrieveInfoHandler, ctx))
+	http.HandleFunc("/announce/", makeHandler(announceHandler, ctx))
+	http.HandleFunc("/status/", makeHandler(statusHandler, ctx))
+	http.HandleFunc("/dashboard/", makeHandler(dashboardHandler, ctx))
+	http.HandleFunc("/config/", makeHandler(configHandler, ctx))
+	http.HandleFunc("/join/", makeHandler(joinHandler, ctx))
+	http.HandleFunc("/favicon.ico", faviconHandler)
 
 	// everything is ready, let's go
-	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), Log(http.DefaultServeMux, c.Myself.Nickname, sl))
+	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), logTop(http.DefaultServeMux, c.Myself.Nickname, sl))
 }

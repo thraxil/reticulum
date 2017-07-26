@@ -2,17 +2,17 @@ package main
 
 // the structure of the config.json file
 // where config info is stored
-type ConfigData struct {
+type configData struct {
 	Port                   int64
 	UUID                   string
 	Nickname               string
-	BaseUrl                string
+	BaseURL                string `json:"BaseUrl"`
 	Location               string
 	Writeable              bool
 	NumResizeWorkers       int
 	UploadKeys             []string
 	UploadDirectory        string
-	Neighbors              []NodeData
+	Neighbors              []nodeData
 	Replication            int
 	MinReplication         int
 	MaxReplication         int
@@ -20,23 +20,23 @@ type ConfigData struct {
 	VerifierSleep          int
 	ImageMagickConvertPath string
 	GoMaxProcs             int
-	GroupcacheUrl          string
+	GroupcacheURL          string `json:"GroupcacheUrl"`
 	GroupcacheSize         int64
 }
 
-func (c ConfigData) MyNode() NodeData {
-	n := NodeData{
+func (c configData) MyNode() nodeData {
+	n := nodeData{
 		Nickname:      c.Nickname,
 		UUID:          c.UUID,
-		BaseUrl:       c.BaseUrl,
+		BaseURL:       c.BaseURL,
 		Location:      c.Location,
 		Writeable:     c.Writeable,
-		GroupcacheUrl: c.GroupcacheUrl,
+		GroupcacheURL: c.GroupcacheURL,
 	}
 	return n
 }
 
-func (c ConfigData) MyConfig() SiteConfig {
+func (c configData) MyConfig() siteConfig {
 	// todo: defaults should go here
 	// todo: normalize uploaddirectory trailing slash
 	numWorkers := c.NumResizeWorkers
@@ -49,63 +49,63 @@ func (c ConfigData) MyConfig() SiteConfig {
 		replication = 1
 	}
 	// these default to replication if not set
-	min_replication := c.MinReplication
-	if min_replication < 1 {
-		min_replication = replication
+	minReplication := c.MinReplication
+	if minReplication < 1 {
+		minReplication = replication
 	}
-	max_replication := c.MaxReplication
-	if max_replication < 1 {
-		max_replication = replication
+	maxReplication := c.MaxReplication
+	if maxReplication < 1 {
+		maxReplication = replication
 	}
-	gossiper_sleep := c.GossiperSleep
-	if gossiper_sleep < 1 {
+	gossiperSleep := c.GossiperSleep
+	if gossiperSleep < 1 {
 		// default to 60 seconds
-		gossiper_sleep = 60
+		gossiperSleep = 60
 	}
-	verifier_sleep := c.VerifierSleep
-	if verifier_sleep < 1 {
-		verifier_sleep = 300
-	}
-
-	convert_path := c.ImageMagickConvertPath
-	if convert_path == "" {
-		convert_path = "/usr/bin/convert"
+	verifierSleep := c.VerifierSleep
+	if verifierSleep < 1 {
+		verifierSleep = 300
 	}
 
-	go_max_procs := c.GoMaxProcs
-	if go_max_procs < 1 {
-		go_max_procs = 1
+	convertPath := c.ImageMagickConvertPath
+	if convertPath == "" {
+		convertPath = "/usr/bin/convert"
 	}
 
-	groupcache_size := c.GroupcacheSize
-	if groupcache_size < 1 {
-		groupcache_size = 64 << 20
+	goMaxProcs := c.GoMaxProcs
+	if goMaxProcs < 1 {
+		goMaxProcs = 1
+	}
+
+	groupcacheSize := c.GroupcacheSize
+	if groupcacheSize < 1 {
+		groupcacheSize = 64 << 20
 	}
 
 	b := newDiskBackend(c.UploadDirectory)
 
-	return SiteConfig{
+	return siteConfig{
 		Port:                   c.Port,
 		UploadKeys:             c.UploadKeys,
 		UploadDirectory:        c.UploadDirectory,
 		NumResizeWorkers:       numWorkers,
 		Replication:            replication,
-		MinReplication:         min_replication,
-		MaxReplication:         max_replication,
-		GossiperSleep:          gossiper_sleep,
-		VerifierSleep:          verifier_sleep,
-		ImageMagickConvertPath: convert_path,
-		GoMaxProcs:             go_max_procs,
+		MinReplication:         minReplication,
+		MaxReplication:         maxReplication,
+		GossiperSleep:          gossiperSleep,
+		VerifierSleep:          verifierSleep,
+		ImageMagickConvertPath: convertPath,
+		GoMaxProcs:             goMaxProcs,
 		Writeable:              c.Writeable,
-		GroupcacheUrl:          c.GroupcacheUrl,
-		GroupcacheSize:         groupcache_size,
+		GroupcacheURL:          c.GroupcacheURL,
+		GroupcacheSize:         groupcacheSize,
 		Backend:                b,
 	}
 }
 
-// basically a subset of ConfigData, that is just
+// basically a subset of configData, that is just
 // the general administrative stuff
-type SiteConfig struct {
+type siteConfig struct {
 	Port                   int64
 	UploadKeys             []string
 	UploadDirectory        string
@@ -118,16 +118,16 @@ type SiteConfig struct {
 	ImageMagickConvertPath string
 	GoMaxProcs             int
 	Writeable              bool
-	GroupcacheUrl          string
+	GroupcacheURL          string
 	GroupcacheSize         int64
 	Backend                backend
 }
 
-func (s SiteConfig) KeyRequired() bool {
+func (s siteConfig) KeyRequired() bool {
 	return len(s.UploadKeys) > 0
 }
 
-func (s SiteConfig) ValidKey(key string) bool {
+func (s siteConfig) ValidKey(key string) bool {
 	for i := range s.UploadKeys {
 		if key == s.UploadKeys[i] {
 			return true

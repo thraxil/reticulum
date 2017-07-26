@@ -35,7 +35,7 @@ var decoders = map[string](func(io.Reader) (image.Image, error)){
 	"png": png.Decode,
 }
 
-func resizeWorker(requests chan resizeRequest, sl log.Logger, s *SiteConfig) {
+func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 	for req := range requests {
 		if !s.Writeable {
 			// node is not writeable, so we should never handle a resize
@@ -87,7 +87,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *SiteConfig) {
 // this sucks, is redundant, and i'd rather not have this external dependency
 // so this will be removed as soon as Go can handle it all itself
 func imageMagickResize(path, size string, sl log.Logger,
-	s *SiteConfig) (string, error) {
+	s *siteConfig) (string, error) {
 
 	args := convertArgs(size, path, s.ImageMagickConvertPath)
 

@@ -20,32 +20,35 @@ import (
 
 // what we know about a single node
 // (ourself or another)
-type NodeData struct {
+type nodeData struct {
 	Nickname      string    `json:"nickname"`
 	UUID          string    `json:"uuid"`
-	BaseUrl       string    `json:"base_url"`
-	GroupcacheUrl string    `json:"groupcache_url"`
+	BaseURL       string    `json:"base_url"`
+	GroupcacheURL string    `json:"groupcache_url"`
 	Location      string    `json:"location"`
 	Writeable     bool      `json:"writeable"`
 	LastSeen      time.Time `json:"last_seen"`
 	LastFailed    time.Time `json:"last_failed"`
 }
 
+// how many times to duplicate each node entry in the ring
 var REPLICAS = 16
 
-func (n NodeData) String() string {
+func (n nodeData) String() string {
 	return "Node - nickname: " + n.Nickname + " UUID: " + n.UUID
 }
 
-func (n NodeData) LastSeenFormatted() string {
+// RFC 8601 timestamp
+func (n nodeData) LastSeenFormatted() string {
 	return n.LastSeen.Format("2006-01-02 15:04:05")
 }
 
-func (n NodeData) LastFailedFormatted() string {
+// RFC 8601 timestamp
+func (n nodeData) LastFailedFormatted() string {
 	return n.LastFailed.Format("2006-01-02 15:04:05")
 }
 
-func (n NodeData) HashKeys() []string {
+func (n nodeData) hashKeys() []string {
 	keys := make([]string, REPLICAS)
 	h := sha1.New()
 	for i := range keys {
@@ -56,15 +59,15 @@ func (n NodeData) HashKeys() []string {
 	return keys
 }
 
-func (n NodeData) IsCurrent() bool {
+func (n nodeData) IsCurrent() bool {
 	return n.LastSeen.Unix() > n.LastFailed.Unix()
 }
 
-// returns version of the BaseUrl that we know
+// returns version of the BaseURL that we know
 // starts with 'http://' and does not end with '/'
-func (n NodeData) goodBaseUrl() string {
-	url := n.BaseUrl
-	if !strings.HasPrefix(n.BaseUrl, "http://") {
+func (n nodeData) goodBaseURL() string {
+	url := n.BaseURL
+	if !strings.HasPrefix(n.BaseURL, "http://") {
 		url = "http://" + url
 	}
 	if strings.HasSuffix(url, "/") {
@@ -73,21 +76,21 @@ func (n NodeData) goodBaseUrl() string {
 	return url
 }
 
-func (n NodeData) retrieveUrl(ri *ImageSpecifier) string {
-	return n.goodBaseUrl() + ri.retrieveUrlPath()
+func (n nodeData) retrieveURL(ri *imageSpecifier) string {
+	return n.goodBaseURL() + ri.retrieveURLPath()
 }
 
-func (n NodeData) retrieveInfoUrl(ri *ImageSpecifier) string {
-	return n.goodBaseUrl() + ri.retrieveInfoUrlPath()
+func (n nodeData) retrieveInfoURL(ri *imageSpecifier) string {
+	return n.goodBaseURL() + ri.retrieveInfoURLPath()
 }
 
-func (n NodeData) stashUrl() string {
-	return n.goodBaseUrl() + "/stash/"
+func (n nodeData) stashURL() string {
+	return n.goodBaseURL() + "/stash/"
 }
 
-func (n *NodeData) RetrieveImage(ri *ImageSpecifier) ([]byte, error) {
+func (n *nodeData) RetrieveImage(ri *imageSpecifier) ([]byte, error) {
 
-	resp, err := http.Get(n.retrieveUrl(ri))
+	resp, err := http.Get(n.retrieveURL(ri))
 
 	if err != nil {
 		n.LastFailed = time.Now()
@@ -102,7 +105,7 @@ func (n *NodeData) RetrieveImage(ri *ImageSpecifier) ([]byte, error) {
 	return b, nil
 }
 
-type ImageInfoResponse struct {
+type imageInfoResponse struct {
 	Hash      string `json:"hash"`
 	Extension string `json:"extension"`
 	Local     bool   `json:"local"`
@@ -124,8 +127,8 @@ func timedGetRequest(url string, duration time.Duration) (resp *http.Response, e
 	return
 }
 
-func (n *NodeData) RetrieveImageInfo(ri *ImageSpecifier) (*ImageInfoResponse, error) {
-	url := n.retrieveInfoUrl(ri)
+func (n *nodeData) RetrieveImageInfo(ri *imageSpecifier) (*imageInfoResponse, error) {
+	url := n.retrieveInfoURL(ri)
 	resp, err := timedGetRequest(url, 1*time.Second)
 	if err != nil {
 		n.LastFailed = time.Now()
@@ -137,7 +140,7 @@ func (n *NodeData) RetrieveImageInfo(ri *ImageSpecifier) (*ImageInfoResponse, er
 	return n.processRetrieveInfoResponse(resp)
 }
 
-func (n *NodeData) processRetrieveInfoResponse(resp *http.Response) (*ImageInfoResponse, error) {
+func (n *nodeData) processRetrieveInfoResponse(resp *http.Response) (*imageInfoResponse, error) {
 	if resp == nil {
 		return nil, errors.New("nil response")
 	}
@@ -145,7 +148,7 @@ func (n *NodeData) processRetrieveInfoResponse(resp *http.Response) (*ImageInfoR
 	if resp.Status != "200 OK" {
 		return nil, errors.New("404, probably")
 	}
-	var response ImageInfoResponse
+	var response imageInfoResponse
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -157,31 +160,31 @@ func (n *NodeData) processRetrieveInfoResponse(resp *http.Response) (*ImageInfoR
 	return &response, nil
 }
 
-func postFile(filename string, target_url string, size_hints string) (*http.Response, error) {
-	body_buf := bytes.NewBufferString("")
-	body_writer := multipart.NewWriter(body_buf)
-	body_writer.WriteField("size_hints", size_hints)
-	file_writer, err := body_writer.CreateFormFile("image", filename)
+func postFile(filename string, targetURL string, sizeHints string) (*http.Response, error) {
+	bodyBuf := bytes.NewBufferString("")
+	bodyWriter := multipart.NewWriter(bodyBuf)
+	bodyWriter.WriteField("sizeHints", sizeHints)
+	fileWriter, err := bodyWriter.CreateFormFile("image", filename)
 	if err != nil {
 		panic(err.Error())
 	}
 	fh, err := os.Open(filename)
 	if err != nil {
-		body_writer.Close()
+		bodyWriter.Close()
 		return nil, err
 	}
 	defer fh.Close()
-	io.Copy(file_writer, fh)
+	io.Copy(fileWriter, fh)
 	// .Close() finishes setting it up
 	// do not defer this or it will make and empty POST request
-	body_writer.Close()
-	content_type := body_writer.FormDataContentType()
-	return http.Post(target_url, content_type, body_buf)
+	bodyWriter.Close()
+	contentType := bodyWriter.FormDataContentType()
+	return http.Post(targetURL, contentType, bodyBuf)
 }
 
-func (n *NodeData) Stash(ri ImageSpecifier, size_hints string, backend backend) bool {
+func (n *nodeData) Stash(ri imageSpecifier, sizeHints string, backend backend) bool {
 	filename := backend.fullPath(ri)
-	resp, err := postFile(filename, n.stashUrl(), size_hints)
+	resp, err := postFile(filename, n.stashURL(), sizeHints)
 	if err != nil {
 		return false
 	}
@@ -193,18 +196,18 @@ func (n *NodeData) Stash(ri ImageSpecifier, size_hints string, backend backend) 
 	return string(b) == "ok"
 }
 
-func (n NodeData) announceUrl() string {
-	return n.goodBaseUrl() + "/announce/"
+func (n nodeData) announceURL() string {
+	return n.goodBaseURL() + "/announce/"
 }
 
-type AnnounceResponse struct {
+type announceResponse struct {
 	Nickname      string     `json:"nickname"`
 	UUID          string     `json:"uuid"`
 	Location      string     `json:"location"`
 	Writeable     bool       `json:"writeable"`
-	BaseUrl       string     `json:"base_url"`
-	GroupcacheUrl string     `json:"groupcache_url"`
-	Neighbors     []NodeData `json:"neighbors"`
+	BaseURL       string     `json:"base_url"`
+	GroupcacheURL string     `json:"groupcache_url"`
+	Neighbors     []nodeData `json:"neighbors"`
 }
 
 type pingResponse struct {
@@ -212,13 +215,13 @@ type pingResponse struct {
 	Err  error
 }
 
-func makeParams(originator NodeData) url.Values {
+func makeParams(originator nodeData) url.Values {
 	params := url.Values{}
 	params.Set("uuid", originator.UUID)
 	params.Set("nickname", originator.Nickname)
 	params.Set("location", originator.Location)
-	params.Set("base_url", originator.BaseUrl)
-	params.Set("groupcache_url", originator.GroupcacheUrl)
+	params.Set("base_url", originator.BaseURL)
+	params.Set("groupcache_url", originator.GroupcacheURL)
 	if originator.Writeable {
 		params.Set("writeable", "true")
 	} else {
@@ -227,15 +230,15 @@ func makeParams(originator NodeData) url.Values {
 	return params
 }
 
-func (n *NodeData) Ping(originator NodeData, sl log.Logger) (AnnounceResponse, error) {
+func (n *nodeData) Ping(originator nodeData, sl log.Logger) (announceResponse, error) {
 	params := makeParams(originator)
 
-	var response AnnounceResponse
-	sl.Log("level", "INFO", "msg", n.announceUrl())
+	var response announceResponse
+	sl.Log("level", "INFO", "msg", n.announceURL())
 	rc := make(chan pingResponse, 1)
 	go func() {
 		sl.Log("level", "INFO", "msg", "made request")
-		resp, err := http.PostForm(n.announceUrl(), params)
+		resp, err := http.PostForm(n.announceURL(), params)
 		rc <- pingResponse{resp, err}
 	}()
 
@@ -247,18 +250,18 @@ func (n *NodeData) Ping(originator NodeData, sl log.Logger) (AnnounceResponse, e
 			sl.Log("level", "INFO", "msg", "node returned an error on ping", "node", n.Nickname, "error", err.Error())
 			n.LastFailed = time.Now()
 			return response, err
-		} else {
-			n.LastSeen = time.Now()
-			// todo, update Writeable, Nickname, etc.
-			b, _ := ioutil.ReadAll(resp.Body)
-			err = json.Unmarshal(b, &response)
-			resp.Body.Close()
-			if err != nil {
-				sl.Log("level", "ERR", "bad json response", "value", fmt.Sprintf("%s", b))
-				return response, errors.New("bad JSON response")
-			}
-			return response, nil
 		}
+		n.LastSeen = time.Now()
+		// todo, update Writeable, Nickname, etc.
+		b, _ := ioutil.ReadAll(resp.Body)
+		err = json.Unmarshal(b, &response)
+		resp.Body.Close()
+		if err != nil {
+			sl.Log("level", "ERR", "bad json response", "value", fmt.Sprintf("%s", b))
+			return response, errors.New("bad JSON response")
+		}
+		return response, nil
+
 	case <-time.After(1 * time.Second):
 		// if they take more than a second to respond
 		// let's cut them out

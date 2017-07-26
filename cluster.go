@@ -11,16 +11,11 @@ import (
 )
 
 type peerList interface {
-	Set(peer_urls ...string)
+	Set(peerURLs ...string)
 }
 
 type cacheGetter interface {
 	Get(ctx groupcache.Context, key string, dest groupcache.Sink) error
-}
-
-type cache interface {
-	MakeInitialPool(url string) peerList
-	MakeCache(c *Cluster, size int64) cacheGetter
 }
 
 // represents what our Node nows about the cluster
@@ -28,31 +23,36 @@ type cache interface {
 // TODO: we do a lot of lookups of neighbors by UUID
 // there should probably be a map for that so we don't
 // have to run through the whole list every time
-type Cluster struct {
-	Myself     NodeData
-	neighbors  map[string]NodeData
+type cluster struct {
+	Myself     nodeData
+	neighbors  map[string]nodeData
 	gcpeers    peerList
 	Imagecache cacheGetter
 	chF        chan func()
 
-	recentlyVerified []ImageRecord
-	recentlyUploaded []ImageRecord
-	recentlyStashed  []ImageRecord
+	recentlyVerified []imageRecord
+	recentlyUploaded []imageRecord
+	recentlyStashed  []imageRecord
 }
 
-func newCluster(myself NodeData, cache cache, cache_size int64) *Cluster {
-	c := &Cluster{
+type cache interface {
+	MakeInitialPool(string) peerList
+	MakeCache(*cluster, int64) cacheGetter
+}
+
+func newCluster(myself nodeData, cache cache, cacheSize int64) *cluster {
+	c := &cluster{
 		Myself:    myself,
-		neighbors: make(map[string]NodeData),
+		neighbors: make(map[string]nodeData),
 		chF:       make(chan func()),
-		gcpeers:   cache.MakeInitialPool(myself.GroupcacheUrl),
+		gcpeers:   cache.MakeInitialPool(myself.GroupcacheURL),
 	}
-	c.Imagecache = cache.MakeCache(c, cache_size)
+	c.Imagecache = cache.MakeCache(c, cacheSize)
 	go c.backend()
 	return c
 }
 
-func (c *Cluster) backend() {
+func (c *cluster) backend() {
 	// TODO: all operations that mutate Neighbors
 	// need to come through this
 	for f := range c.chF {
@@ -60,7 +60,7 @@ func (c *Cluster) backend() {
 	}
 }
 
-func (c *Cluster) verified(ir ImageRecord) {
+func (c *cluster) verified(ir imageRecord) {
 	c.chF <- func() {
 		rv := append(c.recentlyVerified, ir)
 		if len(rv) > 20 {
@@ -70,7 +70,7 @@ func (c *Cluster) verified(ir ImageRecord) {
 	}
 }
 
-func (c *Cluster) Uploaded(ir ImageRecord) {
+func (c *cluster) Uploaded(ir imageRecord) {
 	c.chF <- func() {
 		rv := append(c.recentlyUploaded, ir)
 		if len(rv) > 20 {
@@ -80,7 +80,7 @@ func (c *Cluster) Uploaded(ir ImageRecord) {
 	}
 }
 
-func (c *Cluster) Stashed(ir ImageRecord) {
+func (c *cluster) Stashed(ir imageRecord) {
 	c.chF <- func() {
 		rv := append(c.recentlyStashed, ir)
 		if len(rv) > 20 {
@@ -90,12 +90,12 @@ func (c *Cluster) Stashed(ir ImageRecord) {
 	}
 }
 
-func (c *Cluster) AddNeighbor(nd NodeData) {
+func (c *cluster) AddNeighbor(nd nodeData) {
 	c.chF <- func() {
 		c.neighbors[nd.UUID] = nd
-		peerUrls := make([]string, 0)
+		var peerUrls []string
 		for _, v := range c.neighbors {
-			peerUrls = append(peerUrls, v.GroupcacheUrl)
+			peerUrls = append(peerUrls, v.GroupcacheURL)
 		}
 		c.gcpeers.Set(peerUrls...)
 		// TODO: handle a node changing its groupcache URL
@@ -104,14 +104,14 @@ func (c *Cluster) AddNeighbor(nd NodeData) {
 }
 
 type gnresp struct {
-	N []NodeData
+	N []nodeData
 }
 
-func (c *Cluster) GetNeighbors() []NodeData {
+func (c *cluster) GetNeighbors() []nodeData {
 	r := make(chan gnresp)
 	go func() {
 		c.chF <- func() {
-			neighbs := make([]NodeData, len(c.neighbors))
+			neighbs := make([]nodeData, len(c.neighbors))
 			var i = 0
 			for _, value := range c.neighbors {
 				neighbs[i] = value
@@ -124,12 +124,12 @@ func (c *Cluster) GetNeighbors() []NodeData {
 	return resp.N
 }
 
-func (c *Cluster) RemoveNeighbor(nd NodeData) {
+func (c *cluster) RemoveNeighbor(nd nodeData) {
 	c.chF <- func() {
 		delete(c.neighbors, nd.UUID)
-		peerUrls := make([]string, 0)
+		var peerUrls []string
 		for _, v := range c.neighbors {
-			peerUrls = append(peerUrls, v.GroupcacheUrl)
+			peerUrls = append(peerUrls, v.GroupcacheURL)
 		}
 		c.gcpeers.Set(peerUrls...)
 	}
@@ -137,11 +137,11 @@ func (c *Cluster) RemoveNeighbor(nd NodeData) {
 }
 
 type fResp struct {
-	N   *NodeData
+	N   *nodeData
 	Err bool
 }
 
-func (c Cluster) FindNeighborByUUID(uuid string) (*NodeData, bool) {
+func (c cluster) FindNeighborByUUID(uuid string) (*nodeData, bool) {
 	r := make(chan fResp)
 	go func() {
 		c.chF <- func() {
@@ -153,13 +153,13 @@ func (c Cluster) FindNeighborByUUID(uuid string) (*NodeData, bool) {
 	return resp.N, resp.Err
 }
 
-func (c *Cluster) UpdateNeighbor(neighbor NodeData) {
+func (c *cluster) UpdateNeighbor(neighbor nodeData) {
 	c.chF <- func() {
 		if n, ok := c.neighbors[neighbor.UUID]; ok {
 			n.Nickname = neighbor.Nickname
 			n.Location = neighbor.Location
-			n.BaseUrl = neighbor.BaseUrl
-			n.GroupcacheUrl = neighbor.GroupcacheUrl
+			n.BaseURL = neighbor.BaseURL
+			n.GroupcacheURL = neighbor.GroupcacheURL
 			n.Writeable = neighbor.Writeable
 			if neighbor.LastSeen.Sub(n.LastSeen) > 0 {
 				n.LastSeen = neighbor.LastSeen
@@ -169,7 +169,7 @@ func (c *Cluster) UpdateNeighbor(neighbor NodeData) {
 	}
 }
 
-func (c *Cluster) FailedNeighbor(neighbor NodeData) {
+func (c *cluster) FailedNeighbor(neighbor nodeData) {
 	c.chF <- func() {
 		if n, ok := c.neighbors[neighbor.UUID]; ok {
 			n.Writeable = false
@@ -181,17 +181,17 @@ func (c *Cluster) FailedNeighbor(neighbor NodeData) {
 }
 
 type listResp struct {
-	Ns []NodeData
+	Ns []nodeData
 }
 
-func (c Cluster) NeighborsInclusive() []NodeData {
+func (c cluster) NeighborsInclusive() []nodeData {
 	r := make(chan listResp)
 	go func() {
 		c.chF <- func() {
-			a := make([]NodeData, 1)
+			a := make([]nodeData, 1)
 			a[0] = c.Myself
 
-			neighbs := make([]NodeData, len(c.neighbors))
+			neighbs := make([]nodeData, len(c.neighbors))
 			var i = 0
 			for _, value := range c.neighbors {
 				neighbs[i] = value
@@ -206,9 +206,9 @@ func (c Cluster) NeighborsInclusive() []NodeData {
 	return resp.Ns
 }
 
-func (c Cluster) WriteableNeighbors() []NodeData {
+func (c cluster) WriteableNeighbors() []nodeData {
 	var all = c.NeighborsInclusive()
-	var p []NodeData // == nil
+	var p []nodeData // == nil
 	for _, i := range all {
 		if i.Writeable {
 			p = append(p, i)
@@ -217,67 +217,67 @@ func (c Cluster) WriteableNeighbors() []NodeData {
 	return p
 }
 
-type RingEntry struct {
-	Node NodeData
+type ringEntry struct {
+	Node nodeData
 	Hash string
 }
 
-type RingEntryList []RingEntry
+type ringEntryList []ringEntry
 
-func (p RingEntryList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
-func (p RingEntryList) Len() int           { return len(p) }
-func (p RingEntryList) Less(i, j int) bool { return p[i].Hash < p[j].Hash }
+func (p ringEntryList) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+func (p ringEntryList) Len() int           { return len(p) }
+func (p ringEntryList) Less(i, j int) bool { return p[i].Hash < p[j].Hash }
 
-func (c Cluster) Ring() RingEntryList {
+func (c cluster) Ring() ringEntryList {
 	// TODO: cache the ring so we don't have to regenerate
 	// every time. it only changes when a node joins or leaves
 	return neighborsToRing(c.NeighborsInclusive())
 }
 
-func (c Cluster) WriteRing() RingEntryList {
+func (c cluster) WriteRing() ringEntryList {
 	return neighborsToRing(c.WriteableNeighbors())
 }
 
-func (cluster *Cluster) Stash(ri ImageSpecifier, size_hints string, replication int, min_replication int, backend backend) []string {
+func (c *cluster) Stash(ri imageSpecifier, sizeHints string, replication int, minReplication int, backend backend) []string {
 	// we don't have the full-size, so check the cluster
-	nodes_to_check := cluster.WriteOrder(ri.Hash.String())
-	saved_to := make([]string, replication)
-	var save_count = 0
+	nodesToCheck := c.WriteOrder(ri.Hash.String())
+	savedTo := make([]string, replication)
+	var saveCount = 0
 	// TODO: parallelize this
-	for _, n := range nodes_to_check {
+	for _, n := range nodesToCheck {
 		// TODO: detect when the node to stash to is the current one
 		// and just save directly instead of doing a POST to ourself
-		if save_count > 1 {
+		if saveCount > 1 {
 			// only have the first node on the list eagerly resize images
-			size_hints = ""
+			sizeHints = ""
 		}
-		if n.Stash(ri, size_hints, backend) {
-			saved_to[save_count] = n.Nickname
-			save_count++
+		if n.Stash(ri, sizeHints, backend) {
+			savedTo[saveCount] = n.Nickname
+			saveCount++
 			n.LastSeen = time.Now()
-			cluster.UpdateNeighbor(n)
+			c.UpdateNeighbor(n)
 		} else {
-			cluster.FailedNeighbor(n)
+			c.FailedNeighbor(n)
 		}
-		// TODO: if we've hit min_replication, we can return
+		// TODO: if we've hit minReplication, we can return
 		// immediately and leave any additional stash attempts
 		// as background processes
 		// that node didn't have it so we keep going
-		if save_count >= replication {
+		if saveCount >= replication {
 			// got as many as we need
 			break
 		}
 	}
-	return saved_to
+	return savedTo
 }
 
-func neighborsToRing(neighbors []NodeData) RingEntryList {
-	keys := make(RingEntryList, REPLICAS*len(neighbors))
+func neighborsToRing(neighbors []nodeData) ringEntryList {
+	keys := make(ringEntryList, REPLICAS*len(neighbors))
 	for i := range neighbors {
 		node := neighbors[i]
-		nkeys := node.HashKeys()
+		nkeys := node.hashKeys()
 		for j := range nkeys {
-			keys[i*REPLICAS+j] = RingEntry{Node: node, Hash: nkeys[j]}
+			keys[i*REPLICAS+j] = ringEntry{Node: node, Hash: nkeys[j]}
 		}
 	}
 	sort.Sort(keys)
@@ -286,17 +286,17 @@ func neighborsToRing(neighbors []NodeData) RingEntryList {
 
 // returns the list of all nodes in the order
 // that the given hash will choose to write to them
-func (c Cluster) WriteOrder(hash string) []NodeData {
+func (c cluster) WriteOrder(hash string) []nodeData {
 	return hashOrder(hash, len(c.GetNeighbors())+1, c.WriteRing())
 }
 
 // returns the list of all nodes in the order
 // that the given hash will choose to try to read from them
-func (c Cluster) ReadOrder(hash string) []NodeData {
+func (c cluster) ReadOrder(hash string) []nodeData {
 	return hashOrder(hash, len(c.GetNeighbors())+1, c.Ring())
 }
 
-func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
+func hashOrder(hash string, size int, ring []ringEntry) []nodeData {
 	// our approach is to find the first bucket after our hash,
 	// partition the ring on that and put the first part on the
 	// end. Then go through and extract the ordering.
@@ -315,10 +315,10 @@ func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 		}
 	}
 	// yay, slices
-	reordered := make([]RingEntry, len(ring))
+	reordered := make([]ringEntry, len(ring))
 	reordered = append(ring[partitionIndex:], ring[:partitionIndex]...)
 
-	results := make([]NodeData, size)
+	results := make([]nodeData, size)
 	var seen = map[string]bool{}
 	var i = 0
 	for _, r := range reordered {
@@ -333,12 +333,12 @@ func hashOrder(hash string, size int, ring []RingEntry) []NodeData {
 
 // periodically pings all the known neighbors to gossip
 // run this as a goroutine
-func (c *Cluster) Gossip(i, base_time int, sl log.Logger) {
+func (c *cluster) Gossip(i, baseTime int, sl log.Logger) {
 	sl.Log("level", "info", "msg", "starting gossiper")
 
 	rand.Seed(int64(time.Now().Unix()) + int64(i))
 	var jitter int
-	first_run := true
+	firstRun := true
 
 	for {
 		// run forever
@@ -349,12 +349,12 @@ func (c *Cluster) Gossip(i, base_time int, sl log.Logger) {
 			}
 			// avoid thundering herd
 			jitter = rand.Intn(30)
-			if first_run {
+			if firstRun {
 				time.Sleep(time.Duration(jitter) * time.Second)
 			} else {
-				time.Sleep(time.Duration(base_time+jitter) * time.Second)
+				time.Sleep(time.Duration(baseTime+jitter) * time.Second)
 			}
-			first_run = false
+			firstRun = false
 			sl.Log("level", "INFO",
 				"action", "ping",
 				"source", c.Myself.Nickname,
@@ -369,11 +369,11 @@ func (c *Cluster) Gossip(i, base_time int, sl log.Logger) {
 				c.FailedNeighbor(n)
 				continue
 			}
-			// UUID and BaseUrl must be the same
+			// UUID and BaseURL must be the same
 			n.Writeable = resp.Writeable
 			n.Nickname = resp.Nickname
 			n.Location = resp.Location
-			n.GroupcacheUrl = resp.GroupcacheUrl
+			n.GroupcacheURL = resp.GroupcacheURL
 			n.LastSeen = time.Now()
 			c.UpdateNeighbor(n)
 			for _, neighbor := range resp.Neighbors {
@@ -383,7 +383,7 @@ func (c *Cluster) Gossip(i, base_time int, sl log.Logger) {
 	}
 }
 
-func (c *Cluster) updateNeighbor(neighbor NodeData, sl log.Logger) {
+func (c *cluster) updateNeighbor(neighbor nodeData, sl log.Logger) {
 	if neighbor.UUID == c.Myself.UUID {
 		// as usual, skip ourself
 		return
@@ -399,13 +399,13 @@ func (c *Cluster) updateNeighbor(neighbor NodeData, sl log.Logger) {
 	}
 }
 
-func (c *Cluster) RetrieveImage(ri *ImageSpecifier) ([]byte, error) {
+func (c *cluster) RetrieveImage(ri *imageSpecifier) ([]byte, error) {
 	// we don't have the full-size, so check the cluster
-	nodes_to_check := c.ReadOrder(ri.Hash.String())
+	nodesToCheck := c.ReadOrder(ri.Hash.String())
 	// this is where we go down the list and ask the other
 	// nodes for the image
 	// TODO: parallelize this
-	for _, n := range nodes_to_check {
+	for _, n := range nodesToCheck {
 		if n.UUID == c.Myself.UUID {
 			// checking ourself would be silly
 			continue
