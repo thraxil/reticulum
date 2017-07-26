@@ -95,10 +95,10 @@ func (c ConfigData) MyConfig() SiteConfig {
 		GossiperSleep:          gossiper_sleep,
 		VerifierSleep:          verifier_sleep,
 		ImageMagickConvertPath: convert_path,
-		GoMaxProcs:             c.GoMaxProcs,
+		GoMaxProcs:             go_max_procs,
 		Writeable:              c.Writeable,
 		GroupcacheUrl:          c.GroupcacheUrl,
-		GroupcacheSize:         c.GroupcacheSize,
+		GroupcacheSize:         groupcache_size,
 		Backend:                b,
 	}
 }
