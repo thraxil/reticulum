@@ -1,0 +1,94 @@
+version: '3'
+
+services:
+  node0:
+    image: thraxil/reticulum
+    command: reticulum -config=/etc/reticulum/config.json
+    volumes:
+      - ./test/docker0.json:/etc/reticulum/config.json
+      - /tmp/test/uploads0:/var/data/reticulum
+    ports:
+      - "8080:8080"
+      - "10080:10080"
+  node1:
+    image: thraxil/reticulum
+    command: reticulum -config=/etc/reticulum/config.json
+    volumes:
+      - ./test/docker1.json:/etc/reticulum/config.json
+      - /tmp/test/uploads1:/var/data/reticulum
+    ports:
+      - "8081:8080"
+      - "10081:10080"
+  node2:
+    image: thraxil/reticulum
+    command: reticulum -config=/etc/reticulum/config.json
+    volumes:
+      - ./test/docker2.json:/etc/reticulum/config.json
+      - /tmp/test/uploads2:/var/data/reticulum
+    ports:
+      - "8082:8080"
+      - "10082:10080"
+  node3:
+    image: thraxil/reticulum
+    command: reticulum -config=/etc/reticulum/config.json
+    volumes:
+      - ./test/docker3.json:/etc/reticulum/config.json
+      - /tmp/test/uploads3:/var/data/reticulum
+    ports:
+      - "8083:8080"
+      - "10083:10080"
+  node4:
+    image: thraxil/reticulum
+    command: reticulum -config=/etc/reticulum/config.json
+    volumes:
+      - ./test/docker4.json:/etc/reticulum/config.json
+      - /tmp/test/uploads4:/var/data/reticulum
+    ports:
+      - "8084:8080"
+      - "10084:10080"
+  node5:
+    image: thraxil/reticulum
+    command: reticulum -config=/etc/reticulum/config.json
+    volumes:
+      - ./test/docker5.json:/etc/reticulum/config.json
+      - /tmp/test/uploads5:/var/data/reticulum
+    ports:
+      - "8085:8080"
+      - "10085:10080"
+  node6:
+    image: thraxil/reticulum
+    command: reticulum -config=/etc/reticulum/config.json
+    volumes:
+      - ./test/docker6.json:/etc/reticulum/config.json
+      - /tmp/test/uploads6:/var/data/reticulum
+    ports:
+      - "8086:8080"
+      - "10086:10080"
+  node7:
+    image: thraxil/reticulum
+    command: reticulum -config=/etc/reticulum/config.json
+    volumes:
+      - ./test/docker7.json:/etc/reticulum/config.json
+      - /tmp/test/uploads7:/var/data/reticulum
+    ports:
+      - "8087:8080"
+      - "10087:10080"
+  node8:
+    image: thraxil/reticulum
+    command: reticulum -config=/etc/reticulum/config.json
+    volumes:
+      - ./test/docker8.json:/etc/reticulum/config.json
+      - /tmp/test/uploads8:/var/data/reticulum
+    ports:
+      - "8088:8080"
+      - "10088:10080"
+  node9:
+    image: thraxil/reticulum
+    command: reticulum -config=/etc/reticulum/config.json
+    volumes:
+      - ./test/docker9.json:/etc/reticulum/config.json
+      - /tmp/test/uploads9:/var/data/reticulum
+    ports:
+      - "8089:8080"
+      - "10089:10080"
+    

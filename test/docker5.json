@@ -1,0 +1,69 @@
+{"Nickname": "node5",
+"UUID" : "uuid-node-5",
+"Port" : 8080,
+"BaseUrl" : "0.0.0.0:8080",
+"GroupcacheUrl": "http://0.0.0.0:10080",
+"GroupcacheSize": 67108864,
+"UploadDirectory" : "/var/data/reticulum/",
+"TemplateDirectory": "/go/src/app/templates",
+"NumResizeWorkers" : 4,
+"Writeable" : true,
+"Replication" : 3,
+"VerifierSleep" : 60,
+"Neighbors": [
+	     {"nickname": "node1",
+	     "uuid": "uuid-node-1",
+	     "base_url": "0.0.0.0:8081",
+	     "groupcache_url": "http://0.0.0.0:10081",
+	     "writeable": true
+	     },
+	     {"nickname": "node2",
+	     "uuid": "uuid-node-2",
+	     "base_url": "0.0.0.0:8082",
+	     "groupcache_url": "http://0.0.0.0:10082",
+	     "writeable": true
+	     },
+	     {"nickname": "node3",
+	     "uuid": "uuid-node-3",
+	     "base_url": "0.0.0.0:8083",
+	     "groupcache_url": "http://0.0.0.0:10083",
+	     "writeable": true
+	     },
+	     {"nickname": "node4",
+	     "uuid": "uuid-node-4",
+	     "base_url": "0.0.0.0:8084",
+	     "groupcache_url": "http://0.0.0.0:10084",
+	     "writeable": true
+	     },
+	     {"nickname": "node0",
+	     "uuid": "uuid-node-0",
+	     "base_url": "0.0.0.0:8080",
+	     "groupcache_url": "http://0.0.0.0:10080",
+	     "writeable": true
+	     },
+	     {"nickname": "node6",
+	     "uuid": "uuid-node-6",
+	     "base_url": "0.0.0.0:8086",
+	     "groupcache_url": "http://0.0.0.0:10086",
+	     "writeable": true
+	     },
+	     {"nickname": "node7",
+	     "uuid": "uuid-node-7",
+	     "base_url": "0.0.0.0:8087",
+	     "groupcache_url": "http://0.0.0.0:10087",
+	     "writeable": true
+	     },
+	     {"nickname": "node8",
+	     "uuid": "uuid-node-8",
+	     "base_url": "0.0.0.0:8088",
+	     "groupcache_url": "http://0.0.0.0:10088",
+	     "writeable": true
+	     },
+	     {"nickname": "node9",
+	     "uuid": "uuid-node-9",
+	     "base_url": "0.0.0.0:8089",
+	     "groupcache_url": "http://0.0.0.0:10089",
+	     "writeable": true
+	     }
+  ]
+}
