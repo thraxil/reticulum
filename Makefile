@@ -64,7 +64,7 @@ startall:
 	sudo systemctl start reticulum-sata12
 
 build:
-	docker run --rm -v $(ROOT_DIR):/src -v /var/run/docker.sock:/var/run/docker.sock centurylink/golang-builder thraxil/reticulum
+	docker build . -t thraxil/reticulum
 
 push: build
 	docker push thraxil/reticulum
