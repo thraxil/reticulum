@@ -64,7 +64,7 @@ startall:
 	sudo systemctl start reticulum-sata12
 
 build:
-	docker build . -t thraxil/reticulum
+	docker build -t thraxil/reticulum .
 
 push: build
 	docker push thraxil/reticulum
