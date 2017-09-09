@@ -64,6 +64,8 @@ var (
 	resizeFailures    *expvar.Int
 	servedByMagick    *expvar.Int
 	servedScaled      *expvar.Int
+
+	expUptime *expvar.Int
 )
 
 func init() {
@@ -88,6 +90,8 @@ func init() {
 	resizeFailures = expvar.NewInt("resizeFailures")
 	servedByMagick = expvar.NewInt("servedByMagick")
 	servedScaled = expvar.NewInt("servedScaled")
+
+	expUptime = expvar.NewInt("uptime")
 }
 
 func main() {
@@ -122,6 +126,13 @@ func main() {
 
 	runtime.GOMAXPROCS(siteconfig.GoMaxProcs)
 
+	go func() {
+		// update uptime
+		for {
+			time.Sleep(1 * time.Second)
+			expUptime.Add(1)
+		}
+	}()
 	rwSL := log.With(sl, "component", "resize_worker")
 	// start our resize worker goroutines
 	var channels = sharedChannels{
