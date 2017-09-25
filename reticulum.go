@@ -15,7 +15,7 @@ import (
 	"github.com/go-kit/kit/log"
 )
 
-func makeHandler(fn func(http.ResponseWriter, *http.Request, context), ctx context) http.HandlerFunc {
+func makeHandler(fn func(http.ResponseWriter, *http.Request, sitecontext), ctx sitecontext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, ctx)
 		totalRequests.Add(1)
@@ -156,7 +156,7 @@ func main() {
 	vSL := log.With(sl, "component", "verifier")
 	go verify(c, siteconfig, vSL)
 
-	ctx := context{cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
+	ctx := sitecontext{cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
 	// set up HTTP Handlers
 	http.HandleFunc("/", makeHandler(addHandler, ctx))
 	http.HandleFunc("/stash/", makeHandler(stashHandler, ctx))

@@ -6,12 +6,12 @@ import (
 	"testing"
 )
 
-func makeTestContext() context {
+func makeTestContext() sitecontext {
 	var n []nodeData
 	_, c := makeNewClusterData(n)
 	b := newDiskBackend("")
 	cfg := siteConfig{Backend: b}
-	return context{cluster: c, Cfg: cfg}
+	return sitecontext{cluster: c, Cfg: cfg}
 }
 
 func Test_statusHandler(t *testing.T) {

@@ -19,7 +19,7 @@ import (
 	"github.com/thraxil/resize"
 )
 
-type context struct {
+type sitecontext struct {
 	cluster *cluster
 	Cfg     siteConfig
 	Ch      sharedChannels
@@ -47,7 +47,7 @@ func setCacheHeaders(w http.ResponseWriter, extension string) http.ResponseWrite
 }
 
 func parsePathServeImage(w http.ResponseWriter, r *http.Request,
-	ctx context) (*imageSpecifier, bool) {
+	ctx sitecontext) (*imageSpecifier, bool) {
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) < 5) || (parts[1] != "image") {
 		http.Error(w, "bad request", http.StatusNotFound)
@@ -84,7 +84,7 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 	return ri, false
 }
 
-func (ctx context) serveFromCluster(ri *imageSpecifier, w http.ResponseWriter) {
+func (ctx sitecontext) serveFromCluster(ri *imageSpecifier, w http.ResponseWriter) {
 	// we don't have the full-size on this node either
 	// need to check the rest of the cluster
 	imgData, err := ctx.cluster.RetrieveImage(ri)
@@ -98,7 +98,7 @@ func (ctx context) serveFromCluster(ri *imageSpecifier, w http.ResponseWriter) {
 	}
 }
 
-func (ctx context) serveDirect(ri *imageSpecifier, w http.ResponseWriter) bool {
+func (ctx sitecontext) serveDirect(ri *imageSpecifier, w http.ResponseWriter) bool {
 	contents, err := ctx.Cfg.Backend.Read(*ri)
 	if err == nil {
 		// we've got it, so serve it directly
@@ -110,7 +110,7 @@ func (ctx context) serveDirect(ri *imageSpecifier, w http.ResponseWriter) bool {
 	return false
 }
 
-func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx context) {
+func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	ri, handled := parsePathServeImage(w, r, ctx)
 	if handled {
 		return
@@ -161,16 +161,16 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx context) {
 	ctx.serveScaledByExtension(ri, w, *result.OutputImage)
 }
 
-func (ctx context) locallyWriteable() bool {
+func (ctx sitecontext) locallyWriteable() bool {
 	return ctx.cluster.Myself.Writeable
 }
 
-func (ctx context) haveImageFullsizeLocally(ri *imageSpecifier) bool {
+func (ctx sitecontext) haveImageFullsizeLocally(ri *imageSpecifier) bool {
 	_, err := ctx.Cfg.Backend.Read(ri.fullVersion())
 	return err == nil
 }
 
-func (ctx context) serveScaledFromCluster(ri *imageSpecifier, w http.ResponseWriter) {
+func (ctx sitecontext) serveScaledFromCluster(ri *imageSpecifier, w http.ResponseWriter) {
 	imgData, err := ctx.cluster.RetrieveImage(ri)
 	if err != nil {
 		// for now we just have to 404
@@ -183,7 +183,7 @@ func (ctx context) serveScaledFromCluster(ri *imageSpecifier, w http.ResponseWri
 	return
 }
 
-func (ctx context) makeResizeJob(ri *imageSpecifier) resizeResponse {
+func (ctx sitecontext) makeResizeJob(ri *imageSpecifier) resizeResponse {
 	c := make(chan resizeResponse)
 	fmt.Println(ri.fullSizePath(ctx.Cfg.UploadDirectory))
 	ctx.Ch.ResizeQueue <- resizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size.String(), c}
@@ -193,7 +193,7 @@ func (ctx context) makeResizeJob(ri *imageSpecifier) resizeResponse {
 	return result
 }
 
-func (ctx context) serveMagick(ri *imageSpecifier, w http.ResponseWriter) {
+func (ctx sitecontext) serveMagick(ri *imageSpecifier, w http.ResponseWriter) {
 	imgContents, err := ctx.Cfg.Backend.Read(*ri)
 	if err != nil {
 		ctx.SL.Log("level", "ERR", "msg", "couldn't read image resized by magick",
@@ -204,7 +204,7 @@ func (ctx context) serveMagick(ri *imageSpecifier, w http.ResponseWriter) {
 	w.Write(imgContents)
 }
 
-func (ctx context) serveScaledByExtension(ri *imageSpecifier, w http.ResponseWriter,
+func (ctx sitecontext) serveScaledByExtension(ri *imageSpecifier, w http.ResponseWriter,
 	outputImage image.Image) {
 
 	w = setCacheHeaders(w, ri.Extension)
@@ -228,7 +228,7 @@ var extmimes = map[string]string{
 	"png": "image/png",
 }
 
-func addHandler(w http.ResponseWriter, r *http.Request, ctx context) {
+func addHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	if r.Method == "POST" {
 		if ctx.Cfg.KeyRequired() {
 			if !ctx.Cfg.ValidKey(r.FormValue("key")) {
@@ -298,7 +298,7 @@ type statusPage struct {
 	Neighbors []nodeData
 }
 
-func statusHandler(w http.ResponseWriter, r *http.Request, ctx context) {
+func statusHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	p := statusPage{
 		Title:     "Status",
 		Config:    ctx.Cfg,
@@ -315,7 +315,7 @@ type dashboardPage struct {
 	RecentlyStashed  []imageRecord
 }
 
-func dashboardHandler(w http.ResponseWriter, r *http.Request, ctx context) {
+func dashboardHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	p := dashboardPage{
 		RecentlyVerified: ctx.cluster.recentlyVerified,
 		RecentlyUploaded: ctx.cluster.recentlyUploaded,
@@ -325,7 +325,7 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request, ctx context) {
 	t.Execute(w, p)
 }
 
-func configHandler(w http.ResponseWriter, r *http.Request, ctx context) {
+func configHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	b, err := json.Marshal(ctx.cluster.Myself)
 	if err != nil {
 		ctx.SL.Log("level", "ERR", "error", err.Error())
@@ -334,7 +334,7 @@ func configHandler(w http.ResponseWriter, r *http.Request, ctx context) {
 	w.Write(b)
 }
 
-func stashHandler(w http.ResponseWriter, r *http.Request, ctx context) {
+func stashHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	n := ctx.cluster.Myself
 	if r.Method != "POST" {
 		http.Error(w, "POST only", 400)
@@ -387,7 +387,7 @@ func stashHandler(w http.ResponseWriter, r *http.Request, ctx context) {
 	ctx.cluster.Stashed(imageRecord{*ahash, ext})
 }
 
-func retrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx context) {
+func retrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	// request will look like /retrieve_info/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
 	if (len(parts) != 6) || (parts[1] != "retrieve_info") {
@@ -429,7 +429,7 @@ func retrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx context) {
 	w.Write(b)
 }
 
-func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx context) {
+func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 
 	// request will look like /retrieve/$hash/$size/$ext/
 	parts := strings.Split(r.URL.String(), "/")
@@ -497,7 +497,7 @@ func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx context) {
 	serveType(w, outputImage, extencoders[ri.Extension])
 }
 
-func announceHandler(w http.ResponseWriter, r *http.Request, ctx context) {
+func announceHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	if r.Method == "POST" {
 		// another node is announcing themselves to us
 		// if they are already in the Neighbors list, update as needed
@@ -555,7 +555,7 @@ func announceHandler(w http.ResponseWriter, r *http.Request, ctx context) {
 	w.Write(b)
 }
 
-func joinHandler(w http.ResponseWriter, r *http.Request, ctx context) {
+func joinHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	if r.Method == "POST" {
 		if r.FormValue("url") == "" {
 			fmt.Fprint(w, "no url specified")
