@@ -18,6 +18,7 @@ import (
 func makeHandler(fn func(http.ResponseWriter, *http.Request, context), ctx context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, ctx)
+		totalRequests.Add(1)
 	}
 }
 
@@ -65,6 +66,8 @@ var (
 	servedByMagick    *expvar.Int
 	servedScaled      *expvar.Int
 
+	totalRequests *expvar.Int
+
 	expUptime *expvar.Int
 )
 
@@ -90,6 +93,8 @@ func init() {
 	resizeFailures = expvar.NewInt("resizeFailures")
 	servedByMagick = expvar.NewInt("servedByMagick")
 	servedScaled = expvar.NewInt("servedScaled")
+
+	totalRequests = expvar.NewInt("totalRequests")
 
 	expUptime = expvar.NewInt("uptime")
 }
