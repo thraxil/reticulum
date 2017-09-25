@@ -1,6 +1,7 @@
 package main // import "github.com/thraxil/reticulum"
 
 import (
+	"context"
 	"encoding/json"
 	"expvar"
 	"flag"
@@ -9,7 +10,9 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/signal"
 	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -158,6 +161,7 @@ func main() {
 
 	ctx := sitecontext{cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
 	// set up HTTP Handlers
+
 	http.HandleFunc("/", makeHandler(addHandler, ctx))
 	http.HandleFunc("/stash/", makeHandler(stashHandler, ctx))
 	http.HandleFunc("/image/", makeHandler(serveImageHandler, ctx))
@@ -170,6 +174,23 @@ func main() {
 	http.HandleFunc("/join/", makeHandler(joinHandler, ctx))
 	http.HandleFunc("/favicon.ico", faviconHandler)
 
+	hs := http.Server{Addr: fmt.Sprintf(":%d", f.Port), Handler: logTop(http.DefaultServeMux, c.Myself.Nickname, sl)}
 	// everything is ready, let's go
-	http.ListenAndServe(fmt.Sprintf(":%d", f.Port), logTop(http.DefaultServeMux, c.Myself.Nickname, sl))
+	go func() {
+		hs.ListenAndServe()
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	<-stop
+
+	sctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err = hs.Shutdown(sctx); err != nil {
+		sl.Log("level", "ERR", "msg", "error on shutdown", "error", err)
+	} else {
+		sl.Log("level", "INFO", "msg", "Server stopped")
+	}
 }
