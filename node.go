@@ -90,7 +90,10 @@ func (n nodeData) stashURL() string {
 
 func (n *nodeData) RetrieveImage(ctx context.Context, ri *imageSpecifier) ([]byte, error) {
 
-	req, _ := http.NewRequest("GET", n.retrieveURL(ri), nil)
+	req, err := http.NewRequest("GET", n.retrieveURL(ri), nil)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 
 	if err != nil {
@@ -102,8 +105,7 @@ func (n *nodeData) RetrieveImage(ctx context.Context, ri *imageSpecifier) ([]byt
 	if resp.Status != "200 OK" {
 		return nil, errors.New("404, probably")
 	}
-	b, _ := ioutil.ReadAll(resp.Body)
-	return b, nil
+	return ioutil.ReadAll(resp.Body)
 }
 
 type imageInfoResponse struct {
