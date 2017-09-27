@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha1"
 	"errors"
 	"fmt"
@@ -112,7 +113,8 @@ func checkImageOnNode(n nodeData, hash *hash, extension string, path string,
 	s := resize.MakeSizeSpec("full")
 	ri := &imageSpecifier{hash, s, extension}
 
-	img, err := n.RetrieveImage(ri)
+	ctx := context.Background()
+	img, err := n.RetrieveImage(ctx, ri)
 	if err != nil {
 		// doesn't have it
 		sl.Log("level", "INFO", "node", n.Nickname,

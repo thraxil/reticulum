@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"math/rand"
 	"sort"
@@ -368,7 +369,7 @@ func (c *cluster) updateNeighbor(neighbor nodeData, sl log.Logger) {
 	}
 }
 
-func (c *cluster) RetrieveImage(ri *imageSpecifier) ([]byte, error) {
+func (c *cluster) RetrieveImage(ctx context.Context, ri *imageSpecifier) ([]byte, error) {
 	// we don't have the full-size, so check the cluster
 	nodesToCheck := c.ReadOrder(ri.Hash.String())
 	// this is where we go down the list and ask the other
@@ -379,7 +380,7 @@ func (c *cluster) RetrieveImage(ri *imageSpecifier) ([]byte, error) {
 			// checking ourself would be silly
 			continue
 		}
-		img, err := n.RetrieveImage(ri)
+		img, err := n.RetrieveImage(ctx, ri)
 		if err == nil {
 			// got it, return it
 			return img, nil

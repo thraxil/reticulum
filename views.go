@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
@@ -83,10 +84,10 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 	return ri, false
 }
 
-func (ctx sitecontext) serveFromCluster(ri *imageSpecifier, w http.ResponseWriter) {
+func (ctx sitecontext) serveFromCluster(rctx context.Context, ri *imageSpecifier, w http.ResponseWriter) {
 	// we don't have the full-size on this node either
 	// need to check the rest of the cluster
-	imgData, err := ctx.cluster.RetrieveImage(ri)
+	imgData, err := ctx.cluster.RetrieveImage(rctx, ri)
 	if err != nil {
 		// for now we just have to 404
 		http.Error(w, "not found (serve from cluster)", http.StatusNotFound)
@@ -118,9 +119,9 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 	if ctx.serveDirect(ri, w) {
 		return
 	}
-
+	rctx := r.Context()
 	if !ctx.haveImageFullsizeLocally(ri) {
-		ctx.serveFromCluster(ri, w)
+		ctx.serveFromCluster(rctx, ri, w)
 		return
 	}
 
@@ -129,7 +130,7 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 	if !ctx.locallyWriteable() {
 		// but first, make sure we are writeable. If not,
 		// we need to let another node in the cluster handle it.
-		ctx.serveScaledFromCluster(ri, w)
+		ctx.serveScaledFromCluster(rctx, ri, w)
 		return
 	}
 
@@ -159,8 +160,8 @@ func (ctx sitecontext) haveImageFullsizeLocally(ri *imageSpecifier) bool {
 	return err == nil
 }
 
-func (ctx sitecontext) serveScaledFromCluster(ri *imageSpecifier, w http.ResponseWriter) {
-	imgData, err := ctx.cluster.RetrieveImage(ri)
+func (ctx sitecontext) serveScaledFromCluster(rctx context.Context, ri *imageSpecifier, w http.ResponseWriter) {
+	imgData, err := ctx.cluster.RetrieveImage(rctx, ri)
 	if err != nil {
 		// for now we just have to 404
 		http.Error(w, "not found (serveScaledFromCluster)", http.StatusNotFound)

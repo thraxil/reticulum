@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha1"
 	"encoding/json"
 	"errors"
@@ -87,9 +88,10 @@ func (n nodeData) stashURL() string {
 	return n.goodBaseURL() + "/stash/"
 }
 
-func (n *nodeData) RetrieveImage(ri *imageSpecifier) ([]byte, error) {
+func (n *nodeData) RetrieveImage(ctx context.Context, ri *imageSpecifier) ([]byte, error) {
 
-	resp, err := http.Get(n.retrieveURL(ri))
+	req, _ := http.NewRequest("GET", n.retrieveURL(ri), nil)
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
 
 	if err != nil {
 		n.LastFailed = time.Now()
