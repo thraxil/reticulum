@@ -126,8 +126,7 @@ func main() {
 
 	siteconfig := f.MyConfig()
 
-	gcp := &groupCacheProxy{}
-	c := newCluster(f.MyNode(), gcp, siteconfig.GroupcacheSize)
+	c := newCluster(f.MyNode())
 	for i := range f.Neighbors {
 		c.AddNeighbor(f.Neighbors[i])
 	}

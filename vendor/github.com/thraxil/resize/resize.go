@@ -23,15 +23,15 @@ type SizeSpec struct {
 //   100s - make a 100 pixel square image
 //   200w - will make the image 200 pixels wide, preserving original aspect ratio
 //   100h - will make it 100 pixels high, preserving original aspect ratio
-//   100h300w - will make it 100 pixels high 
+//   100h300w - will make it 100 pixels high
 //              and 300 wide (width and height can be specified in either order)
 //
-// images will always be cropped to match the desired aspect ratio rather than 
+// images will always be cropped to match the desired aspect ratio rather than
 // squished, cropping will always be centered.
 //
 // if 'full' or 's' are specified, they will take precedent over
 // width and height specs.
-// 
+//
 // see Test_MakeSizeSpec in resize_test.go for more examples
 
 func MakeSizeSpec(str string) *SizeSpec {
@@ -168,7 +168,7 @@ func rectIsSquare(r image.Rectangle) bool {
 }
 
 // given an image size (as image.Rect), we match it up
-// to the SizeSpec and return a new image.Rect which is 
+// to the SizeSpec and return a new image.Rect which is
 // essentially, the dimensions to crop the image to before scaling
 
 func (self *SizeSpec) ToRect(rect image.Rectangle) image.Rectangle {
@@ -256,20 +256,6 @@ func (self *SizeSpec) ToRect(rect image.Rectangle) image.Rectangle {
 
 	}
 	return rect
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // size of the image that will result from resizing one of the

@@ -7,16 +7,7 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
-	"github.com/golang/groupcache"
 )
-
-type peerList interface {
-	Set(peerURLs ...string)
-}
-
-type cacheGetter interface {
-	Get(ctx groupcache.Context, key string, dest groupcache.Sink) error
-}
 
 // represents what our Node nows about the cluster
 // ie, itself and its neighbors
@@ -24,30 +15,21 @@ type cacheGetter interface {
 // there should probably be a map for that so we don't
 // have to run through the whole list every time
 type cluster struct {
-	Myself     nodeData
-	neighbors  map[string]nodeData
-	gcpeers    peerList
-	Imagecache cacheGetter
-	chF        chan func()
+	Myself    nodeData
+	neighbors map[string]nodeData
+	chF       chan func()
 
 	recentlyVerified []imageRecord
 	recentlyUploaded []imageRecord
 	recentlyStashed  []imageRecord
 }
 
-type cache interface {
-	MakeInitialPool(string) peerList
-	MakeCache(*cluster, int64) cacheGetter
-}
-
-func newCluster(myself nodeData, cache cache, cacheSize int64) *cluster {
+func newCluster(myself nodeData) *cluster {
 	c := &cluster{
 		Myself:    myself,
 		neighbors: make(map[string]nodeData),
 		chF:       make(chan func()),
-		gcpeers:   cache.MakeInitialPool(myself.GroupcacheURL),
 	}
-	c.Imagecache = cache.MakeCache(c, cacheSize)
 	go c.backend()
 	return c
 }
@@ -93,12 +75,6 @@ func (c *cluster) Stashed(ir imageRecord) {
 func (c *cluster) AddNeighbor(nd nodeData) {
 	c.chF <- func() {
 		c.neighbors[nd.UUID] = nd
-		var peerUrls []string
-		for _, v := range c.neighbors {
-			peerUrls = append(peerUrls, v.GroupcacheURL)
-		}
-		c.gcpeers.Set(peerUrls...)
-		// TODO: handle a node changing its groupcache URL
 	}
 	numNeighbors.Add(1)
 }
@@ -127,11 +103,6 @@ func (c *cluster) GetNeighbors() []nodeData {
 func (c *cluster) RemoveNeighbor(nd nodeData) {
 	c.chF <- func() {
 		delete(c.neighbors, nd.UUID)
-		var peerUrls []string
-		for _, v := range c.neighbors {
-			peerUrls = append(peerUrls, v.GroupcacheURL)
-		}
-		c.gcpeers.Set(peerUrls...)
 	}
 	numNeighbors.Add(-1)
 }
@@ -159,7 +130,6 @@ func (c *cluster) UpdateNeighbor(neighbor nodeData) {
 			n.Nickname = neighbor.Nickname
 			n.Location = neighbor.Location
 			n.BaseURL = neighbor.BaseURL
-			n.GroupcacheURL = neighbor.GroupcacheURL
 			n.Writeable = neighbor.Writeable
 			if neighbor.LastSeen.Sub(n.LastSeen) > 0 {
 				n.LastSeen = neighbor.LastSeen
@@ -373,7 +343,6 @@ func (c *cluster) Gossip(i, baseTime int, sl log.Logger) {
 			n.Writeable = resp.Writeable
 			n.Nickname = resp.Nickname
 			n.Location = resp.Location
-			n.GroupcacheURL = resp.GroupcacheURL
 			n.LastSeen = time.Now()
 			c.UpdateNeighbor(n)
 			for _, neighbor := range resp.Neighbors {

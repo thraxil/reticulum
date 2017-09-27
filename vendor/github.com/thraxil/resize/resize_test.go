@@ -11,6 +11,7 @@ type SizeSpecTestCase struct {
 	Square         bool
 	ExpectedWidth  int
 	ExpectedHeight int
+	ExpectedIM     string
 }
 
 func Test_MakeSizeSpec(t *testing.T) {
@@ -21,6 +22,7 @@ func Test_MakeSizeSpec(t *testing.T) {
 			Square:         true,
 			ExpectedWidth:  100,
 			ExpectedHeight: 100,
+			ExpectedIM:     "100x100^",
 		},
 		{
 			SizeSpecString: "100w",
@@ -28,6 +30,7 @@ func Test_MakeSizeSpec(t *testing.T) {
 			Square:         false,
 			ExpectedWidth:  100,
 			ExpectedHeight: -1,
+			ExpectedIM:     "100",
 		},
 		{
 			SizeSpecString: "100h",
@@ -35,6 +38,7 @@ func Test_MakeSizeSpec(t *testing.T) {
 			Square:         false,
 			ExpectedWidth:  -1,
 			ExpectedHeight: 100,
+			ExpectedIM:     "x100",
 		},
 		{
 			SizeSpecString: "100h200w",
@@ -42,6 +46,7 @@ func Test_MakeSizeSpec(t *testing.T) {
 			Square:         false,
 			ExpectedWidth:  200,
 			ExpectedHeight: 100,
+			ExpectedIM:     "200x100",
 		},
 		{
 			SizeSpecString: "200w100h",
@@ -49,6 +54,7 @@ func Test_MakeSizeSpec(t *testing.T) {
 			Square:         false,
 			ExpectedWidth:  200,
 			ExpectedHeight: 100,
+			ExpectedIM:     "200x100",
 		},
 		{
 			SizeSpecString: "100w200h",
@@ -56,6 +62,7 @@ func Test_MakeSizeSpec(t *testing.T) {
 			Square:         false,
 			ExpectedWidth:  100,
 			ExpectedHeight: 200,
+			ExpectedIM:     "100x200",
 		},
 		{
 			SizeSpecString: "200h100w",
@@ -63,6 +70,7 @@ func Test_MakeSizeSpec(t *testing.T) {
 			Square:         false,
 			ExpectedWidth:  100,
 			ExpectedHeight: 200,
+			ExpectedIM:     "100x200",
 		},
 		{
 			SizeSpecString: "full",
@@ -70,6 +78,10 @@ func Test_MakeSizeSpec(t *testing.T) {
 			Square:         false,
 			ExpectedWidth:  -1,
 			ExpectedHeight: -1,
+			// this is not actually right
+			// current clients just don't call this
+			// on 'full'
+			ExpectedIM: "x-1",
 		},
 	}
 
@@ -90,6 +102,12 @@ func Test_MakeSizeSpec(t *testing.T) {
 			if !ss.IsSquare() {
 				t.Error(c.SizeSpecString, "-- should be square but is not")
 			}
+			if ss.IsPortrait() {
+				t.Error(c.SizeSpecString, "-- should not be portrait")
+			}
+			if ss.IsLandscape() {
+				t.Error(c.SizeSpecString, "-- should not be landscape")
+			}
 		} else {
 			if ss.IsSquare() {
 				t.Error(c.SizeSpecString, "-- should not be square but is")
@@ -101,6 +119,13 @@ func Test_MakeSizeSpec(t *testing.T) {
 		}
 		if ss.Height() != c.ExpectedHeight {
 			t.Error(c.SizeSpecString, "-- bad height", ss.Height(), "expected", c.ExpectedHeight)
+		}
+
+		if ss.String() != c.SizeSpecString && c.SizeSpecString != "100h200w" && c.SizeSpecString != "200h100w" {
+			t.Error(c.SizeSpecString, "-- bad round trip on String()", ss.String())
+		}
+		if ss.ToImageMagickSpec() != c.ExpectedIM {
+			t.Error(c.SizeSpecString, "-- Bad ImageMagick Spec", ss.ToImageMagickSpec())
 		}
 	}
 

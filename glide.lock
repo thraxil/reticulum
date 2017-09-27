@@ -1,5 +1,5 @@
-hash: 42beded24febe9fe1445bebc09669cda83072db29765bda2b4641a8ac623670c
-updated: 2017-07-19T20:47:44.400720645+01:00
+hash: 79b67e44311b5a1410f531144101c8c955fde9d9f94ac505984a3035819b83fc
+updated: 2017-09-27T12:27:21.702869712+01:00
 imports:
 - name: github.com/go-kit/kit
   version: a9ca6725cbbea455e61c6bc8a1ed28e81eb3493b
@@ -8,22 +8,11 @@ imports:
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/go-stack/stack
-  version: 54be5f394ed2c3e19dac9134a40a95ba5a017f7b
-- name: github.com/golang/groupcache
-  version: b710c8433bd175204919eb38776e944233235d03
-  subpackages:
-  - consistenthash
-  - groupcachepb
-  - lru
-  - singleflight
-- name: github.com/golang/protobuf
-  version: 0a4f71a498b7c4812f64969510bcb4eca251e33a
-  subpackages:
-  - proto
+  version: 817915b46b97fd7bb80e8ab6b69f01a53ac3eebf
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/thraxil/randwalk
   version: 615038b03cd6af5fcda4a5084728a7e1786241f2
 - name: github.com/thraxil/resize
-  version: edd092fb768d8caa68d2d1ca0159e48b9fc7744f
+  version: e4fe93a12666e44f7d55dad20472c93d72f86944
 testImports: []

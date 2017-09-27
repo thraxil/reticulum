@@ -1,6 +1,5 @@
 package: github.com/thraxil/reticulum
 import:
-- package: github.com/golang/groupcache
 - package: github.com/thraxil/resize
 - package: github.com/thraxil/randwalk
 - package: github.com/go-kit/kit

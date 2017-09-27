@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
-	"github.com/golang/groupcache"
 	"github.com/thraxil/resize"
 )
 
@@ -115,16 +114,6 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 	if handled {
 		return
 	}
-	var data []byte
-	err := ctx.cluster.Imagecache.Get(nil, ri.String(),
-		groupcache.AllocatingByteSliceSink(&data))
-	if err == nil && len(data) > 0 {
-		cacheHits.Add(1)
-		w = setCacheHeaders(w, ri.Extension)
-		w.Write(data)
-		return
-	}
-	cacheMisses.Add(1)
 
 	if ctx.serveDirect(ri, w) {
 		return

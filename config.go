@@ -20,18 +20,15 @@ type configData struct {
 	VerifierSleep          int
 	ImageMagickConvertPath string
 	GoMaxProcs             int
-	GroupcacheURL          string `json:"GroupcacheUrl"`
-	GroupcacheSize         int64
 }
 
 func (c configData) MyNode() nodeData {
 	n := nodeData{
-		Nickname:      c.Nickname,
-		UUID:          c.UUID,
-		BaseURL:       c.BaseURL,
-		Location:      c.Location,
-		Writeable:     c.Writeable,
-		GroupcacheURL: c.GroupcacheURL,
+		Nickname:  c.Nickname,
+		UUID:      c.UUID,
+		BaseURL:   c.BaseURL,
+		Location:  c.Location,
+		Writeable: c.Writeable,
 	}
 	return n
 }
@@ -77,11 +74,6 @@ func (c configData) MyConfig() siteConfig {
 		goMaxProcs = 1
 	}
 
-	groupcacheSize := c.GroupcacheSize
-	if groupcacheSize < 1 {
-		groupcacheSize = 64 << 20
-	}
-
 	b := newDiskBackend(c.UploadDirectory)
 
 	return siteConfig{
@@ -97,8 +89,6 @@ func (c configData) MyConfig() siteConfig {
 		ImageMagickConvertPath: convertPath,
 		GoMaxProcs:             goMaxProcs,
 		Writeable:              c.Writeable,
-		GroupcacheURL:          c.GroupcacheURL,
-		GroupcacheSize:         groupcacheSize,
 		Backend:                b,
 	}
 }
@@ -118,8 +108,6 @@ type siteConfig struct {
 	ImageMagickConvertPath string
 	GoMaxProcs             int
 	Writeable              bool
-	GroupcacheURL          string
-	GroupcacheSize         int64
 	Backend                backend
 }
 

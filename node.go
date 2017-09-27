@@ -21,14 +21,13 @@ import (
 // what we know about a single node
 // (ourself or another)
 type nodeData struct {
-	Nickname      string    `json:"nickname"`
-	UUID          string    `json:"uuid"`
-	BaseURL       string    `json:"base_url"`
-	GroupcacheURL string    `json:"groupcache_url"`
-	Location      string    `json:"location"`
-	Writeable     bool      `json:"writeable"`
-	LastSeen      time.Time `json:"last_seen"`
-	LastFailed    time.Time `json:"last_failed"`
+	Nickname   string    `json:"nickname"`
+	UUID       string    `json:"uuid"`
+	BaseURL    string    `json:"base_url"`
+	Location   string    `json:"location"`
+	Writeable  bool      `json:"writeable"`
+	LastSeen   time.Time `json:"last_seen"`
+	LastFailed time.Time `json:"last_failed"`
 }
 
 // REPLICAS specifies how many times to duplicate each node entry in the ring
@@ -201,13 +200,12 @@ func (n nodeData) announceURL() string {
 }
 
 type announceResponse struct {
-	Nickname      string     `json:"nickname"`
-	UUID          string     `json:"uuid"`
-	Location      string     `json:"location"`
-	Writeable     bool       `json:"writeable"`
-	BaseURL       string     `json:"base_url"`
-	GroupcacheURL string     `json:"groupcache_url"`
-	Neighbors     []nodeData `json:"neighbors"`
+	Nickname  string     `json:"nickname"`
+	UUID      string     `json:"uuid"`
+	Location  string     `json:"location"`
+	Writeable bool       `json:"writeable"`
+	BaseURL   string     `json:"base_url"`
+	Neighbors []nodeData `json:"neighbors"`
 }
 
 type pingResponse struct {
@@ -221,7 +219,6 @@ func makeParams(originator nodeData) url.Values {
 	params.Set("nickname", originator.Nickname)
 	params.Set("location", originator.Location)
 	params.Set("base_url", originator.BaseURL)
-	params.Set("groupcache_url", originator.GroupcacheURL)
 	if originator.Writeable {
 		params.Set("writeable", "true")
 	} else {
