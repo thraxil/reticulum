@@ -553,7 +553,13 @@ func joinHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		}
 		url := r.FormValue("url")
 		configURL := url + "/config/"
-		res, err := http.Get(configURL)
+		rctx := r.Context()
+		req, err := http.NewRequest("GET", configURL, nil)
+		if err != nil {
+			fmt.Fprintf(w, "bad config URL")
+			return
+		}
+		res, err := http.DefaultClient.Do(req.WithContext(rctx))
 		if err != nil {
 			fmt.Fprint(w, "error retrieving config")
 			return
