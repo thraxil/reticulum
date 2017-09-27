@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"testing"
 )
@@ -65,8 +66,8 @@ type sdummy struct {
 	StashValue bool
 }
 
-func (s *sdummy) Stash(ri imageSpecifier, sizeHints string, backend backend) bool { return false }
-func (s *sdummy) RetrieveImageInfo(ri *imageSpecifier) (*imageInfoResponse, error) {
+func (s *sdummy) Stash(imageSpecifier, string, backend) bool { return false }
+func (s *sdummy) RetrieveImageInfo(context.Context, *imageSpecifier) (*imageInfoResponse, error) {
 	return nil, nil
 }
 

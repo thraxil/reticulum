@@ -246,8 +246,8 @@ func (r imageRebalancer) checkNodesForRebalance(nodesToCheck []nodeData) (bool, 
 }
 
 type stashableNode interface {
-	Stash(ri imageSpecifier, sizeHints string, backend backend) bool
-	RetrieveImageInfo(ri *imageSpecifier) (*imageInfoResponse, error)
+	Stash(imageSpecifier, string, backend) bool
+	RetrieveImageInfo(context.Context, *imageSpecifier) (*imageInfoResponse, error)
 }
 
 func (r imageRebalancer) retrieveReplica(n stashableNode, satisfied bool) int {
@@ -255,7 +255,8 @@ func (r imageRebalancer) retrieveReplica(n stashableNode, satisfied bool) int {
 	s := resize.MakeSizeSpec("full")
 	ri := &imageSpecifier{r.hash, s, r.extension[1:]}
 
-	imgInfo, err := n.RetrieveImageInfo(ri)
+	ctx := context.Background()
+	imgInfo, err := n.RetrieveImageInfo(ctx, ri)
 	if err == nil && imgInfo != nil && imgInfo.Local {
 		// node should have it. node has it. cool.
 		return 1

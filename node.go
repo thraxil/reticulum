@@ -114,25 +114,17 @@ type imageInfoResponse struct {
 	Local     bool   `json:"local"`
 }
 
-func timedGetRequest(url string, duration time.Duration) (resp *http.Response, err error) {
-	rc := make(chan pingResponse, 1)
-	go func() {
-		resp, err := http.Get(url)
-		rc <- pingResponse{resp, err}
-	}()
-	select {
-	case pr := <-rc:
-		resp = pr.Resp
-		err = pr.Err
-	case <-time.After(duration):
-		err = errors.New("GET request timed out")
-	}
-	return
-}
-
-func (n *nodeData) RetrieveImageInfo(ri *imageSpecifier) (*imageInfoResponse, error) {
+func (n *nodeData) RetrieveImageInfo(ctx context.Context, ri *imageSpecifier) (*imageInfoResponse, error) {
 	url := n.retrieveInfoURL(ri)
-	resp, err := timedGetRequest(url, 1*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
+
 	if err != nil {
 		n.LastFailed = time.Now()
 		return nil, err
