@@ -209,7 +209,7 @@ func (c cluster) WriteRing() ringEntryList {
 	return neighborsToRing(c.WriteableNeighbors())
 }
 
-func (c *cluster) Stash(ri imageSpecifier, sizeHints string, replication int, minReplication int, backend backend) []string {
+func (c *cluster) Stash(ctx context.Context, ri imageSpecifier, sizeHints string, replication int, minReplication int, backend backend) []string {
 	// we don't have the full-size, so check the cluster
 	nodesToCheck := c.WriteOrder(ri.Hash.String())
 	savedTo := make([]string, replication)
@@ -222,7 +222,7 @@ func (c *cluster) Stash(ri imageSpecifier, sizeHints string, replication int, mi
 			// only have the first node on the list eagerly resize images
 			sizeHints = ""
 		}
-		if n.Stash(ri, sizeHints, backend) {
+		if n.Stash(ctx, ri, sizeHints, backend) {
 			savedTo[saveCount] = n.Nickname
 			saveCount++
 			n.LastSeen = time.Now()

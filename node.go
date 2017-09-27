@@ -155,13 +155,13 @@ func (n *nodeData) processRetrieveInfoResponse(resp *http.Response) (*imageInfoR
 	return &response, nil
 }
 
-func postFile(filename string, targetURL string, sizeHints string) (*http.Response, error) {
+func postFile(ctx context.Context, filename string, targetURL string, sizeHints string) (*http.Response, error) {
 	bodyBuf := bytes.NewBufferString("")
 	bodyWriter := multipart.NewWriter(bodyBuf)
 	bodyWriter.WriteField("sizeHints", sizeHints)
 	fileWriter, err := bodyWriter.CreateFormFile("image", filename)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 	fh, err := os.Open(filename)
 	if err != nil {
@@ -174,12 +174,17 @@ func postFile(filename string, targetURL string, sizeHints string) (*http.Respon
 	// do not defer this or it will make and empty POST request
 	bodyWriter.Close()
 	contentType := bodyWriter.FormDataContentType()
-	return http.Post(targetURL, contentType, bodyBuf)
+	req, err := http.NewRequest("POST", targetURL, bodyBuf)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", contentType)
+	return http.DefaultClient.Do(req.WithContext(ctx))
 }
 
-func (n *nodeData) Stash(ri imageSpecifier, sizeHints string, backend backend) bool {
+func (n *nodeData) Stash(ctx context.Context, ri imageSpecifier, sizeHints string, backend backend) bool {
 	filename := backend.fullPath(ri)
-	resp, err := postFile(filename, n.stashURL(), sizeHints)
+	resp, err := postFile(ctx, filename, n.stashURL(), sizeHints)
 	if err != nil {
 		return false
 	}

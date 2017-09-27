@@ -257,7 +257,7 @@ func addHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		// at some point in the future.
 
 		// now stash it to other nodes in the cluster too
-		nodes := ctx.cluster.Stash(ri, sizeHints, ctx.Cfg.Replication, ctx.Cfg.MinReplication, ctx.Cfg.Backend)
+		nodes := ctx.cluster.Stash(r.Context(), ri, sizeHints, ctx.Cfg.Replication, ctx.Cfg.MinReplication, ctx.Cfg.Backend)
 		id := imageData{
 			Hash:      ahash.String(),
 			Extension: ext,

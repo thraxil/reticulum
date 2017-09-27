@@ -246,7 +246,7 @@ func (r imageRebalancer) checkNodesForRebalance(nodesToCheck []nodeData) (bool, 
 }
 
 type stashableNode interface {
-	Stash(imageSpecifier, string, backend) bool
+	Stash(context.Context, imageSpecifier, string, backend) bool
 	RetrieveImageInfo(context.Context, *imageSpecifier) (*imageInfoResponse, error)
 }
 
@@ -263,7 +263,7 @@ func (r imageRebalancer) retrieveReplica(n stashableNode, satisfied bool) int {
 	}
 	// that node should have a copy, but doesn't so stash it
 	if !satisfied {
-		if n.Stash(*ri, "", r.s.Backend) {
+		if n.Stash(ctx, *ri, "", r.s.Backend) {
 			r.sl.Log("level", "INFO", "msg", "replicated", "image", r.path)
 			return 1
 		}
