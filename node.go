@@ -89,7 +89,6 @@ func (n nodeData) stashURL() string {
 }
 
 func (n *nodeData) RetrieveImage(ctx context.Context, ri *imageSpecifier) ([]byte, error) {
-
 	req, err := http.NewRequest("GET", n.retrieveURL(ri), nil)
 	if err != nil {
 		return nil, err

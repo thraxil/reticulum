@@ -41,7 +41,7 @@ type imageData struct {
 }
 
 func setCacheHeaders(w http.ResponseWriter, extension string) http.ResponseWriter {
-	w.Header().Set("Content-Type", extmimes[extension[1:]])
+	w.Header().Set("Content-Type", extmimes[extension])
 	w.Header().Set("Expires", time.Now().Add(time.Hour*24*365).Format(time.RFC1123))
 	return w
 }
@@ -213,9 +213,9 @@ var mimeexts = map[string]string{
 }
 
 var extmimes = map[string]string{
-	"jpg": "image/jpeg",
-	"gif": "image/gif",
-	"png": "image/png",
+	".jpg": "image/jpeg",
+	".gif": "image/gif",
+	".png": "image/png",
 }
 
 func addHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
@@ -389,10 +389,10 @@ func retrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext
 		http.Error(w, "bad hash", http.StatusNotFound)
 		return
 	}
-	extension := parts[4]
+	extension := "." + parts[4]
 	var local = true
 	baseDir := ctx.Cfg.UploadDirectory + ahash.AsPath()
-	path := baseDir + "/full" + "." + extension
+	path := baseDir + "/full" + extension
 	_, err = os.Open(path)
 	if err != nil {
 		local = false
@@ -405,7 +405,7 @@ func retrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext
 	if size != "full" && !n.Writeable {
 		// anything other than full-size, we can't do
 		// if we don't have it already
-		_, err = os.Open(baseDir + "/" + size + "." + extension)
+		_, err = os.Open(baseDir + "/" + size + extension)
 		if err != nil {
 			local = false
 		}
@@ -433,7 +433,7 @@ func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		return
 	}
 	size := parts[3]
-	extension := parts[4]
+	extension := "." + parts[4]
 
 	ri := imageSpecifier{
 		ahash,
@@ -466,7 +466,7 @@ func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	}
 
 	c := make(chan resizeResponse)
-	ctx.Ch.ResizeQueue <- resizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), "." + extension, size, c}
+	ctx.Ch.ResizeQueue <- resizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), extension, size, c}
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)

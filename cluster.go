@@ -380,6 +380,9 @@ func (c *cluster) RetrieveImage(ctx context.Context, ri *imageSpecifier) ([]byte
 			// checking ourself would be silly
 			continue
 		}
+		if n.UUID == "" || n.Nickname == "" {
+			continue
+		}
 		img, err := n.RetrieveImage(ctx, ri)
 		if err == nil {
 			// got it, return it
