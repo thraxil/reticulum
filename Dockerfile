@@ -14,7 +14,4 @@ RUN go-wrapper install
 # http
 EXPOSE 8080
 
-# groupcache
-EXPOSE 10080
-
 CMD ["go-wrapper", "run"]
