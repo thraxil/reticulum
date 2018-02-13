@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func makeHandler(fn func(http.ResponseWriter, *http.Request, sitecontext), ctx sitecontext) http.HandlerFunc {
@@ -172,6 +173,7 @@ func main() {
 	http.HandleFunc("/config/", makeHandler(configHandler, ctx))
 	http.HandleFunc("/join/", makeHandler(joinHandler, ctx))
 	http.HandleFunc("/favicon.ico", faviconHandler)
+	http.Handle("/metrics", promhttp.Handler())
 
 	hs := http.Server{Addr: fmt.Sprintf(":%d", f.Port), Handler: logTop(http.DefaultServeMux, c.Myself.Nickname, sl)}
 	// everything is ready, let's go
