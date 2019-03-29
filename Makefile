@@ -33,6 +33,9 @@ coverage: reticulum
 install_deps:
 	go get -u github.com/thraxil/resize
 	go get -u github.com/golang/groupcache
+	go get -u github.com/go-kit/kit/log
+	go get -u github.com/prometheus/client_golang/prometheus
+	go get -u github.com/thraxil/randwalk
 
 # local dev helpers
 stopall:
