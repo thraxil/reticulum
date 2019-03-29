@@ -34,6 +34,7 @@ install_deps:
 	go get -u github.com/thraxil/resize
 	go get -u github.com/golang/groupcache
 	go get -u github.com/go-kit/kit/log
+	go get -u github.com/prometheus/client_golang/prometheus
 
 # local dev helpers
 stopall:
