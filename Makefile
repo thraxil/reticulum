@@ -2,7 +2,7 @@ ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 all: reticulum
 
 reticulum: *.go
-	go build .
+	CGO_ENABLED=0 go build .
 
 cluster: reticulum
 	python run_cluster.py
