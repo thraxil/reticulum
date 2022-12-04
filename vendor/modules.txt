@@ -1,0 +1,47 @@
+# github.com/beorn7/perks v0.0.0-20160804104726-4c0e84591b9a
+## explicit
+github.com/beorn7/perks/quantile
+# github.com/go-kit/kit v0.5.0
+## explicit
+github.com/go-kit/kit/log
+# github.com/go-logfmt/logfmt v0.3.0
+## explicit
+github.com/go-logfmt/logfmt
+# github.com/go-stack/stack v1.6.0
+## explicit
+github.com/go-stack/stack
+# github.com/golang/protobuf v1.0.0
+## explicit
+github.com/golang/protobuf/proto
+# github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515
+## explicit
+github.com/kr/logfmt
+# github.com/matttproud/golang_protobuf_extensions v1.0.0
+## explicit
+github.com/matttproud/golang_protobuf_extensions/pbutil
+# github.com/prometheus/client_golang v0.8.0
+## explicit
+github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/promhttp
+# github.com/prometheus/client_model v0.0.0-20171117100541-99fa1f4be8e5
+## explicit
+github.com/prometheus/client_model/go
+# github.com/prometheus/common v0.0.0-20180110214958-89604d197083
+## explicit
+github.com/prometheus/common/expfmt
+github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
+github.com/prometheus/common/model
+# github.com/prometheus/procfs v0.0.0-20180212145926-282c8707aa21
+## explicit
+github.com/prometheus/procfs
+github.com/prometheus/procfs/internal/util
+github.com/prometheus/procfs/nfs
+github.com/prometheus/procfs/xfs
+# github.com/thraxil/randwalk v0.0.0-20170713144412-615038b03cd6
+## explicit
+github.com/thraxil/randwalk
+# github.com/thraxil/resize v0.0.0-20170723213849-e4fe93a12666
+## explicit
+github.com/thraxil/resize
+# golang.org/x/sync v0.1.0
+## explicit
