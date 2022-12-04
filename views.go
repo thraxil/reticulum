@@ -241,7 +241,11 @@ func addHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 			// they left off a mimetype, so default to jpg
 			mimetype = "image/jpeg"
 		}
-		ext := mimeexts[mimetype]
+		ext, ok := mimeexts[mimetype]
+		if !ok {
+			// unknown mimetype. default to jpg
+			ext = "jpg"
+		}
 		ri := imageSpecifier{
 			ahash,
 			resize.MakeSizeSpec("full"),
