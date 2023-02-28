@@ -44,7 +44,7 @@ github.com/thraxil/randwalk
 # github.com/thraxil/resize v0.0.0-20170723213849-e4fe93a12666
 ## explicit
 github.com/thraxil/resize
-# golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40
+# golang.org/x/sys v0.1.0
 ## explicit; go 1.17
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
