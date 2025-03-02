@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -163,16 +162,16 @@ func main() {
 	ctx := sitecontext{cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
 	// set up HTTP Handlers
 
-	http.HandleFunc("/", prometheus.InstrumentHandler("root", makeHandler(addHandler, ctx)))
-	http.HandleFunc("/stash/", prometheus.InstrumentHandler("stash", makeHandler(stashHandler, ctx)))
-	http.HandleFunc("/image/", prometheus.InstrumentHandler("image", makeHandler(serveImageHandler, ctx)))
-	http.HandleFunc("/retrieve/", prometheus.InstrumentHandler("retrieve", makeHandler(retrieveHandler, ctx)))
-	http.HandleFunc("/retrieve_info/", prometheus.InstrumentHandler("retrieve_info", makeHandler(retrieveInfoHandler, ctx)))
-	http.HandleFunc("/announce/", prometheus.InstrumentHandler("announce", makeHandler(announceHandler, ctx)))
-	http.HandleFunc("/status/", prometheus.InstrumentHandler("status", makeHandler(statusHandler, ctx)))
-	http.HandleFunc("/dashboard/", prometheus.InstrumentHandler("dashboard", makeHandler(dashboardHandler, ctx)))
-	http.HandleFunc("/config/", prometheus.InstrumentHandler("config", makeHandler(configHandler, ctx)))
-	http.HandleFunc("/join/", prometheus.InstrumentHandler("join", makeHandler(joinHandler, ctx)))
+	http.HandleFunc("/", makeHandler(addHandler, ctx))
+	http.HandleFunc("/stash/", makeHandler(stashHandler, ctx))
+	http.HandleFunc("/image/", makeHandler(serveImageHandler, ctx))
+	http.HandleFunc("/retrieve/", makeHandler(retrieveHandler, ctx))
+	http.HandleFunc("/retrieve_info/", makeHandler(retrieveInfoHandler, ctx))
+	http.HandleFunc("/announce/", makeHandler(announceHandler, ctx))
+	http.HandleFunc("/status/", makeHandler(statusHandler, ctx))
+	http.HandleFunc("/dashboard/", makeHandler(dashboardHandler, ctx))
+	http.HandleFunc("/config/", makeHandler(configHandler, ctx))
+	http.HandleFunc("/join/", makeHandler(joinHandler, ctx))
 	http.HandleFunc("/favicon.ico", faviconHandler)
 	http.Handle("/metrics", promhttp.Handler())
 
