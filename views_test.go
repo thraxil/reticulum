@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -44,14 +45,14 @@ func Test_dashboardHandler(t *testing.T) {
 	}
 }
 
-func Test_AddFormHandler(t *testing.T) {
+func Test_GetAddFormHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
 	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
-	addHandler(rec, req, ctx)
+	getAddHandler(rec, req, ctx)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
@@ -96,6 +97,15 @@ func Test_parsePathServeImage(t *testing.T) {
 		if err != nil {
 			t.Fatalf("could not create request: %v", err)
 		}
+		if c.status != http.StatusNotFound {
+			parts := strings.Split(c.path, "/")
+			if len(parts) > 4 {
+				req.SetPathValue("hash", parts[2])
+				req.SetPathValue("size", parts[3])
+				req.SetPathValue("filename", parts[4])
+			}
+		}
+
 		rec := httptest.NewRecorder()
 		spec, served := parsePathServeImage(rec, req, ctx)
 
@@ -134,6 +144,12 @@ func Test_serveImageHandler(t *testing.T) {
 		if err != nil {
 			t.Fatalf("could not create request: %v", err)
 		}
+		if c.status != http.StatusNotFound {
+			parts := strings.Split(c.path, "/")
+			req.SetPathValue("hash", parts[2])
+			req.SetPathValue("size", parts[3])
+			req.SetPathValue("filename", parts[4])
+		}
 		rec := httptest.NewRecorder()
 		serveImageHandler(rec, req, ctx)
 
@@ -163,6 +179,12 @@ func Test_RetrieveInfoImageHandler(t *testing.T) {
 		req, err := http.NewRequest("GET", "localhost:8080"+c.path, nil)
 		if err != nil {
 			t.Fatalf("could not create request: %v", err)
+		}
+		if c.status != http.StatusNotFound {
+			parts := strings.Split(c.path, "/")
+			req.SetPathValue("hash", parts[2])
+			req.SetPathValue("size", parts[3])
+			req.SetPathValue("ext", parts[4])
 		}
 		rec := httptest.NewRecorder()
 		retrieveInfoHandler(rec, req, ctx)
@@ -194,6 +216,12 @@ func Test_RetrieveImageHandler(t *testing.T) {
 		if err != nil {
 			t.Fatalf("could not create request: %v", err)
 		}
+		if c.status != http.StatusNotFound {
+			parts := strings.Split(c.path, "/")
+			req.SetPathValue("hash", parts[2])
+			req.SetPathValue("size", parts[3])
+			req.SetPathValue("ext", parts[4])
+		}
 		rec := httptest.NewRecorder()
 		retrieveHandler(rec, req, ctx)
 
@@ -219,14 +247,14 @@ func Test_configHandler(t *testing.T) {
 	}
 }
 
-func Test_announceHandler(t *testing.T) {
+func Test_GetAnnounceHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
 	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
-	announceHandler(rec, req, ctx)
+	getAnnounceHandler(rec, req, ctx)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
@@ -234,14 +262,14 @@ func Test_announceHandler(t *testing.T) {
 	}
 }
 
-func Test_joinHandler(t *testing.T) {
+func Test_GetJoinHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/", nil)
 	if err != nil {
 		t.Fatalf("could not create request: %v", err)
 	}
 	ctx := makeTestContext()
 	rec := httptest.NewRecorder()
-	joinHandler(rec, req, ctx)
+	getJoinHandler(rec, req, ctx)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {

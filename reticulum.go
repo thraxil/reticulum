@@ -162,20 +162,24 @@ func main() {
 	ctx := sitecontext{cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
 	// set up HTTP Handlers
 
-	http.HandleFunc("/", makeHandler(addHandler, ctx))
-	http.HandleFunc("/stash/", makeHandler(stashHandler, ctx))
-	http.HandleFunc("/image/", makeHandler(serveImageHandler, ctx))
-	http.HandleFunc("/retrieve/", makeHandler(retrieveHandler, ctx))
-	http.HandleFunc("/retrieve_info/", makeHandler(retrieveInfoHandler, ctx))
-	http.HandleFunc("/announce/", makeHandler(announceHandler, ctx))
-	http.HandleFunc("/status/", makeHandler(statusHandler, ctx))
-	http.HandleFunc("/dashboard/", makeHandler(dashboardHandler, ctx))
-	http.HandleFunc("/config/", makeHandler(configHandler, ctx))
-	http.HandleFunc("/join/", makeHandler(joinHandler, ctx))
-	http.HandleFunc("/favicon.ico", faviconHandler)
-	http.Handle("/metrics", promhttp.Handler())
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /", makeHandler(getAddHandler, ctx))
+	mux.HandleFunc("POST /", makeHandler(postAddHandler, ctx))
+	mux.HandleFunc("POST /stash/", makeHandler(stashHandler, ctx))
+	mux.HandleFunc("GET /image/{hash}/{size}/{filename}", makeHandler(serveImageHandler, ctx))
+	mux.HandleFunc("GET /retrieve/{hash}/{size}/{ext}/", makeHandler(retrieveHandler, ctx))
+	mux.HandleFunc("GET /retrieve_info/{hash}/{size}/{ext}/", makeHandler(retrieveInfoHandler, ctx))
+	mux.HandleFunc("GET /announce/", makeHandler(getAnnounceHandler, ctx))
+	mux.HandleFunc("POST /announce/", makeHandler(postAnnounceHandler, ctx))
+	mux.HandleFunc("GET /status/", makeHandler(statusHandler, ctx))
+	mux.HandleFunc("GET /dashboard/", makeHandler(dashboardHandler, ctx))
+	mux.HandleFunc("GET /config/", makeHandler(configHandler, ctx))
+	mux.HandleFunc("GET /join/", makeHandler(getJoinHandler, ctx))
+	mux.HandleFunc("POST /join/", makeHandler(postJoinHandler, ctx))
+	mux.HandleFunc("GET /favicon.ico", faviconHandler)
+	mux.Handle("/metrics", promhttp.Handler())
 
-	hs := http.Server{Addr: fmt.Sprintf(":%d", f.Port), Handler: logTop(http.DefaultServeMux, c.Myself.Nickname, sl)}
+	hs := http.Server{Addr: fmt.Sprintf(":%d", f.Port), Handler: logTop(mux, c.Myself.Nickname, sl)}
 	// everything is ready, let's go
 	go func() {
 		hs.ListenAndServe()
