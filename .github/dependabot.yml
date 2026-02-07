@@ -6,13 +6,9 @@ updates:
       interval: "weekly"
   - package-ecosystem: "gomod"
     directory: "/"
-    schedule:
+    schedule: 
       interval: "weekly"
   - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-  - package-ecosystem: "nix"
     directory: "/"
     schedule:
       interval: "weekly"
