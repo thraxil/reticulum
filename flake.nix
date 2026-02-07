@@ -2,7 +2,7 @@
   description = "A development environment for cask";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/25.05-pre";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
   outputs = { self, nixpkgs }: let

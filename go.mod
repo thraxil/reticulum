@@ -1,6 +1,6 @@
 module github.com/thraxil/reticulum
 
-go 1.23.0
+go 1.25
 
 require (
 	github.com/go-kit/kit v0.13.0

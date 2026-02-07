@@ -593,7 +593,7 @@ func joinHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		}
 		ctx.cluster.AddNeighbor(n)
 
-		fmt.Fprintf(w, fmt.Sprintf("Added node %s [%s]", n.Nickname, n.UUID))
+		fmt.Fprintf(w, "Added node %s [%s]", n.Nickname, n.UUID)
 
 	} else {
 		// show form
