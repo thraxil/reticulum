@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha1"
 	"encoding/json"
@@ -81,7 +82,7 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 	return ri, false
 }
 
-func (ctx sitecontext) serveFromCluster(rctx context.Context, ri *imageSpecifier, w http.ResponseWriter) {
+func (ctx sitecontext) serveFromCluster(rctx context.Context, ri *imageSpecifier, w http.ResponseWriter, r *http.Request) {
 	// we don't have the full-size on this node either
 	// need to check the rest of the cluster
 	imgData, err := ctx.cluster.RetrieveImage(rctx, ri)
@@ -89,17 +90,27 @@ func (ctx sitecontext) serveFromCluster(rctx context.Context, ri *imageSpecifier
 		// for now we just have to 404
 		http.Error(w, "not found (serve from cluster)", http.StatusNotFound)
 	} else {
+		etag := r.Header.Get("If-None-Match")
+		if etag != "" {
+			w.Header().Set("Etag", etag)
+		}
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(imgData)
 		servedFromCluster.Add(1)
 	}
 }
 
-func (ctx sitecontext) serveDirect(ri *imageSpecifier, w http.ResponseWriter) bool {
+func (ctx sitecontext) serveDirect(ri *imageSpecifier, w http.ResponseWriter, r *http.Request) bool {
 	contents, err := ctx.Cfg.Backend.Read(*ri)
 	if err == nil {
 		// we've got it, so serve it directly
+		etag := fmt.Sprintf("%x", sha1.Sum(contents))
+		if r.Header.Get("If-None-Match") == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return true
+		}
 		w = setCacheHeaders(w, ri.Extension)
+		w.Header().Set("Etag", etag)
 		w.Write(contents)
 		servedLocally.Add(1)
 		return true
@@ -113,12 +124,12 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 		return
 	}
 
-	if ctx.serveDirect(ri, w) {
+	if ctx.serveDirect(ri, w, r) {
 		return
 	}
 	rctx := r.Context()
 	if !ctx.haveImageFullsizeLocally(ri) {
-		ctx.serveFromCluster(rctx, ri, w)
+		ctx.serveFromCluster(rctx, ri, w, r)
 		return
 	}
 
@@ -127,7 +138,7 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 	if !ctx.locallyWriteable() {
 		// but first, make sure we are writeable. If not,
 		// we need to let another node in the cluster handle it.
-		ctx.serveScaledFromCluster(rctx, ri, w)
+		ctx.serveScaledFromCluster(rctx, ri, w, r)
 		return
 	}
 
@@ -141,11 +152,11 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 		// imagemagick did the resize, so we just spit out
 		// the sized file
 		servedByMagick.Add(1)
-		ctx.serveMagick(ri, w)
+		ctx.serveMagick(ri, w, r)
 		return
 	}
 	servedScaled.Add(1)
-	ctx.serveScaledByExtension(ri, w, *result.OutputImage)
+	ctx.serveScaledByExtension(ri, w, *result.OutputImage, r)
 }
 
 func (ctx sitecontext) locallyWriteable() bool {
@@ -157,13 +168,17 @@ func (ctx sitecontext) haveImageFullsizeLocally(ri *imageSpecifier) bool {
 	return err == nil
 }
 
-func (ctx sitecontext) serveScaledFromCluster(rctx context.Context, ri *imageSpecifier, w http.ResponseWriter) {
+func (ctx sitecontext) serveScaledFromCluster(rctx context.Context, ri *imageSpecifier, w http.ResponseWriter, r *http.Request) {
 	imgData, err := ctx.cluster.RetrieveImage(rctx, ri)
 	if err != nil {
 		// for now we just have to 404
 		http.Error(w, "not found (serveScaledFromCluster)", http.StatusNotFound)
 	} else {
 		servedFromCluster.Add(1)
+		etag := r.Header.Get("If-None-Match")
+		if etag != "" {
+			w.Header().Set("Etag", etag)
+		}
 		w = setCacheHeaders(w, ri.Extension)
 		w.Write(imgData)
 	}
@@ -180,22 +195,38 @@ func (ctx sitecontext) makeResizeJob(ri *imageSpecifier) resizeResponse {
 	return result
 }
 
-func (ctx sitecontext) serveMagick(ri *imageSpecifier, w http.ResponseWriter) {
+func (ctx sitecontext) serveMagick(ri *imageSpecifier, w http.ResponseWriter, r *http.Request) {
 	imgContents, err := ctx.Cfg.Backend.Read(*ri)
 	if err != nil {
 		ctx.SL.Log("level", "ERR", "msg", "couldn't read image resized by magick",
 			"error", err)
 		return
 	}
+	etag := fmt.Sprintf("%x", sha1.Sum(imgContents))
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
 	w = setCacheHeaders(w, ri.Extension)
+	w.Header().Set("Etag", etag)
 	w.Write(imgContents)
 }
 
 func (ctx sitecontext) serveScaledByExtension(ri *imageSpecifier, w http.ResponseWriter,
-	outputImage image.Image) {
+	outputImage image.Image, r *http.Request) {
 
-	w = setCacheHeaders(w, ri.Extension)
+	var buf bytes.Buffer
+	enc := extencoders[ri.Extension]
+	enc(&buf, outputImage)
+	contents := buf.Bytes()
+	etag := fmt.Sprintf("%x", sha1.Sum(contents))
 	ctx.Cfg.Backend.writeLocalType(*ri, outputImage, extencoders[ri.Extension])
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	w = setCacheHeaders(w, ri.Extension)
+	w.Header().Set("Etag", etag)
 	serveType(w, outputImage, extencoders[ri.Extension])
 }
 
@@ -434,7 +465,13 @@ func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	contents, err := ctx.Cfg.Backend.Read(ri)
 	if err == nil {
 		// we've got it, so serve it directly
+		etag := fmt.Sprintf("%x", sha1.Sum(contents))
+		if r.Header.Get("If-None-Match") == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
 		w.Header().Set("Content-Type", extmimes[extension])
+		w.Header().Set("Etag", etag)
 		w.Write(contents)
 		return
 	}
@@ -465,16 +502,33 @@ func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	if result.Magick {
 		// imagemagick did the resize, so we just spit out
 		// the sized file
-		w.Header().Set("Content-Type", extmimes[extension])
 		imgContents, _ := ctx.Cfg.Backend.Read(ri)
+		etag := fmt.Sprintf("%x", sha1.Sum(imgContents))
+		if r.Header.Get("If-None-Match") == etag {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+		w.Header().Set("Etag", etag)
+		w.Header().Set("Content-Type", extmimes[extension])
 		w.Write(imgContents)
 		return
 	}
+
 	outputImage := *result.OutputImage
 
+	var buf bytes.Buffer
+	enc := extencoders[ri.Extension]
+	enc(&buf, outputImage)
+	contents = buf.Bytes()
+	etag := fmt.Sprintf("%x", sha1.Sum(contents))
+	ctx.Cfg.Backend.writeLocalType(ri, outputImage, enc)
+	if r.Header.Get("If-None-Match") == etag {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	w.Header().Set("Etag", etag)
 	w.Header().Set("Content-Type", extmimes[extension])
-	ctx.Cfg.Backend.writeLocalType(ri, outputImage, extencoders[ri.Extension])
-	serveType(w, outputImage, extencoders[ri.Extension])
+	w.Write(contents)
 }
 
 func getAnnounceHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
