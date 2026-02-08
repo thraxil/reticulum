@@ -17,12 +17,17 @@ run: reticulum
 	./reticulum -config=test/config0.json
 
 fmt:
-	go fmt *.go
+	go fmt ./...
+
+lint:
+	golangci-lint run ./...
+
+
 
 install: reticulum
 	cp -f reticulum /usr/local/bin/reticulum
 
-test: reticulum
+test:
 	go test .
 
 coverage: reticulum

@@ -15,4 +15,5 @@ jobs:
     - uses: workflow/nix-shell-action@v3
       with:
         script: |
+          # make lint
           make test

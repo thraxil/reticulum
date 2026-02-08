@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 )
 
 // represents what our Node nows about the cluster
@@ -286,8 +286,7 @@ func hashOrder(hash string, size int, ring []ringEntry) []nodeData {
 		}
 	}
 	// yay, slices
-	reordered := make([]ringEntry, len(ring))
-	reordered = append(ring[partitionIndex:], ring[:partitionIndex]...)
+	reordered := append(ring[partitionIndex:], ring[:partitionIndex]...)
 
 	results := make([]nodeData, size)
 	var seen = map[string]bool{}
@@ -305,9 +304,8 @@ func hashOrder(hash string, size int, ring []ringEntry) []nodeData {
 // periodically pings all the known neighbors to gossip
 // run this as a goroutine
 func (c *cluster) Gossip(i, baseTime int, sl log.Logger) {
-	sl.Log("level", "info", "msg", "starting gossiper")
+	_ = sl.Log("level", "info", "msg", "starting gossiper")
 
-	rand.Seed(int64(time.Now().Unix()) + int64(i))
 	var jitter int
 	firstRun := true
 
@@ -326,13 +324,13 @@ func (c *cluster) Gossip(i, baseTime int, sl log.Logger) {
 				time.Sleep(time.Duration(baseTime+jitter) * time.Second)
 			}
 			firstRun = false
-			sl.Log("level", "INFO",
+			_ = sl.Log("level", "INFO",
 				"action", "ping",
 				"source", c.Myself.Nickname,
 				"destination", n.Nickname)
 			resp, err := n.Ping(c.Myself, sl)
 			if err != nil {
-				sl.Log("level", "INFO",
+				_ = sl.Log("level", "INFO",
 					"msg", "ping error",
 					"source", c.Myself.Nickname,
 					"destination", n.Nickname,
@@ -364,7 +362,7 @@ func (c *cluster) updateNeighbor(neighbor nodeData, sl log.Logger) {
 		c.UpdateNeighbor(neighbor)
 	} else {
 		// heard about another node second hand
-		sl.Log("level", "INFO", "msg", "adding neighbor via gossip")
+		_ = sl.Log("level", "INFO", "msg", "adding neighbor via gossip")
 		c.AddNeighbor(neighbor)
 	}
 }
