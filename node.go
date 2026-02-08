@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 )
 
 // what we know about a single node
@@ -53,7 +53,7 @@ func (n nodeData) hashKeys() []string {
 	h := sha1.New()
 	for i := range keys {
 		h.Reset()
-		io.WriteString(h, fmt.Sprintf("%s%d", n.UUID, i))
+		_, _ = io.WriteString(h, fmt.Sprintf("%s%d", n.UUID, i))
 		keys[i] = fmt.Sprintf("%x", h.Sum(nil))
 	}
 	return keys
@@ -70,9 +70,7 @@ func (n nodeData) goodBaseURL() string {
 	if !strings.HasPrefix(n.BaseURL, "http://") {
 		url = "http://" + url
 	}
-	if strings.HasSuffix(url, "/") {
-		url = url[:len(url)-1]
-	}
+	url = strings.TrimSuffix(url, "/")
 	return url
 }
 
@@ -88,7 +86,7 @@ func (n nodeData) stashURL() string {
 	return n.goodBaseURL() + "/stash/"
 }
 
-func (n *nodeData) RetrieveImage(ctx context.Context, ri *imageSpecifier) ([]byte, error) {
+func (n *nodeData) RetrieveImage(ctx context.Context, ri *imageSpecifier) (data []byte, err error) {
 	req, err := http.NewRequest("GET", n.retrieveURL(ri), nil)
 	if err != nil {
 		return nil, err
@@ -99,12 +97,16 @@ func (n *nodeData) RetrieveImage(ctx context.Context, ri *imageSpecifier) ([]byt
 		n.LastFailed = time.Now()
 		return nil, err
 	} // otherwise, we got the image
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
 	n.LastSeen = time.Now()
 	if resp.Status != "200 OK" {
 		return nil, errors.New("404, probably")
 	}
-	return ioutil.ReadAll(resp.Body)
+	return io.ReadAll(resp.Body)
 }
 
 type imageInfoResponse struct {
@@ -138,12 +140,12 @@ func (n *nodeData) processRetrieveInfoResponse(resp *http.Response) (*imageInfoR
 	if resp == nil {
 		return nil, errors.New("nil response")
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.Status != "200 OK" {
 		return nil, errors.New("404, probably")
 	}
 	var response imageInfoResponse
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -157,21 +159,30 @@ func (n *nodeData) processRetrieveInfoResponse(resp *http.Response) (*imageInfoR
 func postFile(ctx context.Context, filename string, targetURL string, sizeHints string) (*http.Response, error) {
 	bodyBuf := bytes.NewBufferString("")
 	bodyWriter := multipart.NewWriter(bodyBuf)
-	bodyWriter.WriteField("sizeHints", sizeHints)
+	var err error
+	_ = bodyWriter.WriteField("sizeHints", sizeHints)
+	if err != nil {
+		return nil, err
+	}
 	fileWriter, err := bodyWriter.CreateFormFile("image", filename)
 	if err != nil {
 		return nil, err
 	}
 	fh, err := os.Open(filename)
 	if err != nil {
-		bodyWriter.Close()
+		_ = bodyWriter.Close()
 		return nil, err
 	}
-	defer fh.Close()
-	io.Copy(fileWriter, fh)
+	defer func() { _ = fh.Close() }()
+	_, err = io.Copy(fileWriter, fh)
+	if err != nil {
+		return nil, err
+	}
 	// .Close() finishes setting it up
 	// do not defer this or it will make and empty POST request
-	bodyWriter.Close()
+	if err := bodyWriter.Close(); err != nil {
+		return nil, err
+	}
 	contentType := bodyWriter.FormDataContentType()
 	req, err := http.NewRequest("POST", targetURL, bodyBuf)
 	if err != nil {
@@ -187,11 +198,14 @@ func (n *nodeData) Stash(ctx context.Context, ri imageSpecifier, sizeHints strin
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		return false
 	}
-	b, _ := ioutil.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false
+	}
 	return string(b) == "ok"
 }
 
@@ -231,10 +245,10 @@ func (n *nodeData) Ping(originator nodeData, sl log.Logger) (announceResponse, e
 	params := makeParams(originator)
 
 	var response announceResponse
-	sl.Log("level", "INFO", "msg", n.announceURL())
+	_ = sl.Log("level", "INFO", "msg", n.announceURL())
 	rc := make(chan pingResponse, 1)
 	go func() {
-		sl.Log("level", "INFO", "msg", "made request")
+		_ = sl.Log("level", "INFO", "msg", "made request")
 		resp, err := http.PostForm(n.announceURL(), params)
 		rc <- pingResponse{resp, err}
 	}()
@@ -244,17 +258,17 @@ func (n *nodeData) Ping(originator nodeData, sl log.Logger) (announceResponse, e
 		resp := pr.Resp
 		err := pr.Err
 		if err != nil {
-			sl.Log("level", "INFO", "msg", "node returned an error on ping", "node", n.Nickname, "error", err.Error())
+			_ = sl.Log("level", "INFO", "msg", "node returned an error on ping", "node", n.Nickname, "error", err.Error())
 			n.LastFailed = time.Now()
 			return response, err
 		}
 		n.LastSeen = time.Now()
 		// todo, update Writeable, Nickname, etc.
-		b, _ := ioutil.ReadAll(resp.Body)
+		b, _ := io.ReadAll(resp.Body)
 		err = json.Unmarshal(b, &response)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		if err != nil {
-			sl.Log("level", "ERR", "bad json response", "value", fmt.Sprintf("%s", b))
+			_ = sl.Log("level", "ERR", "bad json response", "value", string(b))
 			return response, errors.New("bad JSON response")
 		}
 		return response, nil
@@ -262,7 +276,7 @@ func (n *nodeData) Ping(originator nodeData, sl log.Logger) (announceResponse, e
 	case <-time.After(1 * time.Second):
 		// if they take more than a second to respond
 		// let's cut them out
-		sl.Log("level", "ERR", "msg", "response timed out")
+		_ = sl.Log("level", "ERR", "msg", "response timed out")
 		n.LastFailed = time.Now()
 		return response, errors.New("response timed out")
 	}

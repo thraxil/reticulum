@@ -3,7 +3,7 @@ package main
 import (
 	"image"
 	"io"
-	"io/ioutil"
+
 	"os"
 )
 
@@ -19,10 +19,10 @@ func (d diskBackend) String() string {
 	return "Disk"
 }
 
-func (d diskBackend) WriteSized(img imageSpecifier, r io.ReadCloser) error {
+func (d diskBackend) WriteSized(img imageSpecifier, r io.ReadCloser) (err error) {
 	path := img.baseDir(d.Root)
 
-	err := os.MkdirAll(path, 0755)
+	err = os.MkdirAll(path, 0755)
 	if err != nil {
 		return err
 	}
@@ -31,15 +31,19 @@ func (d diskBackend) WriteSized(img imageSpecifier, r io.ReadCloser) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
 	_, err = io.Copy(f, r)
 	return err
 }
 
-func (d diskBackend) WriteFull(img imageSpecifier, r io.ReadCloser) error {
+func (d diskBackend) WriteFull(img imageSpecifier, r io.ReadCloser) (err error) {
 	path := img.baseDir(d.Root)
 
-	err := os.MkdirAll(path, 0755)
+	err = os.MkdirAll(path, 0755)
 	if err != nil {
 		return err
 	}
@@ -48,14 +52,18 @@ func (d diskBackend) WriteFull(img imageSpecifier, r io.ReadCloser) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
 	_, err = io.Copy(f, r)
 	return err
 }
 
 func (d diskBackend) Read(img imageSpecifier) ([]byte, error) {
 	path := img.sizedPath(d.Root)
-	return ioutil.ReadFile(path)
+	return os.ReadFile(path)
 }
 
 func (d diskBackend) Exists(img imageSpecifier) bool {
@@ -73,15 +81,16 @@ func (d diskBackend) Delete(img imageSpecifier) error {
 
 func (d diskBackend) writeLocalType(ri imageSpecifier, outputImage image.Image, encFunc encfunc) {
 	wFile, err := os.OpenFile(ri.sizedPath(d.Root), os.O_CREATE|os.O_RDWR, 0644)
-	defer wFile.Close()
+	defer func() {
+		_ = wFile.Close()
+	}()
 	if err != nil {
 		// what do we do if we can't write?
 		// we still have the resized image, so we can serve the response
 		// we just can't cache it.
 		return
 	}
-
-	encFunc(wFile, outputImage)
+	_ = encFunc(wFile, outputImage)
 }
 
 func (d diskBackend) fullPath(ri imageSpecifier) string {

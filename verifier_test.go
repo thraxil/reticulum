@@ -98,10 +98,7 @@ func Test_visitPreChecks(t *testing.T) {
 	_, c := makeNewClusterData(cn)
 	done, err := visitPreChecks("full.jpg", fdummy{}, nil, c, sl)
 	if done {
-		t.Error(fmt.Sprintf("shouldn't have been any problems there: %s", err))
-	}
-	if err != nil {
-		t.Error(fmt.Sprintf("shouldn't have been any problems there: %s", err))
+		t.Errorf("shouldn't have been any problems there: %s", err)
 	}
 	done, _ = visitPreChecks("foo.jpg", fdummy{}, nil, c, sl)
 	if !done {

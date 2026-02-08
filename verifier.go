@@ -6,14 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+
 	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/thraxil/randwalk"
 	"github.com/thraxil/resize"
 )
@@ -48,13 +48,13 @@ func verifyImage(path string, extension string, hash *hash, ahash string,
 	c *cluster, sl log.Logger) error {
 	//    VERIFY PHASE
 	if hash.String() != ahash {
-		sl.Log("level", "WARN", "msg", "image appears to be corrupted!", "image", path)
+		_ = sl.Log("level", "WARN", "msg", "image appears to be corrupted!", "image", path)
 		corruptedImages.Add(1)
 		// trust that the hash was correct on upload
 		// ask other nodes for a copy
 		repaired, err := repairImage(path, extension, hash, c, sl)
 		if err != nil {
-			sl.Log("level", "ERR", "msg", "error attempting to repair image", "error", err.Error())
+			_ = sl.Log("level", "ERR", "msg", "error attempting to repair image", "error", err.Error())
 			return err
 		}
 		if repaired {
@@ -64,7 +64,7 @@ func verifyImage(path string, extension string, hash *hash, ahash string,
 				return err
 			}
 		} else {
-			sl.Log("level", "ERR", "msg", "could not repair corrupted image", "image", path)
+			_ = sl.Log("level", "ERR", "msg", "could not repair corrupted image", "image", path)
 			unrepairableImages.Add(1)
 			// return here so we don't try to rebalance a corrupted image
 			return errors.New("unrepairable image")
@@ -95,14 +95,14 @@ func replaceImageWithCorrected(path string, img []byte, sl log.Logger) (bool, bo
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		// can't open for writing!
-		sl.Log("level", "ERR", "msg", "could not open for writing", "image", path, "error", err.Error())
-		f.Close()
+		_ = sl.Log("level", "ERR", "msg", "could not open for writing", "image", path, "error", err.Error())
+		_ = f.Close()
 		return false, false, err
 	}
 	_, err = f.Write(img)
-	f.Close()
+	_ = f.Close()
 	if err != nil {
-		sl.Log("level", "ERR", "msg", "could not write", "image", path, "error", err.Error())
+		_ = sl.Log("level", "ERR", "msg", "could not write", "image", path, "error", err.Error())
 		return false, false, err
 	}
 	return false, true, nil
@@ -117,7 +117,7 @@ func checkImageOnNode(n nodeData, hash *hash, extension string, path string,
 	img, err := n.RetrieveImage(ctx, ri)
 	if err != nil {
 		// doesn't have it
-		sl.Log("level", "INFO", "node", n.Nickname,
+		_ = sl.Log("level", "INFO", "node", n.Nickname,
 			"msg", "node does not have a copy of the desired image")
 		return true, true, nil
 	}
@@ -131,7 +131,7 @@ func checkImageOnNode(n nodeData, hash *hash, extension string, path string,
 
 func doublecheckReplica(img []byte, hash *hash) bool {
 	hn := sha1.New()
-	io.WriteString(hn, string(img))
+	_, _ = hn.Write(img)
 	nhash := fmt.Sprintf("%x", hn.Sum(nil))
 	return nhash == hash.String()
 }
@@ -147,7 +147,7 @@ type fileIsh interface {
 // and the easiest solution is to take off
 // and nuke the site from orbit. It's the only way to be sure.
 func clearCached(path string, extension string) error {
-	files, err := ioutil.ReadDir(filepath.Dir(path))
+	files, err := os.ReadDir(filepath.Dir(path))
 	if err != nil {
 		// can't read the dir?!
 		return err
@@ -196,17 +196,17 @@ func newImageRebalancer(path, extension string, hash *hash, c *cluster, s siteCo
 func (r imageRebalancer) Rebalance() error {
 	//    REBALANCE PHASE
 	if r.c == nil {
-		r.sl.Log("level", "ERR", "msg", "rebalance was given a nil cluster")
+		_ = r.sl.Log("level", "ERR", "msg", "rebalance was given a nil cluster")
 		return errors.New("nil cluster")
 	}
 	nodesToCheck := r.c.ReadOrder(r.hash.String())
 	satisfied, deleteLocal, foundReplicas := r.checkNodesForRebalance(nodesToCheck)
 	if !satisfied {
-		r.sl.Log("level", "WARN", "msg", "could not replicate",
+		_ = r.sl.Log("level", "WARN", "msg", "could not replicate",
 			"image", r.path, "replication", r.s.Replication)
 		rebalanceFailures.Add(1)
 	} else {
-		r.sl.Log("level", "INFO", "image", r.path,
+		_ = r.sl.Log("level", "INFO", "image", r.path,
 			"msg", "full replica set",
 			"foundReplicas", foundReplicas,
 			"desired_replicas", r.s.Replication)
@@ -264,7 +264,7 @@ func (r imageRebalancer) retrieveReplica(n stashableNode, satisfied bool) int {
 	// that node should have a copy, but doesn't so stash it
 	if !satisfied {
 		if n.Stash(ctx, *ri, "", r.s.Backend) {
-			r.sl.Log("level", "INFO", "msg", "replicated", "image", r.path)
+			_ = r.sl.Log("level", "INFO", "msg", "replicated", "image", r.path)
 			return 1
 		}
 		// else: couldn't stash to that node. not writeable perhaps.
@@ -281,20 +281,20 @@ func (r imageRebalancer) retrieveReplica(n stashableNode, satisfied bool) int {
 func cleanUpExcessReplica(path string, sl log.Logger) {
 	err := os.RemoveAll(filepath.Dir(path))
 	if err != nil {
-		sl.Log("level", "ERR", "msg", "could not clear out excess replica", "image", path,
+		_ = sl.Log("level", "ERR", "msg", "could not clear out excess replica", "image", path,
 			"error", err.Error())
 	} else {
-		sl.Log("level", "INFO", "msg", "cleared excess replica", "image", path)
+		_ = sl.Log("level", "INFO", "msg", "cleared excess replica", "image", path)
 	}
 }
 
 func visitPreChecks(path string, f fileIsh, err error, c *cluster, sl log.Logger) (bool, error) {
 	if err != nil {
-		sl.Log("level", "ERR", "msg", "verifier.visit was handed an error", "error", err.Error())
+		_ = sl.Log("level", "ERR", "msg", "verifier.visit was handed an error", "error", err.Error())
 		return true, err
 	}
 	if c == nil {
-		sl.Log("level", "ERR", "msg", "verifier.visit was given a nil cluster")
+		_ = sl.Log("level", "ERR", "msg", "verifier.visit was given a nil cluster")
 		return true, errors.New("nil cluster")
 	}
 	// all we care about is the "full" version of each
@@ -311,7 +311,7 @@ func visit(path string, f os.FileInfo, err error, c *cluster,
 	s siteConfig, sl log.Logger) error {
 	defer func() {
 		if r := recover(); r != nil {
-			sl.Log("level", "ERR", "msg", "Error in verifier.visit()", "node", c.Myself.Nickname, "image", path,
+			_ = sl.Log("level", "ERR", "msg", "Error in verifier.visit()", "node", c.Myself.Nickname, "image", path,
 				"error", r)
 		}
 	}()
@@ -330,14 +330,18 @@ func visit(path string, f os.FileInfo, err error, c *cluster,
 	}
 	h := sha1.New()
 	imgfile, err := os.Open(path)
-	defer imgfile.Close()
+	defer func() {
+		if closeErr := imgfile.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
 	if err != nil {
-		sl.Log("level", "ERR", "msg", "error opening", "image", path, "error", err.Error())
+		_ = sl.Log("level", "ERR", "msg", "error opening", "image", path, "error", err.Error())
 		return err
 	}
 	_, err = io.Copy(h, imgfile)
 	if err != nil {
-		sl.Log("level", "ERR", "msg", "error copying", "image", path, "error", err.Error())
+		_ = sl.Log("level", "ERR", "msg", "error copying", "image", path, "error", err.Error())
 		return err
 	}
 	ahash := fmt.Sprintf("%x", h.Sum(nil))
@@ -367,21 +371,20 @@ func makeVisitor(fn func(string, os.FileInfo, error, *cluster, siteConfig, log.L
 }
 
 func verify(c *cluster, s siteConfig, sl log.Logger) {
-	sl.Log("level", "INFO", "msg", "starting verifier")
+	_ = sl.Log("level", "INFO", "msg", "starting verifier")
 
-	rand.Seed(int64(time.Now().Unix()) + int64(int(s.Port)))
 	var jitter int
 	var baseTime = s.VerifierSleep
 	for {
 		// avoid thundering herd
 		jitter = rand.Intn(5)
 		time.Sleep(time.Duration(baseTime+jitter) * time.Second)
-		sl.Log("level", "INFO", "msg", "verifier starting at the top")
+		_ = sl.Log("level", "INFO", "msg", "verifier starting at the top")
 
 		root := s.UploadDirectory
 		err := randwalk.Walk(root, makeVisitor(visit, c, s, sl))
 		if err != nil {
-			sl.Log("level", "WARN", "msg", "randwalk.Walk() returned error",
+			_ = sl.Log("level", "WARN", "msg", "randwalk.Walk() returned error",
 				"error", err.Error())
 		}
 		verifierPass.Add(1)

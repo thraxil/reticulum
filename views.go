@@ -9,14 +9,14 @@ import (
 	"html/template"
 	"image"
 	"io"
-	"io/ioutil"
+
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/thraxil/resize"
 )
 
@@ -95,7 +95,7 @@ func (ctx sitecontext) serveFromCluster(rctx context.Context, ri *imageSpecifier
 			w.Header().Set("Etag", etag)
 		}
 		w = setCacheHeaders(w, ri.Extension)
-		w.Write(imgData)
+		_, _ = w.Write(imgData)
 		servedFromCluster.Add(1)
 	}
 }
@@ -111,7 +111,7 @@ func (ctx sitecontext) serveDirect(ri *imageSpecifier, w http.ResponseWriter, r 
 		}
 		w = setCacheHeaders(w, ri.Extension)
 		w.Header().Set("Etag", etag)
-		w.Write(contents)
+		_, _ = w.Write(contents)
 		servedLocally.Add(1)
 		return true
 	}
@@ -180,9 +180,8 @@ func (ctx sitecontext) serveScaledFromCluster(rctx context.Context, ri *imageSpe
 			w.Header().Set("Etag", etag)
 		}
 		w = setCacheHeaders(w, ri.Extension)
-		w.Write(imgData)
+		_, _ = w.Write(imgData)
 	}
-	return
 }
 
 func (ctx sitecontext) makeResizeJob(ri *imageSpecifier) resizeResponse {
@@ -198,7 +197,7 @@ func (ctx sitecontext) makeResizeJob(ri *imageSpecifier) resizeResponse {
 func (ctx sitecontext) serveMagick(ri *imageSpecifier, w http.ResponseWriter, r *http.Request) {
 	imgContents, err := ctx.Cfg.Backend.Read(*ri)
 	if err != nil {
-		ctx.SL.Log("level", "ERR", "msg", "couldn't read image resized by magick",
+		_ = ctx.SL.Log("level", "ERR", "msg", "couldn't read image resized by magick",
 			"error", err)
 		return
 	}
@@ -209,7 +208,7 @@ func (ctx sitecontext) serveMagick(ri *imageSpecifier, w http.ResponseWriter, r 
 	}
 	w = setCacheHeaders(w, ri.Extension)
 	w.Header().Set("Etag", etag)
-	w.Write(imgContents)
+	_, _ = w.Write(imgContents)
 }
 
 func (ctx sitecontext) serveScaledByExtension(ri *imageSpecifier, w http.ResponseWriter,
@@ -217,7 +216,7 @@ func (ctx sitecontext) serveScaledByExtension(ri *imageSpecifier, w http.Respons
 
 	var buf bytes.Buffer
 	enc := extencoders[ri.Extension]
-	enc(&buf, outputImage)
+	_ = enc(&buf, outputImage)
 	contents := buf.Bytes()
 	etag := fmt.Sprintf("%x", sha1.Sum(contents))
 	ctx.Cfg.Backend.writeLocalType(*ri, outputImage, extencoders[ri.Extension])
@@ -227,11 +226,13 @@ func (ctx sitecontext) serveScaledByExtension(ri *imageSpecifier, w http.Respons
 	}
 	w = setCacheHeaders(w, ri.Extension)
 	w.Header().Set("Etag", etag)
-	serveType(w, outputImage, extencoders[ri.Extension])
+	if err := serveType(w, outputImage, extencoders[ri.Extension]); err != nil {
+		_ = ctx.SL.Log("level", "ERR", "msg", "error serving scaled image", "error", err)
+	}
 }
 
-func serveType(w http.ResponseWriter, outputImage image.Image, encFunc encfunc) {
-	encFunc(w, outputImage)
+func serveType(w http.ResponseWriter, outputImage image.Image, encFunc encfunc) error {
+	return encFunc(w, outputImage)
 }
 
 var mimeexts = map[string]string{
@@ -252,26 +253,26 @@ func getAddHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		RequireKey: ctx.Cfg.KeyRequired(),
 	}
 	t, _ := template.New("add").Parse(addTemplate)
-	t.Execute(w, &p)
+	_ = t.Execute(w, &p)
 }
 
 func postAddHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	if ctx.Cfg.KeyRequired() {
 		if !ctx.Cfg.ValidKey(r.FormValue("key")) {
-			http.Error(w, "invalid upload key", 403)
+			http.Error(w, "invalid upload key", http.StatusForbidden)
 			return
 		}
 	}
 	i, fh, _ := r.FormFile("image")
-	defer i.Close()
+	defer func() { _ = i.Close() }()
 	h := sha1.New()
-	io.Copy(h, i)
+	_, _ = io.Copy(h, i)
 	ahash, err := hashFromString(fmt.Sprintf("%x", h.Sum(nil)), "")
 	if err != nil {
 		http.Error(w, "bad hash", 500)
 		return
 	}
-	i.Seek(0, 0)
+	_, _ = i.Seek(0, 0)
 	mimetype := fh.Header.Get("Content-Type")
 	if mimetype == "" {
 		// they left off a mimetype, so default to jpg
@@ -287,7 +288,7 @@ func postAddHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		resize.MakeSizeSpec("full"),
 		"." + ext,
 	}
-	ctx.Cfg.Backend.WriteFull(ri, i)
+	_ = ctx.Cfg.Backend.WriteFull(ri, i)
 
 	sizeHints := r.FormValue("size_hints")
 	// yes, the full-size for this image gets written to disk on
@@ -307,9 +308,9 @@ func postAddHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	}
 	b, err := json.Marshal(id)
 	if err != nil {
-		ctx.SL.Log("level", "ERR", "error", err.Error())
+		_ = ctx.SL.Log("level", "ERR", "error", err.Error())
 	}
-	w.Write(b)
+	_, _ = w.Write(b)
 	ctx.cluster.Uploaded(imageRecord{*ahash, "." + ext})
 }
 
@@ -328,7 +329,7 @@ func statusHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		Neighbors: ctx.cluster.GetNeighbors(),
 	}
 	t, _ := template.New("status").Parse(statusTemplate)
-	t.Execute(w, p)
+	_ = t.Execute(w, p)
 }
 
 type dashboardPage struct {
@@ -344,16 +345,16 @@ func dashboardHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		RecentlyStashed:  ctx.cluster.recentlyStashed,
 	}
 	t, _ := template.New("dashboard").Parse(dashboardTemplate)
-	t.Execute(w, p)
+	_ = t.Execute(w, p)
 }
 
 func configHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	b, err := json.Marshal(ctx.cluster.Myself)
 	if err != nil {
-		ctx.SL.Log("level", "ERR", "error", err.Error())
+		_ = ctx.SL.Log("level", "ERR", "error", err.Error())
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(b)
+	_, _ = w.Write(b)
 }
 
 func stashHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
@@ -368,9 +369,9 @@ func stashHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		http.Error(w, "no image uploaded", 400)
 		return
 	}
-	defer i.Close()
+	defer func() { _ = i.Close() }()
 	h := sha1.New()
-	io.Copy(h, i)
+	_, _ = io.Copy(h, i)
 	ahash, err := hashFromString(fmt.Sprintf("%x", h.Sum(nil)), "")
 	if err != nil {
 		http.Error(w, "bad hash", http.StatusNotFound)
@@ -378,14 +379,14 @@ func stashHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	}
 
 	path := ctx.Cfg.UploadDirectory + ahash.AsPath()
-	os.MkdirAll(path, 0755)
+	_ = os.MkdirAll(path, 0755)
 	ext := filepath.Ext(fh.Filename)
 	fullpath := path + "/full" + ext
 	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
-	defer f.Close()
-	i.Seek(0, 0)
-	io.Copy(f, i)
-	fmt.Fprint(w, "ok")
+	defer func() { _ = f.Close() }()
+	_, _ = i.Seek(0, 0)
+	_, _ = io.Copy(f, i)
+	_, _ = fmt.Fprint(w, "ok")
 	// do any eager resizing in the background
 	sizeHints := r.FormValue("size_hints")
 	go func() {
@@ -398,7 +399,7 @@ func stashHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 			ctx.Ch.ResizeQueue <- resizeRequest{fullpath, ext, size, c}
 			result := <-c
 			if !result.Success {
-				ctx.SL.Log("level", "ERR", "msg", "could not pre-resize")
+				_ = ctx.SL.Log("level", "ERR", "msg", "could not pre-resize")
 			}
 		}
 	}()
@@ -438,10 +439,10 @@ func retrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext
 
 	b, err := json.Marshal(imageInfoResponse{ahash.String(), extension, local})
 	if err != nil {
-		ctx.SL.Log("level", "ERR", "error", err.Error())
+		_ = ctx.SL.Log("level", "ERR", "error", err.Error())
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(b)
+	_, _ = w.Write(b)
 }
 
 func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
@@ -472,7 +473,7 @@ func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		}
 		w.Header().Set("Content-Type", extmimes[extension])
 		w.Header().Set("Etag", etag)
-		w.Write(contents)
+		_, _ = w.Write(contents)
 		return
 	}
 	_, err = ctx.Cfg.Backend.Read(ri.fullVersion())
@@ -510,7 +511,7 @@ func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		}
 		w.Header().Set("Etag", etag)
 		w.Header().Set("Content-Type", extmimes[extension])
-		w.Write(imgContents)
+		_, _ = w.Write(imgContents)
 		return
 	}
 
@@ -518,7 +519,7 @@ func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 
 	var buf bytes.Buffer
 	enc := extencoders[ri.Extension]
-	enc(&buf, outputImage)
+	_ = enc(&buf, outputImage)
 	contents = buf.Bytes()
 	etag := fmt.Sprintf("%x", sha1.Sum(contents))
 	ctx.Cfg.Backend.writeLocalType(ri, outputImage, enc)
@@ -528,7 +529,7 @@ func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	}
 	w.Header().Set("Etag", etag)
 	w.Header().Set("Content-Type", extmimes[extension])
-	w.Write(contents)
+	_, _ = w.Write(contents)
 }
 
 func getAnnounceHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
@@ -542,9 +543,9 @@ func getAnnounceHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext)
 	}
 	b, err := json.Marshal(ar)
 	if err != nil {
-		ctx.SL.Log("level", "ERR", "error", err.Error())
+		_ = ctx.SL.Log("level", "ERR", "error", err.Error())
 	}
-	w.Write(b)
+	_, _ = w.Write(b)
 }
 
 func postAnnounceHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
@@ -566,14 +567,14 @@ func postAnnounceHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext
 		}
 		neighbor.LastSeen = time.Now()
 		ctx.cluster.UpdateNeighbor(*neighbor)
-		ctx.SL.Log("level", "INFO", "msg", "updated existing neighbor")
+		_ = ctx.SL.Log("level", "INFO", "msg", "updated existing neighbor")
 		// TODO: gossip enable by accepting the list of neighbors
 		// from the client and merging that data in.
 		// for now, just let it update its own entry
 
 	} else {
 		// otherwise, add them to the Neighbors list
-		ctx.SL.Log("level", "INFO", "msg", "adding neighbor")
+		_ = ctx.SL.Log("level", "INFO", "msg", "adding neighbor")
 		nd := nodeData{
 			Nickname: r.FormValue("nickname"),
 			UUID:     r.FormValue("uuid"),
@@ -591,12 +592,12 @@ func postAnnounceHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext
 }
 func getJoinHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	// show form
-	w.Write([]byte(joinTemplate))
+	_, _ = w.Write([]byte(joinTemplate))
 }
 
 func postJoinHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	if r.FormValue("url") == "" {
-		fmt.Fprint(w, "no url specified")
+		_, _ = fmt.Fprint(w, "no url specified")
 		return
 	}
 	url := r.FormValue("url")
@@ -604,45 +605,45 @@ func postJoinHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	rctx := r.Context()
 	req, err := http.NewRequest("GET", configURL, nil)
 	if err != nil {
-		fmt.Fprintf(w, "bad config URL")
+		_, _ = fmt.Fprintf(w, "bad config URL")
 		return
 	}
 	res, err := http.DefaultClient.Do(req.WithContext(rctx))
 	if err != nil {
-		fmt.Fprint(w, "error retrieving config")
+		_, _ = fmt.Fprint(w, "error retrieving config")
 		return
 	}
-	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	defer func() { _ = res.Body.Close() }()
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		fmt.Fprintf(w, "error reading body of response")
+		_, _ = fmt.Fprintf(w, "error reading body of response")
 		return
 	}
 	var n nodeData
 	err = json.Unmarshal(body, &n)
 	if err != nil {
-		fmt.Fprintf(w, "error parsing json")
+		_, _ = fmt.Fprintf(w, "error parsing json")
 		return
 	}
 
 	if n.UUID == ctx.cluster.Myself.UUID {
-		fmt.Fprintf(w, "I can't join myself, silly!")
+		_, _ = fmt.Fprintf(w, "I can't join myself, silly!")
 		return
 	}
 	_, ok := ctx.cluster.FindNeighborByUUID(n.UUID)
 	if ok {
-		fmt.Fprintf(w, "already have a node with that UUID in the cluster")
+		_, _ = fmt.Fprintf(w, "already have a node with that UUID in the cluster")
 		// let's not do updates through this. Let gossip handle that.
 		return
 	}
 	ctx.cluster.AddNeighbor(n)
 
-	fmt.Fprintf(w, "Added node %s [%s]", n.Nickname, n.UUID)
+	_, _ = fmt.Fprintf(w, "Added node %s [%s]", n.Nickname, n.UUID)
 }
 
 func faviconHandler(w http.ResponseWriter, r *http.Request) {
 	// just give it nothing to make it go away
-	w.Write(nil)
+	_, _ = w.Write(nil)
 }
 
 const joinTemplate = `

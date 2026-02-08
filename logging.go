@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 )
 
 func newSTDLogger() log.Logger {

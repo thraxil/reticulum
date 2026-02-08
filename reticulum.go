@@ -6,7 +6,7 @@ import (
 	"expvar"
 	"flag"
 	"fmt"
-	"io/ioutil"
+
 	"math/rand"
 	"net/http"
 	"os"
@@ -15,7 +15,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -31,13 +31,13 @@ func logTop(handler http.Handler, nodeName string, sl log.Logger) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rc := recover(); rc != nil {
-				sl.Log("level", "ERR", "path", r.URL.String(), "msg", rc)
+				_ = sl.Log("level", "ERR", "path", r.URL.String(), "msg", rc)
 			}
 		}()
 		t0 := time.Now()
 		handler.ServeHTTP(w, r)
 		t1 := time.Now()
-		sl.Log(
+		_ = sl.Log(
 			"level", "INFO",
 			"node", nodeName,
 			"remote_addr", r.RemoteAddr,
@@ -64,11 +64,10 @@ var (
 
 	servedLocally     *expvar.Int
 	servedFromCluster *expvar.Int
-	cacheHits         *expvar.Int
-	cacheMisses       *expvar.Int
-	resizeFailures    *expvar.Int
-	servedByMagick    *expvar.Int
-	servedScaled      *expvar.Int
+
+	resizeFailures *expvar.Int
+	servedByMagick *expvar.Int
+	servedScaled   *expvar.Int
 
 	totalRequests *expvar.Int
 
@@ -92,8 +91,6 @@ func init() {
 	servedLocally = expvar.NewInt("servedLocally")
 	servedFromCluster = expvar.NewInt("servedFromCluster")
 
-	cacheHits = expvar.NewInt("cacheHits")
-	cacheMisses = expvar.NewInt("cacheMisses")
 	resizeFailures = expvar.NewInt("resizeFailures")
 	servedByMagick = expvar.NewInt("servedByMagick")
 	servedScaled = expvar.NewInt("servedScaled")
@@ -105,23 +102,23 @@ func init() {
 
 func main() {
 	sl := newSTDLogger()
-	sl.Log("level", "INFO", "msg", "starting logger")
+	_ = sl.Log("level", "INFO", "msg", "starting logger")
 
 	// read the config file
 	var configfile string
 	flag.StringVar(&configfile, "config", "./config.json", "JSON config file")
 	flag.Parse()
 
-	file, err := ioutil.ReadFile(configfile)
+	file, err := os.ReadFile(configfile)
 	if err != nil {
-		sl.Log("level", "ERR", "error", err.Error())
+		_ = sl.Log("level", "ERR", "error", err.Error())
 		os.Exit(1)
 	}
 
 	f := configData{}
 	err = json.Unmarshal(file, &f)
 	if err != nil {
-		sl.Log("level", "ERR", "error", err.Error())
+		_ = sl.Log("level", "ERR", "error", err.Error())
 		os.Exit(1)
 	}
 
@@ -182,7 +179,9 @@ func main() {
 	hs := http.Server{Addr: fmt.Sprintf(":%d", f.Port), Handler: logTop(mux, c.Myself.Nickname, sl)}
 	// everything is ready, let's go
 	go func() {
-		hs.ListenAndServe()
+		if err := hs.ListenAndServe(); err != nil {
+			_ = sl.Log("level", "ERR", "msg", "http server error", "error", err)
+		}
 	}()
 
 	stop := make(chan os.Signal, 1)
@@ -194,8 +193,8 @@ func main() {
 	defer cancel()
 
 	if err = hs.Shutdown(sctx); err != nil {
-		sl.Log("level", "ERR", "msg", "error on shutdown", "error", err)
+		_ = sl.Log("level", "ERR", "msg", "error on shutdown", "error", err)
 	} else {
-		sl.Log("level", "INFO", "msg", "Server stopped")
+		_ = sl.Log("level", "INFO", "msg", "Server stopped")
 	}
 }

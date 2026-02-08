@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -42,7 +41,6 @@ func Test_ClusterOfOneInitialNeighbors(t *testing.T) {
 func Test_ClusterOfOneNeighborsInclusive(t *testing.T) {
 	var n []nodeData
 	myself, c := makeNewClusterData(n)
-
 	neighbors := c.NeighborsInclusive()
 	if len(neighbors) != 1 {
 		t.Error("too many neighbors for empty cluster")
@@ -94,33 +92,6 @@ func Test_ClusterOfOneFindNeighbors(t *testing.T) {
 	}
 	if wo[0].UUID != myself.UUID {
 		t.Error("it's not me!")
-	}
-}
-
-func checkForNeighbor(c *cluster, n nodeData, t *testing.T) {
-	rn, found := c.FindNeighborByUUID(n.UUID)
-	if !found {
-		t.Error(fmt.Sprintf("couldn't find %s by UUID", n.UUID))
-	}
-	if rn.Nickname != n.Nickname {
-		t.Error("not the same nickname")
-	}
-}
-
-func checkForNeighborAfterRemoval(c *cluster, n nodeData, i int, t *testing.T) {
-	rn, found := c.FindNeighborByUUID(n.UUID)
-	if i == 2 {
-		// the one that was removed
-		if found {
-			t.Error("found the one we removed")
-		}
-	} else {
-		if !found {
-			t.Error(fmt.Sprintf("couldn't find %s by UUID", n.UUID))
-		}
-		if rn.Nickname != n.Nickname {
-			t.Error("not the same nickname")
-		}
 	}
 }
 
