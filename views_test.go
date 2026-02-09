@@ -160,11 +160,6 @@ func Test_serveImageHandler(t *testing.T) {
 	}
 }
 
-type RetreiveInfoHandlerTestCase struct {
-	path   string
-	status int
-}
-
 func Test_RetrieveInfoImageHandler(t *testing.T) {
 	ctx := makeTestContext()
 
@@ -194,11 +189,6 @@ func Test_RetrieveInfoImageHandler(t *testing.T) {
 			t.Errorf("for %s expected status %v; got %v", c.path, c.status, res.Status)
 		}
 	}
-}
-
-type RetreiveHandlerTestCase struct {
-	path   string
-	status int
 }
 
 func Test_RetrieveImageHandler(t *testing.T) {

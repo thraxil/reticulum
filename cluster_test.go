@@ -53,14 +53,13 @@ func Test_ClusterOfOneNeighborsInclusive(t *testing.T) {
 func Test_ClusterOfOneFindNeighbors(t *testing.T) {
 	var n []nodeData
 	myself, c := makeNewClusterData(n)
-	neighbors := c.NeighborsInclusive()
 
 	_, found := c.FindNeighborByUUID("test-uuid")
 	if found {
 		t.Error("neighbors should be empty")
 	}
 
-	neighbors = c.WriteableNeighbors()
+	neighbors := c.WriteableNeighbors()
 	if len(neighbors) != 1 {
 		t.Error("too many neighbors for empty cluster")
 	}
