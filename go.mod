@@ -3,7 +3,8 @@ module github.com/thraxil/reticulum
 go 1.25
 
 require (
-	github.com/go-kit/kit v0.13.0
+	github.com/go-kit/log v0.2.0
+	github.com/h2non/bimg v1.1.9
 	github.com/prometheus/client_golang v1.23.2
 	github.com/thraxil/randwalk v0.0.0-20170713144412-615038b03cd6
 	github.com/thraxil/resize v0.0.0-20170723213849-e4fe93a12666
@@ -12,7 +13,6 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/go-kit/log v0.2.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect

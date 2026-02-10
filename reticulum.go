@@ -66,7 +66,6 @@ var (
 	servedFromCluster *expvar.Int
 
 	resizeFailures *expvar.Int
-	servedByMagick *expvar.Int
 	servedScaled   *expvar.Int
 
 	totalRequests *expvar.Int
@@ -92,7 +91,6 @@ func init() {
 	servedFromCluster = expvar.NewInt("servedFromCluster")
 
 	resizeFailures = expvar.NewInt("resizeFailures")
-	servedByMagick = expvar.NewInt("servedByMagick")
 	servedScaled = expvar.NewInt("servedScaled")
 
 	totalRequests = expvar.NewInt("totalRequests")
@@ -174,7 +172,7 @@ func main() {
 	mux.HandleFunc("GET /join/", makeHandler(getJoinHandler, ctx))
 	mux.HandleFunc("POST /join/", makeHandler(postJoinHandler, ctx))
 	mux.HandleFunc("GET /favicon.ico", faviconHandler)
-	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("GET /metrics", promhttp.Handler().ServeHTTP)
 
 	hs := http.Server{Addr: fmt.Sprintf(":%d", f.Port), Handler: logTop(mux, c.Myself.Nickname, sl)}
 	// everything is ready, let's go

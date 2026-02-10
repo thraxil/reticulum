@@ -16,6 +16,8 @@
         gcc
         libcap
         python310
+        vips
+        pkg-config
       ];
       MY_ENVIRONMENT_VARIABLE = "world";
     };
