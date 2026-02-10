@@ -148,13 +148,6 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 		http.Error(w, "could not resize image", 500)
 		return
 	}
-	if result.Magick {
-		// imagemagick did the resize, so we just spit out
-		// the sized file
-		servedByMagick.Add(1)
-		ctx.serveMagick(ri, w, r)
-		return
-	}
 	servedScaled.Add(1)
 	ctx.serveScaledByExtension(ri, w, *result.OutputImage, r)
 }
@@ -194,22 +187,6 @@ func (ctx sitecontext) makeResizeJob(ri *imageSpecifier) resizeResponse {
 	return result
 }
 
-func (ctx sitecontext) serveMagick(ri *imageSpecifier, w http.ResponseWriter, r *http.Request) {
-	imgContents, err := ctx.Cfg.Backend.Read(*ri)
-	if err != nil {
-		_ = ctx.SL.Log("level", "ERR", "msg", "couldn't read image resized by magick",
-			"error", err)
-		return
-	}
-	etag := fmt.Sprintf("%x", sha1.Sum(imgContents))
-	if r.Header.Get("If-None-Match") == etag {
-		w.WriteHeader(http.StatusNotModified)
-		return
-	}
-	w = setCacheHeaders(w, ri.Extension)
-	w.Header().Set("Etag", etag)
-	_, _ = w.Write(imgContents)
-}
 
 func (ctx sitecontext) serveScaledByExtension(ri *imageSpecifier, w http.ResponseWriter,
 	outputImage image.Image, r *http.Request) {
@@ -498,20 +475,6 @@ func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	result := <-c
 	if !result.Success {
 		http.Error(w, "could not resize image", 500)
-		return
-	}
-	if result.Magick {
-		// imagemagick did the resize, so we just spit out
-		// the sized file
-		imgContents, _ := ctx.Cfg.Backend.Read(ri)
-		etag := fmt.Sprintf("%x", sha1.Sum(imgContents))
-		if r.Header.Get("If-None-Match") == etag {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-		w.Header().Set("Etag", etag)
-		w.Header().Set("Content-Type", extmimes[extension])
-		_, _ = w.Write(imgContents)
 		return
 	}
 

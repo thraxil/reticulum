@@ -1,9 +1,33 @@
 package main
 
 import (
-	"fmt"
+	"image"
+	"image/color"
+	"image/jpeg"
+	"os"
+	"path/filepath"
 	"testing"
+
+	"github.com/go-kit/log"
+	"github.com/h2non/bimg"
 )
+
+func createTestImage(path string) error {
+	img := image.NewRGBA(image.Rect(0, 0, 100, 100))
+	for x := 0; x < 100; x++ {
+		for y := 0; y < 100; y++ {
+			img.Set(x, y, color.RGBA{uint8(x), uint8(y), 0, 255})
+		}
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return jpeg.Encode(f, img, nil)
+}
 
 type rptestcase struct {
 	Path   string
@@ -25,47 +49,56 @@ func Test_resizedPath(t *testing.T) {
 	}
 }
 
-type catestcase struct {
-	Size       string
-	Path       string
-	ConvertBin string
-	Output     []string
-}
-
-func Test_convertArgs(t *testing.T) {
-	var testCases = []catestcase{
-		{"100s", "/foo/bar/image.jpg", "/usr/bin/convert",
-			[]string{
-				"/usr/bin/convert",
-				"-resize",
-				"100x100^",
-				"-auto-orient",
-				"-gravity",
-				"center",
-				"-extent",
-				"100x100",
-				"/foo/bar/image.jpg",
-				"/foo/bar/100s.jpg",
-			},
-		},
-		{"100w", "/foo/bar/image.jpg", "/usr/bin/convert",
-			[]string{
-				"/usr/bin/convert",
-				"-auto-orient",
-				"-resize",
-				"100",
-				"/foo/bar/image.jpg",
-				"/foo/bar/100w.jpg",
-			},
-		},
+func TestResizeWorker(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "reticulum-test")
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, tc := range testCases {
-		output := convertArgs(tc.Size, tc.Path, tc.ConvertBin)
-		for i := range output {
-			if tc.Output[i] != output[i] {
-				fmt.Printf("%s %s\n", tc.Output[i], output[i])
-				t.Error("incorrect convert args")
-			}
-		}
+	defer os.RemoveAll(tmpDir)
+
+	testImagePath := filepath.Join(tmpDir, "test.jpg")
+	err = createTestImage(testImagePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	siteConfig := &siteConfig{
+		Writeable: true,
+	}
+
+	requests := make(chan resizeRequest)
+	sl := log.NewNopLogger()
+
+	go resizeWorker(requests, sl, siteConfig)
+
+	responseChan := make(chan resizeResponse)
+	req := resizeRequest{
+		Path:      testImagePath,
+		Extension: ".jpg",
+		Size:      "50w",
+		Response:  responseChan,
+	}
+
+	requests <- req
+	response := <-responseChan
+
+	if !response.Success {
+		t.Error("Resize was not successful")
+	}
+
+	resizedPath := resizedPath(testImagePath, "50w")
+	buffer, err := os.ReadFile(resizedPath)
+	if err != nil {
+		t.Fatalf("could not read resized image: %v", err)
+	}
+
+	img := bimg.NewImage(buffer)
+	size, err := img.Size()
+	if err != nil {
+		t.Fatalf("could not get size of resized image: %v", err)
+	}
+
+	if size.Width != 50 {
+		t.Errorf("Expected width 50, got %d", size.Width)
 	}
 }

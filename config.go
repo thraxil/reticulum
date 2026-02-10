@@ -18,7 +18,6 @@ type configData struct {
 	MaxReplication         int
 	GossiperSleep          int
 	VerifierSleep          int
-	ImageMagickConvertPath string
 	GoMaxProcs             int
 }
 
@@ -64,11 +63,6 @@ func (c configData) MyConfig() siteConfig {
 		verifierSleep = 300
 	}
 
-	convertPath := c.ImageMagickConvertPath
-	if convertPath == "" {
-		convertPath = "/usr/bin/convert"
-	}
-
 	goMaxProcs := c.GoMaxProcs
 	if goMaxProcs < 1 {
 		goMaxProcs = 1
@@ -86,7 +80,6 @@ func (c configData) MyConfig() siteConfig {
 		MaxReplication:         maxReplication,
 		GossiperSleep:          gossiperSleep,
 		VerifierSleep:          verifierSleep,
-		ImageMagickConvertPath: convertPath,
 		GoMaxProcs:             goMaxProcs,
 		Writeable:              c.Writeable,
 		Backend:                b,
@@ -105,7 +98,6 @@ type siteConfig struct {
 	MaxReplication         int
 	GossiperSleep          int
 	VerifierSleep          int
-	ImageMagickConvertPath string
 	GoMaxProcs             int
 	Writeable              bool
 	Backend                backend
