@@ -74,7 +74,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 
 		sSpec := resize.MakeSizeSpec(req.Size)
 		options := bimg.Options{
-			Quality: 95,
+			Quality:      95,
 			NoAutoRotate: false, // Let bimg handle auto-orientation
 		}
 
@@ -110,7 +110,6 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 
 	}
 }
-
 
 func resizedPath(path, size string) string {
 	d := filepath.Dir(path)

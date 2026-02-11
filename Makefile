@@ -16,9 +16,10 @@ clusterclean:
 run: reticulum
 	./reticulum -config=test/config0.json
 
+.PHONY: fmt
 fmt:
 	go fmt ./...
-
+.PHONY: lint
 lint:
 	golangci-lint run ./...
 
@@ -27,6 +28,7 @@ lint:
 install: reticulum
 	cp -f reticulum /usr/local/bin/reticulum
 
+.PHONY: test
 test:
 	go test .
 

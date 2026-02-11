@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/HugoSmits86/nativewebp"
 	"image"
 	"image/gif"
 	"image/jpeg"
@@ -13,16 +14,25 @@ var gifOptions = gif.Options{}
 
 type encfunc func(io.Writer, image.Image) error
 
-func jpgencode(out io.Writer, in image.Image) error {
+func encodeJPEG(out io.Writer, in image.Image) error {
 	return jpeg.Encode(out, in, &jpegOptions)
 }
 
-func gifencode(out io.Writer, in image.Image) error {
+func encodeGIF(out io.Writer, in image.Image) error {
 	return gif.Encode(out, in, &gifOptions)
 }
 
+func encodeWEBP(out io.Writer, in image.Image) error {
+	return nativewebp.Encode(out, in, nil)
+}
+
+func encodePNG(out io.Writer, in image.Image) error {
+	return png.Encode(out, in)
+}
+
 var extencoders = map[string]encfunc{
-	".jpg": jpgencode,
-	".png": png.Encode,
-	".gif": gifencode,
+	".jpg":  encodeJPEG,
+	".gif":  encodeGIF,
+	".png":  encodePNG,
+	".webp": encodeWEBP,
 }
