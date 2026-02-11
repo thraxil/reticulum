@@ -14,6 +14,7 @@ jobs:
           access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
     - uses: workflow/nix-shell-action@v3.4.0
       with:
+        flakes-from-devshell: true
         script: |
           make lint
           make test
