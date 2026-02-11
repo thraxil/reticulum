@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/HugoSmits86/nativewebp v1.2.1
-	github.com/go-kit/log v0.2.0
+	github.com/go-kit/log v0.2.1
 	github.com/h2non/bimg v1.1.9
 	github.com/prometheus/client_golang v1.23.2
 	github.com/thraxil/randwalk v0.0.0-20170713144412-615038b03cd6
