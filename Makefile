@@ -29,8 +29,12 @@ install: reticulum
 	cp -f reticulum /usr/local/bin/reticulum
 
 .PHONY: test
-test:
+test: setup_test_data
 	go test .
+
+setup_test_data:
+	mkdir -p test/uploads1/00/51/ec/03/fb/81/3e/87/31/22/4e/e0/6f/ee/e7/c8/28/ce/ae/22
+	touch test/uploads1/00/51/ec/03/fb/81/3e/87/31/22/4e/e0/6f/ee/e7/c8/28/ce/ae/22/full.webp
 
 coverage: reticulum
 	go test . -coverprofile=coverage.out
