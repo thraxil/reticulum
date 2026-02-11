@@ -1,18 +1,35 @@
 package main
 
 import (
+	"image"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
 
-func makeTestContext() sitecontext {
+func makeTestContextWithUploadDir(uploadDir string) sitecontext {
 	var n []nodeData
 	_, c := makeNewClusterData(n)
-	b := newDiskBackend("")
+	b := newDiskBackend(uploadDir)
 	cfg := siteConfig{Backend: b}
-	return sitecontext{cluster: c, Cfg: cfg}
+	ch := sharedChannels{
+		ResizeQueue: make(chan resizeRequest),
+	}
+
+	go func() {
+		for req := range ch.ResizeQueue {
+			img := image.NewRGBA(image.Rect(0, 0, 100, 100))
+			var i image.Image = img
+			req.Response <- resizeResponse{Success: true, OutputImage: &i}
+		}
+	}()
+
+	return sitecontext{cluster: c, Cfg: cfg, Ch: ch}
+}
+
+func makeTestContext() sitecontext {
+	return makeTestContextWithUploadDir("")
 }
 
 func Test_statusHandler(t *testing.T) {
@@ -91,6 +108,7 @@ func Test_parsePathServeImage(t *testing.T) {
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22//image.jpg", http.StatusNotFound, true, ""},
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/", http.StatusOK, false, "100s"},
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpeg", http.StatusMovedPermanently, true, ""},
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.webp", http.StatusOK, false, "100s"},
 	}
 	for _, c := range cases {
 		req, err := http.NewRequest("GET", "localhost:8080"+c.path, nil)
@@ -129,7 +147,7 @@ type serveImageHandlerTestCase struct {
 }
 
 func Test_serveImageHandler(t *testing.T) {
-	ctx := makeTestContext()
+	ctx := makeTestContextWithUploadDir("test/uploads1/")
 
 	cases := []serveImageHandlerTestCase{
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpg", http.StatusNotFound},
@@ -137,7 +155,7 @@ func Test_serveImageHandler(t *testing.T) {
 		{"/image/invalidahash/full/image.jpg", http.StatusNotFound},
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22//image.jpg", http.StatusNotFound},
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/", http.StatusNotFound},
-		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpeg", http.StatusMovedPermanently},
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.webp", http.StatusOK},
 	}
 	for _, c := range cases {
 		req, err := http.NewRequest("GET", "localhost:8080"+c.path, nil)

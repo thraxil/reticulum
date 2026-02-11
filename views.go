@@ -187,7 +187,6 @@ func (ctx sitecontext) makeResizeJob(ri *imageSpecifier) resizeResponse {
 	return result
 }
 
-
 func (ctx sitecontext) serveScaledByExtension(ri *imageSpecifier, w http.ResponseWriter,
 	outputImage image.Image, r *http.Request) {
 
@@ -216,12 +215,14 @@ var mimeexts = map[string]string{
 	"image/jpeg": "jpg",
 	"image/gif":  "gif",
 	"image/png":  "png",
+	"image/webp": "webp",
 }
 
 var extmimes = map[string]string{
-	".jpg": "image/jpeg",
-	".gif": "image/gif",
-	".png": "image/png",
+	".jpg":  "image/jpeg",
+	".gif":  "image/gif",
+	".png":  "image/png",
+	".webp": "image/webp",
 }
 
 func getAddHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {

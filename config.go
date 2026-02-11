@@ -3,22 +3,22 @@ package main
 // the structure of the config.json file
 // where config info is stored
 type configData struct {
-	Port                   int64
-	UUID                   string
-	Nickname               string
-	BaseURL                string `json:"BaseUrl"`
-	Location               string
-	Writeable              bool
-	NumResizeWorkers       int
-	UploadKeys             []string
-	UploadDirectory        string
-	Neighbors              []nodeData
-	Replication            int
-	MinReplication         int
-	MaxReplication         int
-	GossiperSleep          int
-	VerifierSleep          int
-	GoMaxProcs             int
+	Port             int64
+	UUID             string
+	Nickname         string
+	BaseURL          string `json:"BaseUrl"`
+	Location         string
+	Writeable        bool
+	NumResizeWorkers int
+	UploadKeys       []string
+	UploadDirectory  string
+	Neighbors        []nodeData
+	Replication      int
+	MinReplication   int
+	MaxReplication   int
+	GossiperSleep    int
+	VerifierSleep    int
+	GoMaxProcs       int
 }
 
 func (c configData) MyNode() nodeData {
@@ -71,36 +71,36 @@ func (c configData) MyConfig() siteConfig {
 	b := newDiskBackend(c.UploadDirectory)
 
 	return siteConfig{
-		Port:                   c.Port,
-		UploadKeys:             c.UploadKeys,
-		UploadDirectory:        c.UploadDirectory,
-		NumResizeWorkers:       numWorkers,
-		Replication:            replication,
-		MinReplication:         minReplication,
-		MaxReplication:         maxReplication,
-		GossiperSleep:          gossiperSleep,
-		VerifierSleep:          verifierSleep,
-		GoMaxProcs:             goMaxProcs,
-		Writeable:              c.Writeable,
-		Backend:                b,
+		Port:             c.Port,
+		UploadKeys:       c.UploadKeys,
+		UploadDirectory:  c.UploadDirectory,
+		NumResizeWorkers: numWorkers,
+		Replication:      replication,
+		MinReplication:   minReplication,
+		MaxReplication:   maxReplication,
+		GossiperSleep:    gossiperSleep,
+		VerifierSleep:    verifierSleep,
+		GoMaxProcs:       goMaxProcs,
+		Writeable:        c.Writeable,
+		Backend:          b,
 	}
 }
 
 // basically a subset of configData, that is just
 // the general administrative stuff
 type siteConfig struct {
-	Port                   int64
-	UploadKeys             []string
-	UploadDirectory        string
-	NumResizeWorkers       int
-	Replication            int
-	MinReplication         int
-	MaxReplication         int
-	GossiperSleep          int
-	VerifierSleep          int
-	GoMaxProcs             int
-	Writeable              bool
-	Backend                backend
+	Port             int64
+	UploadKeys       []string
+	UploadDirectory  string
+	NumResizeWorkers int
+	Replication      int
+	MinReplication   int
+	MaxReplication   int
+	GossiperSleep    int
+	VerifierSleep    int
+	GoMaxProcs       int
+	Writeable        bool
+	Backend          backend
 }
 
 func (s siteConfig) KeyRequired() bool {

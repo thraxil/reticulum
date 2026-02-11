@@ -71,3 +71,11 @@ func Test_RetrieveInfoUrlPath(t *testing.T) {
 		t.Errorf("wrong retreiveInfoUrlPath: %s", r)
 	}
 }
+
+func Test_Webp(t *testing.T) {
+	s := "112e42f26fce70d268438ac8137d81607499ee10/200s/1250.webp"
+	i := newImageSpecifier(s)
+	if i.Extension != ".webp" {
+		t.Error("wrong extension")
+	}
+}
