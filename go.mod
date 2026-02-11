@@ -3,6 +3,7 @@ module github.com/thraxil/reticulum
 go 1.25
 
 require (
+	github.com/HugoSmits86/nativewebp v1.2.1
 	github.com/go-kit/log v0.2.0
 	github.com/h2non/bimg v1.1.9
 	github.com/prometheus/client_golang v1.23.2
@@ -11,7 +12,6 @@ require (
 )
 
 require (
-	github.com/HugoSmits86/nativewebp v1.2.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
