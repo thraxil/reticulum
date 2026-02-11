@@ -24,7 +24,11 @@ func createTestImage(path string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		if err := f.Close(); err != nil {
+			panic(err)
+		}
+	}()
 
 	return jpeg.Encode(f, img, nil)
 }
@@ -54,7 +58,11 @@ func TestResizeWorker(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		if err := os.RemoveAll(tmpDir); err != nil {
+			panic(err)
+		}
+	}()
 
 	testImagePath := filepath.Join(tmpDir, "test.jpg")
 	err = createTestImage(testImagePath)

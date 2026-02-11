@@ -2,7 +2,6 @@ package main
 
 import (
 	"image"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -58,7 +57,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 			_ = origFile.Close()
 		}
 		// Use bimg for image processing
-		imageBuffer, err := ioutil.ReadFile(req.Path)
+		imageBuffer, err := os.ReadFile(req.Path)
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "could not read image file for bimg", "path", req.Path, "error", err.Error())
 			req.Response <- resizeResponse{nil, false}
@@ -97,7 +96,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		}
 
 		outputPath := resizedPath(req.Path, req.Size)
-		err = ioutil.WriteFile(outputPath, newImage, 0644)
+		err = os.WriteFile(outputPath, newImage, 0644)
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "could not write processed image file", "path", outputPath, "error", err.Error())
 			req.Response <- resizeResponse{nil, false}
