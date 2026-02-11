@@ -22,7 +22,7 @@ func encodeGIF(out io.Writer, in image.Image) error {
 	return gif.Encode(out, in, &gifOptions)
 }
 
-func encodeWEBP(out io.Writer, in image.Image) error {
+func encodeWebP(out io.Writer, in image.Image) error {
 	return nativewebp.Encode(out, in, nil)
 }
 
@@ -34,5 +34,5 @@ var extencoders = map[string]encfunc{
 	".jpg":  encodeJPEG,
 	".gif":  encodeGIF,
 	".png":  encodePNG,
-	".webp": encodeWEBP,
+	".webp": encodeWebP,
 }

@@ -155,6 +155,7 @@ func Test_serveImageHandler(t *testing.T) {
 		{"/image/invalidahash/full/image.jpg", http.StatusNotFound},
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22//image.jpg", http.StatusNotFound},
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/", http.StatusNotFound},
+		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.jpeg", http.StatusMovedPermanently},
 		{"/image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.webp", http.StatusOK},
 	}
 	for _, c := range cases {
