@@ -97,12 +97,16 @@ func (n *nodeData) RetrieveImage(ctx context.Context, ri *imageSpecifier) (data 
 		n.LastFailed = time.Now()
 		return nil, err
 	} // otherwise, we got the image
+	n.LastSeen = time.Now()
+	return n.processRetrieveImageResponse(resp)
+}
+
+func (n *nodeData) processRetrieveImageResponse(resp *http.Response) (data []byte, err error) {
 	defer func() {
 		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
 			err = closeErr
 		}
 	}()
-	n.LastSeen = time.Now()
 	if resp.Status != "200 OK" {
 		return nil, errors.New("404, probably")
 	}
