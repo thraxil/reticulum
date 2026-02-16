@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-var gCluster *cluster
+
 
 type mockBackend struct {
 	fullPathFunc func(ri imageSpecifier) string
@@ -48,22 +48,14 @@ func makeNewClusterData(neighbors []nodeData) (nodeData, *cluster) {
 	myself := nodeData{
 		Nickname:  "myself",
 		UUID:      "test-uuid",
-		BaseURL:   "localhost:8080",
+		BaseURL:   "localhost:8080",	
 		Location:  "test",
 		Writeable: true,
 	}
 
-	if gCluster == nil {
-
-		c := newCluster(myself)
-		for _, n := range neighbors {
-			c.AddNeighbor(n)
-		}
-		gCluster = c
-		return myself, gCluster
+	c := newCluster(myself)
+	for _, n := range neighbors {
+		c.AddNeighbor(n)
 	}
-	gCluster.Myself = myself
-	gCluster.neighbors = map[string]nodeData{}
-	return myself, gCluster
-
+	return myself, c
 }

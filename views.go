@@ -356,7 +356,7 @@ func stashHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		return
 	}
 
-	path := ctx.Cfg.UploadDirectory + ahash.AsPath()
+	path := ctx.Cfg.UploadDirectory + "/" + ahash.AsPath()
 	_ = os.MkdirAll(path, 0755)
 	ext := filepath.Ext(fh.Filename)
 	fullpath := path + "/full" + ext
