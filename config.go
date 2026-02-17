@@ -100,7 +100,7 @@ type siteConfig struct {
 	VerifierSleep    int
 	GoMaxProcs       int
 	Writeable        bool
-	Backend          backend
+	Backend          Backend
 }
 
 func (s siteConfig) KeyRequired() bool {

@@ -7,6 +7,7 @@ import (
 
 type mockBackend struct {
 	fullPathFunc func(ri imageSpecifier) string
+	ReadFunc     func(spec imageSpecifier) ([]byte, error)
 }
 
 func (m mockBackend) String() string {
@@ -22,6 +23,9 @@ func (m mockBackend) WriteFull(ri imageSpecifier, f io.ReadCloser) error {
 }
 
 func (m mockBackend) Read(ri imageSpecifier) ([]byte, error) {
+	if m.ReadFunc != nil {
+		return m.ReadFunc(ri)
+	}
 	return nil, nil
 }
 
@@ -33,7 +37,9 @@ func (m mockBackend) Delete(ri imageSpecifier) error {
 	return nil
 }
 
-func (m mockBackend) writeLocalType(ri imageSpecifier, i image.Image, e encfunc) {}
+func (m mockBackend) writeLocalType(ri imageSpecifier, i image.Image, e encfunc) error {
+	return nil
+}
 
 func (m mockBackend) fullPath(ri imageSpecifier) string {
 	if m.fullPathFunc != nil {

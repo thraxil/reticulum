@@ -209,7 +209,7 @@ func (c cluster) WriteRing() ringEntryList {
 	return neighborsToRing(c.WriteableNeighbors())
 }
 
-func (c *cluster) Stash(ctx context.Context, ri imageSpecifier, sizeHints string, replication int, minReplication int, backend backend) []string {
+func (c *cluster) Stash(ctx context.Context, ri imageSpecifier, sizeHints string, replication int, minReplication int, backend Backend) []string {
 	// we don't have the full-size, so check the cluster
 	nodesToCheck := c.WriteOrder(ri.Hash.String())
 	savedTo := make([]string, replication)
@@ -389,4 +389,38 @@ func (c *cluster) RetrieveImage(ctx context.Context, ri *imageSpecifier) ([]byte
 		// that node didn't have it so we keep going
 	}
 	return nil, errors.New("not found in the cluster")
+}
+
+func (c *cluster) GetMyself() nodeData {
+	return c.Myself
+}
+
+func (c *cluster) GetRecentlyVerified() []imageRecord {
+	r := make(chan []imageRecord)
+	go func() {
+		c.chF <- func() {
+			r <- c.recentlyVerified
+		}
+	}()
+	return <-r
+}
+
+func (c *cluster) GetRecentlyUploaded() []imageRecord {
+	r := make(chan []imageRecord)
+	go func() {
+		c.chF <- func() {
+			r <- c.recentlyUploaded
+		}
+	}()
+	return <-r
+}
+
+func (c *cluster) GetRecentlyStashed() []imageRecord {
+	r := make(chan []imageRecord)
+	go func() {
+		c.chF <- func() {
+			r <- c.recentlyStashed
+		}
+	}()
+	return <-r
 }

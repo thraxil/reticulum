@@ -246,7 +246,7 @@ func (r imageRebalancer) checkNodesForRebalance(nodesToCheck []nodeData) (bool, 
 }
 
 type stashableNode interface {
-	Stash(context.Context, imageSpecifier, string, backend) bool
+	Stash(context.Context, imageSpecifier, string, Backend) bool
 	RetrieveImageInfo(context.Context, *imageSpecifier) (*imageInfoResponse, error)
 }
 

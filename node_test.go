@@ -269,7 +269,7 @@ func TestStashFailures(t *testing.T) {
 	tests := []struct {
 		name       string
 		server     *httptest.Server
-		backend    backend
+		backend    Backend
 		expectFail bool
 	}{
 		{

@@ -79,18 +79,15 @@ func (d diskBackend) Delete(img imageSpecifier) error {
 	return os.RemoveAll(path)
 }
 
-func (d diskBackend) writeLocalType(ri imageSpecifier, outputImage image.Image, encFunc encfunc) {
+func (d diskBackend) writeLocalType(ri imageSpecifier, outputImage image.Image, encFunc encfunc) error {
 	wFile, err := os.OpenFile(ri.sizedPath(d.Root), os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return err
+	}
 	defer func() {
 		_ = wFile.Close()
 	}()
-	if err != nil {
-		// what do we do if we can't write?
-		// we still have the resized image, so we can serve the response
-		// we just can't cache it.
-		return
-	}
-	_ = encFunc(wFile, outputImage)
+	return encFunc(wFile, outputImage)
 }
 
 func (d diskBackend) fullPath(ri imageSpecifier) string {

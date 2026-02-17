@@ -196,7 +196,7 @@ func postFile(ctx context.Context, filename string, targetURL string, sizeHints 
 	return http.DefaultClient.Do(req.WithContext(ctx))
 }
 
-func (n *nodeData) Stash(ctx context.Context, ri imageSpecifier, sizeHints string, backend backend) bool {
+func (n *nodeData) Stash(ctx context.Context, ri imageSpecifier, sizeHints string, backend Backend) bool {
 	filename := backend.fullPath(ri)
 	resp, err := postFile(ctx, filename, n.stashURL(), sizeHints)
 	if err != nil {

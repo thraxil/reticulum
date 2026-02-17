@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -17,6 +16,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-kit/log"
 	"github.com/thraxil/resize"
 )
 
@@ -28,6 +28,12 @@ func makeTestContextWithUploadDir(uploadDir string) sitecontext {
 	ch := sharedChannels{
 		ResizeQueue: make(chan resizeRequest),
 	}
+	sl := log.NewNopLogger()
+	imageView := NewImageView(c, b, &cfg, ch, sl)
+	uploadView := NewUploadView(c, b, &cfg, sl)
+	stashView := NewStashView(c, b, &cfg, ch, sl)
+	retrieveInfoView := NewRetrieveInfoView(c, &cfg, sl)
+	retrieveView := NewRetrieveView(imageView, sl)
 
 	go func() {
 		for req := range ch.ResizeQueue {
@@ -37,27 +43,19 @@ func makeTestContextWithUploadDir(uploadDir string) sitecontext {
 		}
 	}()
 
-	return sitecontext{cluster: c, Cfg: cfg, Ch: ch}
-}
-
-func makeTestContextWithNeighbors(neighbors []nodeData) sitecontext {
-	_, c := makeNewClusterData(neighbors)
-	b := newDiskBackend("")
-	cfg := siteConfig{Backend: b}
-	ch := sharedChannels{
-		ResizeQueue: make(chan resizeRequest),
+	return sitecontext{
+		cluster:          c,
+		Cfg:              &cfg,
+		Ch:               ch,
+		SL:               sl,
+		ImageView:        imageView,
+		UploadView:       uploadView,
+		StashView:        stashView,
+		RetrieveInfoView: retrieveInfoView,
+		RetrieveView:     retrieveView,
 	}
-
-	go func() {
-		for req := range ch.ResizeQueue {
-			img := image.NewRGBA(image.Rect(0, 0, 100, 100))
-			var i image.Image = img
-			req.Response <- resizeResponse{Success: true, OutputImage: &i}
-		}
-	}()
-
-	return sitecontext{cluster: c, Cfg: cfg, Ch: ch}
 }
+
 
 func makeTestContext() sitecontext {
 	return makeTestContextWithUploadDir("")
@@ -348,119 +346,8 @@ func Test_retrieveHandler_found(t *testing.T) {
 	}
 }
 
-func Test_serveFromCluster(t *testing.T) {
-	// Create a new test server to simulate the other node
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/retrieve/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/png/" {
-			w.Header().Set("Content-Type", "image/png")
-			_, _ = fmt.Fprintln(w, "image data")
-		} else {
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
 
-	// Create a neighbor
-	neighbor := nodeData{
-		Nickname:  "test-neighbor",
-		UUID:      "neighbor-uuid",
-		BaseURL:   strings.Replace(server.URL, "http://", "", 1),
-		Location:  "neighbor-location",
-		Writeable: true,
-	}
 
-	// Create a new test context with the neighbor
-	ctx := makeTestContextWithNeighbors([]nodeData{neighbor})
-
-	hash := "c1986af3c26609b8b7d8933f99c51c1a89e9ea6b"
-	ahash, _ := hashFromString(hash, "")
-	ri := imageSpecifier{ahash, resize.MakeSizeSpec("100s"), ".png"}
-
-	req, err := http.NewRequest("GET", "localhost:8080/image/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/image.png", nil)
-	if err != nil {
-		t.Fatalf("could not create request: %v", err)
-	}
-	req.SetPathValue("hash", "c1986af3c26609b8b7d8933f99c51c1a89e9ea6b")
-	req.SetPathValue("size", "100s")
-	req.SetPathValue("filename", "image.png")
-	rec := httptest.NewRecorder()
-	ctx.serveFromCluster(context.Background(), &ri, rec, req)
-
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Errorf("for /image/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/image.png expected status %v; got %v", http.StatusOK, res.Status)
-	}
-}
-
-func Test_serveDirect(t *testing.T) {
-	ctx := makeTestContextWithUploadDir("test/uploads6/")
-	hash := "c1986af3c26609b8b7d8933f99c51c1a89e9ea6b"
-	ahash, _ := hashFromString(hash, "")
-	ri := imageSpecifier{ahash, resize.MakeSizeSpec("100s"), ".png"}
-	// create a dummy file
-	_ = os.MkdirAll(ri.baseDir(ctx.Cfg.UploadDirectory), 0755)
-	f, _ := os.Create(ri.sizedPath(ctx.Cfg.UploadDirectory))
-	_ = f.Close()
-
-	req, err := http.NewRequest("GET", "localhost:8080/image/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/image.png", nil)
-	if err != nil {
-		t.Fatalf("could not create request: %v", err)
-	}
-	req.SetPathValue("hash", "c1986af3c26609b8b7d8933f99c51c1a89e9ea6b")
-	req.SetPathValue("size", "100s")
-	req.SetPathValue("filename", "image.png")
-	rec := httptest.NewRecorder()
-	ctx.serveDirect(&ri, rec, req)
-
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Errorf("for /image/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/image.png expected status %v; got %v", http.StatusOK, res.Status)
-	}
-}
-
-func Test_serveScaledFromCluster(t *testing.T) {
-	// Create a new test server to simulate the other node
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/retrieve/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/png/" {
-			w.Header().Set("Content-Type", "image/png")
-			_, _ = fmt.Fprintln(w, "image data")
-		} else {
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
-
-	// Create a neighbor
-	neighbor := nodeData{
-		Nickname:  "test-neighbor",
-		UUID:      "neighbor-uuid",
-		BaseURL:   strings.Replace(server.URL, "http://", "", 1),
-		Location:  "neighbor-location",
-		Writeable: true,
-	}
-
-	// Create a new test context with the neighbor
-	ctx := makeTestContextWithNeighbors([]nodeData{neighbor})
-
-	hash := "c1986af3c26609b8b7d8933f99c51c1a89e9ea6b"
-	ahash, _ := hashFromString(hash, "")
-	ri := imageSpecifier{ahash, resize.MakeSizeSpec("100s"), ".png"}
-
-	req, err := http.NewRequest("GET", "localhost:8080/image/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/image.png", nil)
-	if err != nil {
-		t.Fatalf("could not create request: %v", err)
-	}
-	req.SetPathValue("hash", "c1986af3c26609b8b7d8933f99c51c1a89e9ea6b")
-	req.SetPathValue("size", "100s")
-	req.SetPathValue("filename", "image.png")
-	rec := httptest.NewRecorder()
-	ctx.serveScaledFromCluster(context.Background(), &ri, rec, req)
-
-	res := rec.Result()
-	if res.StatusCode != http.StatusOK {
-		t.Errorf("for /image/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/image.png expected status %v; got %v", http.StatusOK, res.Status)
-	}
-}
 
 func Test_configHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/", nil)

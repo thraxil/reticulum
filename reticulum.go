@@ -63,7 +63,6 @@ var (
 	rebalanceCleanups  *expvar.Int
 
 	servedLocally     *expvar.Int
-	servedFromCluster *expvar.Int
 
 	resizeFailures *expvar.Int
 	servedScaled   *expvar.Int
@@ -88,7 +87,6 @@ func init() {
 	rebalanceCleanups = expvar.NewInt("rebalanceCleanups")
 
 	servedLocally = expvar.NewInt("servedLocally")
-	servedFromCluster = expvar.NewInt("servedFromCluster")
 
 	resizeFailures = expvar.NewInt("resizeFailures")
 	servedScaled = expvar.NewInt("servedScaled")
@@ -154,7 +152,12 @@ func main() {
 	vSL := log.With(sl, "component", "verifier")
 	go verify(c, siteconfig, vSL)
 
-	ctx := sitecontext{cluster: c, Cfg: siteconfig, Ch: channels, SL: sl}
+	imageView := NewImageView(c, siteconfig.Backend, &siteconfig, channels, sl)
+	uploadView := NewUploadView(c, siteconfig.Backend, &siteconfig, sl)
+	stashView := NewStashView(c, siteconfig.Backend, &siteconfig, channels, sl)
+	retrieveInfoView := NewRetrieveInfoView(c, &siteconfig, sl)
+	retrieveView := NewRetrieveView(imageView, sl)
+	ctx := sitecontext{cluster: c, Cfg: &siteconfig, Ch: channels, SL: sl, ImageView: imageView, UploadView: uploadView, StashView: stashView, RetrieveInfoView: retrieveInfoView, RetrieveView: retrieveView}
 	// set up HTTP Handlers
 
 	mux := http.NewServeMux()

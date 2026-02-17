@@ -1,17 +1,12 @@
 package main
 
 import (
-	"bytes"
-	"context"
-	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"image"
 	"io"
 
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -22,9 +17,14 @@ import (
 
 type sitecontext struct {
 	cluster *cluster
-	Cfg     siteConfig
+	Cfg     *siteConfig
 	Ch      sharedChannels
-	SL      log.Logger
+		SL        log.Logger
+		ImageView *ImageView
+	UploadView *UploadView
+	StashView  *StashView
+	RetrieveInfoView *RetrieveInfoView
+	RetrieveView     *RetrieveView
 }
 
 type page struct {
@@ -82,41 +82,7 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 	return ri, false
 }
 
-func (ctx sitecontext) serveFromCluster(rctx context.Context, ri *imageSpecifier, w http.ResponseWriter, r *http.Request) {
-	// we don't have the full-size on this node either
-	// need to check the rest of the cluster
-	imgData, err := ctx.cluster.RetrieveImage(rctx, ri)
-	if err != nil {
-		// for now we just have to 404
-		http.Error(w, "not found (serve from cluster)", http.StatusNotFound)
-	} else {
-		etag := r.Header.Get("If-None-Match")
-		if etag != "" {
-			w.Header().Set("Etag", etag)
-		}
-		w = setCacheHeaders(w, ri.Extension)
-		_, _ = w.Write(imgData)
-		servedFromCluster.Add(1)
-	}
-}
 
-func (ctx sitecontext) serveDirect(ri *imageSpecifier, w http.ResponseWriter, r *http.Request) bool {
-	contents, err := ctx.Cfg.Backend.Read(*ri)
-	if err == nil {
-		// we've got it, so serve it directly
-		etag := fmt.Sprintf("%x", sha1.Sum(contents))
-		if r.Header.Get("If-None-Match") == etag {
-			w.WriteHeader(http.StatusNotModified)
-			return true
-		}
-		w = setCacheHeaders(w, ri.Extension)
-		w.Header().Set("Etag", etag)
-		_, _ = w.Write(contents)
-		servedLocally.Add(1)
-		return true
-	}
-	return false
-}
 
 func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	ri, handled := parsePathServeImage(w, r, ctx)
@@ -124,92 +90,30 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 		return
 	}
 
-	if ctx.serveDirect(ri, w, r) {
-		return
-	}
-	rctx := r.Context()
-	if !ctx.haveImageFullsizeLocally(ri) {
-		ctx.serveFromCluster(rctx, ri, w, r)
-		return
-	}
-
-	// we do have the full-size, but not the scaled one
-	// so resize it, cache it, and serve it.
-	if !ctx.locallyWriteable() {
-		// but first, make sure we are writeable. If not,
-		// we need to let another node in the cluster handle it.
-		ctx.serveScaledFromCluster(rctx, ri, w, r)
-		return
-	}
-
-	result := ctx.makeResizeJob(ri)
-	if !result.Success {
-		resizeFailures.Add(1)
-		http.Error(w, "could not resize image", 500)
-		return
-	}
-	servedScaled.Add(1)
-	ctx.serveScaledByExtension(ri, w, *result.OutputImage, r)
-}
-
-func (ctx sitecontext) locallyWriteable() bool {
-	return ctx.cluster.Myself.Writeable
-}
-
-func (ctx sitecontext) haveImageFullsizeLocally(ri *imageSpecifier) bool {
-	_, err := ctx.Cfg.Backend.Read(ri.fullVersion())
-	return err == nil
-}
-
-func (ctx sitecontext) serveScaledFromCluster(rctx context.Context, ri *imageSpecifier, w http.ResponseWriter, r *http.Request) {
-	imgData, err := ctx.cluster.RetrieveImage(rctx, ri)
+	imgData, etag, err := ctx.ImageView.GetImage(r.Context(), ri)
 	if err != nil {
-		// for now we just have to 404
-		http.Error(w, "not found (serveScaledFromCluster)", http.StatusNotFound)
-	} else {
-		servedFromCluster.Add(1)
-		etag := r.Header.Get("If-None-Match")
-		if etag != "" {
-			w.Header().Set("Etag", etag)
-		}
-		w = setCacheHeaders(w, ri.Extension)
-		_, _ = w.Write(imgData)
+		http.Error(w, err.Error(), http.StatusNotFound) // Use 404 for not found errors
+		return
 	}
-}
 
-func (ctx sitecontext) makeResizeJob(ri *imageSpecifier) resizeResponse {
-	c := make(chan resizeResponse)
-	fmt.Println(ri.fullSizePath(ctx.Cfg.UploadDirectory))
-	ctx.Ch.ResizeQueue <- resizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), ri.Extension, ri.Size.String(), c}
-	resizeQueueLength.Add(1)
-	result := <-c
-	resizeQueueLength.Add(-1)
-	return result
-}
-
-func (ctx sitecontext) serveScaledByExtension(ri *imageSpecifier, w http.ResponseWriter,
-	outputImage image.Image, r *http.Request) {
-
-	var buf bytes.Buffer
-	enc := extencoders[ri.Extension]
-	_ = enc(&buf, outputImage)
-	contents := buf.Bytes()
-	etag := fmt.Sprintf("%x", sha1.Sum(contents))
-	ctx.Cfg.Backend.writeLocalType(*ri, outputImage, extencoders[ri.Extension])
 	if r.Header.Get("If-None-Match") == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
+
 	w = setCacheHeaders(w, ri.Extension)
 	w.Header().Set("Etag", etag)
-	if err := serveType(w, outputImage, extencoders[ri.Extension]); err != nil {
-		_ = ctx.SL.Log("level", "ERR", "msg", "error serving scaled image", "error", err)
-	}
+	_, _ = w.Write(imgData)
+	servedLocally.Add(1) // Assuming if GetImage succeeds, it was served eventually
 }
 
-func serveType(w http.ResponseWriter, outputImage image.Image, encFunc encfunc) error {
-	return encFunc(w, outputImage)
-}
+
+
+
+
+
+
+
 
 var mimeexts = map[string]string{
 	"image/jpeg": "jpg",
@@ -235,74 +139,50 @@ func getAddHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 }
 
 func postAddHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
-	if ctx.Cfg.KeyRequired() {
-		if !ctx.Cfg.ValidKey(r.FormValue("key")) {
-			http.Error(w, "invalid upload key", http.StatusForbidden)
-			return
-		}
-	}
-	i, fh, _ := r.FormFile("image")
-	defer func() { _ = i.Close() }()
-	h := sha1.New()
-	_, _ = io.Copy(h, i)
-	ahash, err := hashFromString(fmt.Sprintf("%x", h.Sum(nil)), "")
+	key := r.FormValue("key")
+	sizeHints := r.FormValue("size_hints")
+
+	file, fileHeader, err := r.FormFile("image")
 	if err != nil {
-		http.Error(w, "bad hash", 500)
+		http.Error(w, "missing image file", http.StatusBadRequest)
 		return
 	}
-	_, _ = i.Seek(0, 0)
-	mimetype := fh.Header.Get("Content-Type")
-	if mimetype == "" {
-		// they left off a mimetype, so default to jpg
-		mimetype = "image/jpeg"
-	}
-	ext, ok := mimeexts[mimetype]
+	defer func() { _ = file.Close() }()
+
+	// Use io.ReadSeeker for imageFile
+	imageFile, ok := file.(io.ReadSeeker)
 	if !ok {
-		// unknown mimetype. default to jpg
-		ext = "jpg"
+		http.Error(w, "image file does not implement io.ReadSeeker", http.StatusInternalServerError)
+		return
 	}
-	ri := imageSpecifier{
-		ahash,
-		resize.MakeSizeSpec("full"),
-		"." + ext,
-	}
-	_ = ctx.Cfg.Backend.WriteFull(ri, i)
 
-	sizeHints := r.FormValue("size_hints")
-	// yes, the full-size for this image gets written to disk on
-	// this node even if it may not be one of the "right" ones
-	// for it to end up on. This isn't optimal, but is easy
-	// and we can just let the verify/balance worker clean it up
-	// at some point in the future.
-
-	// now stash it to other nodes in the cluster too
-	nodes := ctx.cluster.Stash(r.Context(), ri, sizeHints, ctx.Cfg.Replication, ctx.Cfg.MinReplication, ctx.Cfg.Backend)
-	id := imageData{
-		Hash:      ahash.String(),
-		Extension: ext,
-		FullURL:   "/image/" + ahash.String() + "/full/image." + ext,
-		Satisfied: len(nodes) >= ctx.Cfg.MinReplication,
-		Nodes:     nodes,
-	}
-	b, err := json.Marshal(id)
+	responseBytes, err := ctx.UploadView.UploadImage(r.Context(), key, imageFile, fileHeader, sizeHints)
 	if err != nil {
-		_ = ctx.SL.Log("level", "ERR", "error", err.Error())
+		if strings.Contains(err.Error(), "invalid upload key") {
+			http.Error(w, err.Error(), http.StatusForbidden)
+		} else if strings.Contains(err.Error(), "bad hash") {
+			http.Error(w, err.Error(), http.StatusInternalServerError) // Or BadRequest depending on source of bad hash
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
 	}
-	_, _ = w.Write(b)
-	ctx.cluster.Uploaded(imageRecord{*ahash, "." + ext})
+
+	w.Header().Set("Content-Type", "application/json")
+	_, _ = w.Write(responseBytes)
 }
 
 type statusPage struct {
 	Title     string
 	Config    siteConfig
-	Cluster   *cluster
+	Cluster   Cluster
 	Neighbors []nodeData
 }
 
 func statusHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	p := statusPage{
 		Title:     "Status",
-		Config:    ctx.Cfg,
+		Config:    *ctx.Cfg,
 		Cluster:   ctx.cluster,
 		Neighbors: ctx.cluster.GetNeighbors(),
 	}
@@ -318,16 +198,16 @@ type dashboardPage struct {
 
 func dashboardHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	p := dashboardPage{
-		RecentlyVerified: ctx.cluster.recentlyVerified,
-		RecentlyUploaded: ctx.cluster.recentlyUploaded,
-		RecentlyStashed:  ctx.cluster.recentlyStashed,
+		RecentlyVerified: ctx.cluster.GetRecentlyVerified(),
+		RecentlyUploaded: ctx.cluster.GetRecentlyUploaded(),
+		RecentlyStashed:  ctx.cluster.GetRecentlyStashed(),
 	}
 	t, _ := template.New("dashboard").Parse(dashboardTemplate)
 	_ = t.Execute(w, p)
 }
 
 func configHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
-	b, err := json.Marshal(ctx.cluster.Myself)
+	b, err := json.Marshal(ctx.cluster.GetMyself())
 	if err != nil {
 		_ = ctx.SL.Log("level", "ERR", "error", err.Error())
 	}
@@ -336,173 +216,87 @@ func configHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 }
 
 func stashHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
-	n := ctx.cluster.Myself
-	if !n.Writeable {
-		http.Error(w, "non-writeable node", 400)
-		return
-	}
-
-	i, fh, err := r.FormFile("image")
-	if err != nil {
-		http.Error(w, "no image uploaded", 400)
-		return
-	}
-	defer func() { _ = i.Close() }()
-	h := sha1.New()
-	_, _ = io.Copy(h, i)
-	ahash, err := hashFromString(fmt.Sprintf("%x", h.Sum(nil)), "")
-	if err != nil {
-		http.Error(w, "bad hash", http.StatusNotFound)
-		return
-	}
-
-	path := ctx.Cfg.UploadDirectory + "/" + ahash.AsPath()
-	_ = os.MkdirAll(path, 0755)
-	ext := filepath.Ext(fh.Filename)
-	fullpath := path + "/full" + ext
-	f, _ := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
-	defer func() { _ = f.Close() }()
-	_, _ = i.Seek(0, 0)
-	_, _ = io.Copy(f, i)
-	_, _ = fmt.Fprint(w, "ok")
-	// do any eager resizing in the background
 	sizeHints := r.FormValue("size_hints")
-	go func() {
-		sizes := strings.Split(sizeHints, ",")
-		for _, size := range sizes {
-			if size == "" {
-				continue
-			}
-			c := make(chan resizeResponse)
-			ctx.Ch.ResizeQueue <- resizeRequest{fullpath, ext, size, c}
-			result := <-c
-			if !result.Success {
-				_ = ctx.SL.Log("level", "ERR", "msg", "could not pre-resize")
-			}
+
+	file, fileHeader, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, "no image uploaded", http.StatusBadRequest)
+		return
+	}
+	defer func() { _ = file.Close() }()
+
+	// Use io.ReadSeeker for imageFile
+	imageFile, ok := file.(io.ReadSeeker)
+	if !ok {
+		http.Error(w, "image file does not implement io.ReadSeeker", http.StatusInternalServerError)
+		return
+	}
+
+	response, err := ctx.StashView.StashImage(r.Context(), imageFile, fileHeader, sizeHints)
+	if err != nil {
+		if strings.Contains(err.Error(), "non-writeable node") {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else if strings.Contains(err.Error(), "bad hash") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
-	}()
-	ctx.cluster.Stashed(imageRecord{*ahash, ext})
+		return
+	}
+
+	_, _ = fmt.Fprint(w, response)
 }
 
 func retrieveInfoHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	hash := r.PathValue("hash")
-	size := r.PathValue("size")
+	size := r.PathValue("size") // Note: size is used for writeable check in GetImageInfo, not directly here
 	ext := r.PathValue("ext")
 
-	ahash, err := hashFromString(hash, "")
+	responseBytes, err := ctx.RetrieveInfoView.GetImageInfo(hash, size, ext)
 	if err != nil {
-		http.Error(w, "bad hash", http.StatusNotFound)
+		if strings.Contains(err.Error(), "bad hash") {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
-	extension := "." + ext
-	var local = true
-	baseDir := ctx.Cfg.UploadDirectory + ahash.AsPath()
-	path := baseDir + "/full" + extension
-	_, err = os.Open(path)
-	if err != nil {
-		local = false
-	}
 
-	// if we aren't writeable, we can't resize locally
-	// let them know this as early as possible
-	n := ctx.cluster.Myself
-	if size != "full" && !n.Writeable {
-		// anything other than full-size, we can't do
-		// if we don't have it already
-		_, err = os.Open(baseDir + "/" + size + extension)
-		if err != nil {
-			local = false
-		}
-	}
-
-	b, err := json.Marshal(imageInfoResponse{ahash.String(), extension, local})
-	if err != nil {
-		_ = ctx.SL.Log("level", "ERR", "error", err.Error())
-	}
 	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(b)
+	_, _ = w.Write(responseBytes)
 }
 
 func retrieveHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	hash := r.PathValue("hash")
 	size := r.PathValue("size")
 	ext := r.PathValue("ext")
+	ifNoneMatch := r.Header.Get("If-None-Match")
 
-	ahash, err := hashFromString(hash, "")
+	imgData, etag, err := ctx.RetrieveView.RetrieveImage(r.Context(), hash, size, ext, ifNoneMatch)
 	if err != nil {
-		http.Error(w, "bad hash", http.StatusNotFound)
-		return
-	}
-	extension := "." + ext
-
-	ri := imageSpecifier{
-		ahash,
-		resize.MakeSizeSpec(size),
-		extension,
-	}
-
-	contents, err := ctx.Cfg.Backend.Read(ri)
-	if err == nil {
-		// we've got it, so serve it directly
-		etag := fmt.Sprintf("%x", sha1.Sum(contents))
-		if r.Header.Get("If-None-Match") == etag {
-			w.WriteHeader(http.StatusNotModified)
-			return
-		}
-		w.Header().Set("Content-Type", extmimes[extension])
-		w.Header().Set("Etag", etag)
-		_, _ = w.Write(contents)
-		return
-	}
-	_, err = ctx.Cfg.Backend.Read(ri.fullVersion())
-	if err != nil {
-		// we don't have the full-size on this node either
-		http.Error(w, "not found (retrieveHandler)", http.StatusNotFound)
-		return
-	}
-	// we do have the full-size, but not the scaled one
-	// so resize it, cache it, and serve it.
-
-	// if we aren't writeable, we can't resize locally though.
-	// 404 and let another node handle it
-	n := ctx.cluster.Myself
-	if !n.Writeable {
-		http.Error(w, "could not resize image", http.StatusNotFound)
+		// Specific error handling for different scenarios can be added here
+		// For now, a generic 404 for not found and 500 for other errors.
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
-	c := make(chan resizeResponse)
-	ctx.Ch.ResizeQueue <- resizeRequest{ri.fullSizePath(ctx.Cfg.UploadDirectory), extension, size, c}
-	result := <-c
-	if !result.Success {
-		http.Error(w, "could not resize image", 500)
-		return
-	}
-
-	outputImage := *result.OutputImage
-
-	var buf bytes.Buffer
-	enc := extencoders[ri.Extension]
-	_ = enc(&buf, outputImage)
-	contents = buf.Bytes()
-	etag := fmt.Sprintf("%x", sha1.Sum(contents))
-	ctx.Cfg.Backend.writeLocalType(ri, outputImage, enc)
-	if r.Header.Get("If-None-Match") == etag {
+	if ifNoneMatch != "" && ifNoneMatch == etag {
 		w.WriteHeader(http.StatusNotModified)
 		return
 	}
+
+	w.Header().Set("Content-Type", extmimes["."+ext])
 	w.Header().Set("Etag", etag)
-	w.Header().Set("Content-Type", extmimes[extension])
-	_, _ = w.Write(contents)
+	_, _ = w.Write(imgData)
 }
 
 func getAnnounceHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	ar := announceResponse{
-		Nickname:  ctx.cluster.Myself.Nickname,
-		UUID:      ctx.cluster.Myself.UUID,
-		Location:  ctx.cluster.Myself.Location,
-		Writeable: ctx.cluster.Myself.Writeable,
-		BaseURL:   ctx.cluster.Myself.BaseURL,
+		Nickname:  ctx.cluster.GetMyself().Nickname,
+		UUID:      ctx.cluster.GetMyself().UUID,
+		Location:  ctx.cluster.GetMyself().Location,
+		Writeable: ctx.cluster.GetMyself().Writeable,
+		BaseURL:   ctx.cluster.GetMyself().BaseURL,
 		Neighbors: ctx.cluster.GetNeighbors(),
 	}
 	b, err := json.Marshal(ar)
