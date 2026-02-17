@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"image"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -217,8 +217,7 @@ func Test_RetrieveInfoImageHandler(t *testing.T) {
 		{"/retrieve_info/0051ec03fb813e8731224ee06feee7c828ceae22/100s/jpg/", http.StatusOK},
 		{"/foo", http.StatusNotFound},
 		{"/retrieve_info/invalidahash/full/jpg/", http.StatusNotFound},
-		// TODO: this one should not be OK
-		{"/retrieve_info/0051ec03fb813e8731224ee06feee7c828ceae22//jpg/", http.StatusOK},
+		{"/retrieve_info/0051ec03fb813e8731224ee06feee7c828ceae22//jpg/", http.StatusNotFound},
 	}
 	for _, c := range cases {
 		req, err := http.NewRequest("GET", "localhost:8080"+c.path, nil)
@@ -240,7 +239,6 @@ func Test_RetrieveInfoImageHandler(t *testing.T) {
 		}
 	}
 }
-
 
 func Test_serveImageHandler_direct(t *testing.T) {
 	ctx := makeTestContextWithUploadDir("test/uploads1/")
@@ -266,7 +264,6 @@ func Test_serveImageHandler_direct(t *testing.T) {
 		t.Errorf("for /image/0051ec03fb813e8731224ee06feee7c828ceae22/100s/image.webp expected status %v; got %v", http.StatusOK, res.Status)
 	}
 }
-
 
 func Test_serveImageHandler_resize(t *testing.T) {
 	ctx := makeTestContextWithUploadDir("test/uploads4/")
@@ -302,7 +299,6 @@ func Test_RetrieveImageHandler(t *testing.T) {
 		{"/retrieve/0051ec03fb813e8731224ee06feee7c828ceae22/100s/jpg/", http.StatusNotFound},
 		{"/foo", http.StatusNotFound},
 		{"/retrieve/invalidahash/full/jpg/", http.StatusNotFound},
-		// TODO: this one should not be OK
 		{"/retrieve/0051ec03fb813e8731224ee06feee7c828ceae22//jpg/", http.StatusNotFound},
 	}
 	for _, c := range cases {
@@ -325,7 +321,6 @@ func Test_RetrieveImageHandler(t *testing.T) {
 		}
 	}
 }
-
 
 func Test_retrieveHandler_found(t *testing.T) {
 	ctx := makeTestContextWithUploadDir("test/uploads5/")
@@ -353,7 +348,6 @@ func Test_retrieveHandler_found(t *testing.T) {
 	}
 }
 
-
 func Test_serveFromCluster(t *testing.T) {
 	// Create a new test server to simulate the other node
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -368,10 +362,10 @@ func Test_serveFromCluster(t *testing.T) {
 
 	// Create a neighbor
 	neighbor := nodeData{
-		Nickname: "test-neighbor",
-		UUID:     "neighbor-uuid",
-		BaseURL:  strings.Replace(server.URL, "http://", "", 1),
-		Location: "neighbor-location",
+		Nickname:  "test-neighbor",
+		UUID:      "neighbor-uuid",
+		BaseURL:   strings.Replace(server.URL, "http://", "", 1),
+		Location:  "neighbor-location",
 		Writeable: true,
 	}
 
@@ -398,7 +392,6 @@ func Test_serveFromCluster(t *testing.T) {
 	}
 }
 
-
 func Test_serveDirect(t *testing.T) {
 	ctx := makeTestContextWithUploadDir("test/uploads6/")
 	hash := "c1986af3c26609b8b7d8933f99c51c1a89e9ea6b"
@@ -418,6 +411,50 @@ func Test_serveDirect(t *testing.T) {
 	req.SetPathValue("filename", "image.png")
 	rec := httptest.NewRecorder()
 	ctx.serveDirect(&ri, rec, req)
+
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("for /image/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/image.png expected status %v; got %v", http.StatusOK, res.Status)
+	}
+}
+
+func Test_serveScaledFromCluster(t *testing.T) {
+	// Create a new test server to simulate the other node
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/retrieve/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/png/" {
+			w.Header().Set("Content-Type", "image/png")
+			_, _ = fmt.Fprintln(w, "image data")
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	// Create a neighbor
+	neighbor := nodeData{
+		Nickname:  "test-neighbor",
+		UUID:      "neighbor-uuid",
+		BaseURL:   strings.Replace(server.URL, "http://", "", 1),
+		Location:  "neighbor-location",
+		Writeable: true,
+	}
+
+	// Create a new test context with the neighbor
+	ctx := makeTestContextWithNeighbors([]nodeData{neighbor})
+
+	hash := "c1986af3c26609b8b7d8933f99c51c1a89e9ea6b"
+	ahash, _ := hashFromString(hash, "")
+	ri := imageSpecifier{ahash, resize.MakeSizeSpec("100s"), ".png"}
+
+	req, err := http.NewRequest("GET", "localhost:8080/image/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/image.png", nil)
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+	req.SetPathValue("hash", "c1986af3c26609b8b7d8933f99c51c1a89e9ea6b")
+	req.SetPathValue("size", "100s")
+	req.SetPathValue("filename", "image.png")
+	rec := httptest.NewRecorder()
+	ctx.serveScaledFromCluster(context.Background(), &ri, rec, req)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
@@ -455,13 +492,12 @@ func Test_GetAnnounceHandler(t *testing.T) {
 	}
 }
 
-
 func Test_PostAddHandler(t *testing.T) {
 	// Create a new multipart form
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 
-h := make(textproto.MIMEHeader)
+	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
 			"image", "gopher.png"))
@@ -476,7 +512,7 @@ h := make(textproto.MIMEHeader)
 	if err != nil {
 		t.Fatalf("could not open test image: %v", err)
 	}
-		defer func() { _ = f.Close() }()
+	defer func() { _ = f.Close() }()
 
 	// Copy the image data to the form file
 	_, err = io.Copy(fw, f)
@@ -534,6 +570,68 @@ h := make(textproto.MIMEHeader)
 	}
 }
 
+func Test_PostAddHandler_invalidKey(t *testing.T) {
+	// Create a new multipart form
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			"image", "gopher.png"))
+	h.Set("Content-Type", "image/png")
+	fw, err := w.CreatePart(h)
+	if err != nil {
+		t.Fatalf("could not create form file: %v", err)
+	}
+
+	// Open the test image file
+	f, err := os.Open("test/gopher.png")
+	if err != nil {
+		t.Fatalf("could not open test image: %v", err)
+	}
+	defer func() { _ = f.Close() }()
+
+	// Copy the image data to the form file
+	_, err = io.Copy(fw, f)
+	if err != nil {
+		t.Fatalf("could not copy image data: %v", err)
+	}
+
+	// Add the upload key to the form
+	err = w.WriteField("key", "invalid-key")
+	if err != nil {
+		t.Fatalf("could not write key field: %v", err)
+	}
+
+	// Close the multipart writer
+	err = w.Close()
+	if err != nil {
+		t.Fatalf("could not close multipart writer: %v", err)
+	}
+	// Create a new request with the multipart form data
+	req, err := http.NewRequest("POST", "localhost:8080/", &b)
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	// Create a new test context
+	ctx := makeTestContextWithUploadDir("test/uploads2/")
+	ctx.Cfg.UploadKeys = []string{"test-key"}
+
+	// Create a new response recorder
+	rec := httptest.NewRecorder()
+
+	// Call the handler
+	postAddHandler(rec, req, ctx)
+
+	// Check the response status code
+	res := rec.Result()
+	if res.StatusCode != http.StatusForbidden {
+		t.Errorf("expected status Forbidden; got %v", res.Status)
+	}
+}
 
 func Test_StashHandler(t *testing.T) {
 	// Create a new multipart form
@@ -555,7 +653,7 @@ func Test_StashHandler(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not open test image: %v", err)
 	}
-		defer func() { _ = f.Close() }()
+	defer func() { _ = f.Close() }()
 
 	// Copy the image data to the form file
 	_, err = io.Copy(fw, f)
@@ -594,9 +692,6 @@ func Test_StashHandler(t *testing.T) {
 		t.Errorf("expected file to be created: %v", err)
 	}
 }
-
-
-
 
 func Test_PostJoinHandler(t *testing.T) {
 	// Create a new test server to simulate the other node

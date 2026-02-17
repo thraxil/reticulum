@@ -197,7 +197,8 @@ func TestStash(t *testing.T) {
 		if r.URL.Path != "/stash/" {
 			t.Errorf("Expected to request '/stash/', got: %s", r.URL.Path)
 		}
-		_, _ = w.Write([]byte("ok"))	}))
+		_, _ = w.Write([]byte("ok"))
+	}))
 	defer server.Close()
 
 	// Create a temporary file to act as the image to be stashed.
@@ -274,7 +275,8 @@ func TestStashFailures(t *testing.T) {
 		{
 			name: "postFile returns an error",
 			server: httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					_, _ = w.Write([]byte("ok"))			})),
+				_, _ = w.Write([]byte("ok"))
+			})),
 			backend: mockBackend{
 				fullPathFunc: func(ri imageSpecifier) string {
 					return "/non-existent-file"

@@ -5,8 +5,6 @@ import (
 	"io"
 )
 
-
-
 type mockBackend struct {
 	fullPathFunc func(ri imageSpecifier) string
 }
@@ -48,7 +46,7 @@ func makeNewClusterData(neighbors []nodeData) (nodeData, *cluster) {
 	myself := nodeData{
 		Nickname:  "myself",
 		UUID:      "test-uuid",
-		BaseURL:   "localhost:8080",	
+		BaseURL:   "localhost:8080",
 		Location:  "test",
 		Writeable: true,
 	}
