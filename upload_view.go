@@ -51,6 +51,13 @@ func (v *UploadView) UploadImage(
 		}
 	}
 
+	// Determine mimetype and extension
+	mimetype := fileHeader.Header.Get("Content-Type")
+	ext, ok := mimeexts[mimetype]
+	if !ok {
+		return nil, fmt.Errorf("unsupported image type: %s", mimetype)
+	}
+
 	// Hashing the image content
 	h := sha1.New()
 	_, _ = io.Copy(h, imageFile)
@@ -62,15 +69,6 @@ func (v *UploadView) UploadImage(
 	// Reset imageFile to the beginning for subsequent reads
 	_, _ = imageFile.Seek(0, io.SeekStart)
 
-	// Determine mimetype and extension
-	mimetype := fileHeader.Header.Get("Content-Type")
-	if mimetype == "" {
-		mimetype = "image/jpeg" // Default to jpg
-	}
-	ext, ok := mimeexts[mimetype]
-	if !ok {
-		ext = "jpg" // Unknown mimetype, default to jpg
-	}
 	ri := imageSpecifier{
 		ahash,
 		resize.MakeSizeSpec("full"),

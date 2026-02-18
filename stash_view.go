@@ -7,7 +7,6 @@ import (
 	"io"
 	"mime/multipart"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/go-kit/log"
@@ -52,6 +51,13 @@ func (v *StashView) StashImage(
 		return "", fmt.Errorf("non-writeable node")
 	}
 
+	// Determine mimetype and extension
+	mimetype := fileHeader.Header.Get("Content-Type")
+	ext, ok := mimeexts[mimetype]
+	if !ok {
+		return "", fmt.Errorf("unsupported image type: %s", mimetype)
+	}
+
 	h := sha1.New()
 	_, _ = io.Copy(h, imageFile)
 	ahash, err := hashFromString(fmt.Sprintf("%x", h.Sum(nil)), "")
@@ -63,7 +69,6 @@ func (v *StashView) StashImage(
 
 	path := v.siteConfig.UploadDirectory + "/" + ahash.AsPath()
 	_ = os.MkdirAll(path, 0755)
-	ext := filepath.Ext(fileHeader.Filename)
 	fullpath := path + "/full" + ext
 	f, err := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {

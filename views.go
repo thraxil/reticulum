@@ -160,6 +160,8 @@ func postAddHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	if err != nil {
 		if strings.Contains(err.Error(), "invalid upload key") {
 			http.Error(w, err.Error(), http.StatusForbidden)
+		} else if strings.Contains(err.Error(), "unsupported image type") {
+			http.Error(w, err.Error(), http.StatusBadRequest)
 		} else if strings.Contains(err.Error(), "bad hash") {
 			http.Error(w, err.Error(), http.StatusInternalServerError) // Or BadRequest depending on source of bad hash
 		} else {
@@ -235,6 +237,8 @@ func stashHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	response, err := ctx.StashView.StashImage(r.Context(), imageFile, fileHeader, sizeHints)
 	if err != nil {
 		if strings.Contains(err.Error(), "non-writeable node") {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		} else if strings.Contains(err.Error(), "unsupported image type") {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 		} else if strings.Contains(err.Error(), "bad hash") {
 			http.Error(w, err.Error(), http.StatusNotFound)

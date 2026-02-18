@@ -14,7 +14,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/go-kit/log"
 	"github.com/thraxil/resize"
@@ -520,6 +519,84 @@ func Test_PostAddHandler_invalidKey(t *testing.T) {
 	}
 }
 
+func Test_PostAddHandler_NotImage(t *testing.T) {
+	// Create a new multipart form
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			"image", "not_an_image.txt"))
+	h.Set("Content-Type", "text/plain")
+	fw, err := w.CreatePart(h)
+	if err != nil {
+		t.Fatalf("could not create form file: %v", err)
+	}
+
+	_, err = fw.Write([]byte("this is not an image"))
+	if err != nil {
+		t.Fatalf("could not write to form file: %v", err)
+	}
+
+	// Add the upload key to the form
+	err = w.WriteField("key", "test-key")
+	if err != nil {
+		t.Fatalf("could not write key field: %v", err)
+	}
+
+	// Close the multipart writer
+	err = w.Close()
+	if err != nil {
+		t.Fatalf("could not close multipart writer: %v", err)
+	}
+	// Create a new request with the multipart form data
+	req, err := http.NewRequest("POST", "localhost:8080/", &b)
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	// Create a new test context
+	ctx := makeTestContextWithUploadDir("test/uploads2/")
+	ctx.Cfg.UploadKeys = []string{"test-key"}
+
+	// Create a new response recorder
+	rec := httptest.NewRecorder()
+
+	// Call the handler
+	postAddHandler(rec, req, ctx)
+
+	// Check the response status code
+	res := rec.Result()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status Bad Request; got %v", res.Status)
+	}
+}
+
+func Test_StashHandler_NoFile(t *testing.T) {
+	// Create a new request with the multipart form data
+	req, err := http.NewRequest("POST", "localhost:8080/stash/", nil)
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+
+	// Create a new test context
+	ctx := makeTestContextWithUploadDir("test/uploads3/")
+
+	// Create a new response recorder
+	rec := httptest.NewRecorder()
+
+	// Call the handler
+	stashHandler(rec, req, ctx)
+
+	// Check the response status code
+	res := rec.Result()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status Bad Request; got %v", res.Status)
+	}
+}
+
 func Test_StashHandler(t *testing.T) {
 	// Create a new multipart form
 	var b bytes.Buffer
@@ -580,6 +657,54 @@ func Test_StashHandler(t *testing.T) {
 	}
 }
 
+func Test_StashHandler_NotImage(t *testing.T) {
+	// Create a new multipart form
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			"image", "not_an_image.txt"))
+	h.Set("Content-Type", "text/plain")
+	fw, err := w.CreatePart(h)
+	if err != nil {
+		t.Fatalf("could not create form file: %v", err)
+	}
+
+	_, err = fw.Write([]byte("this is not an image"))
+	if err != nil {
+		t.Fatalf("could not write to form file: %v", err)
+	}
+
+	// Close the multipart writer
+	err = w.Close()
+	if err != nil {
+		t.Fatalf("could not close multipart writer: %v", err)
+	}
+	// Create a new request with the multipart form data
+	req, err := http.NewRequest("POST", "localhost:8080/stash/", &b)
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+
+	// Create a new test context
+	ctx := makeTestContextWithUploadDir("test/uploads3/")
+
+	// Create a new response recorder
+	rec := httptest.NewRecorder()
+
+	// Call the handler
+	stashHandler(rec, req, ctx)
+
+	// Check the response status code
+	res := rec.Result()
+	if res.StatusCode != http.StatusBadRequest {
+		t.Errorf("expected status Bad Request; got %v", res.Status)
+	}
+}
+
 func Test_PostJoinHandler(t *testing.T) {
 	// Create a new test server to simulate the other node
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -611,7 +736,7 @@ func Test_PostJoinHandler(t *testing.T) {
 	postJoinHandler(rec, req, ctx)
 
 	// wait for the cluster to process the message
-	time.Sleep(10 * time.Millisecond)
+	ctx.cluster.Sync()
 
 	// Check the response status code
 	res := rec.Result()
@@ -623,6 +748,57 @@ func Test_PostJoinHandler(t *testing.T) {
 	_, ok := ctx.cluster.FindNeighborByUUID("neighbor-uuid")
 	if !ok {
 		t.Errorf("expected neighbor to be added")
+	}
+}
+
+func Test_PostJoinHandler_AlreadyExists(t *testing.T) {
+	// Create a new test server to simulate the other node
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/config/" {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = fmt.Fprintln(w, `{"nickname":"test-neighbor","uuid":"neighbor-uuid","base_url":"neighbor.example.com","location":"neighbor-location","writeable":true}`)
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	// Create a new test context
+	ctx := makeTestContext()
+
+	// Add the neighbor to the cluster
+	ctx.cluster.AddNeighbor(nodeData{
+		Nickname: "test-neighbor",
+		UUID:     "neighbor-uuid",
+		BaseURL:  "neighbor.example.com",
+		Location: "neighbor-location",
+	})
+	ctx.cluster.Sync()
+
+	// Create a new request with the join data
+	form := url.Values{}
+	form.Add("url", server.URL)
+	req, err := http.NewRequest("POST", "localhost:8080/join/", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// Create a new response recorder
+	rec := httptest.NewRecorder()
+
+	// Call the handler
+	postJoinHandler(rec, req, ctx)
+
+	// Check the response status code
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("expected status OK; got %v", res.Status)
+	}
+
+	// Check that the neighbor was not added again
+	if len(ctx.cluster.GetNeighbors()) != 1 {
+		t.Errorf("expected neighbor to not be added again")
 	}
 }
 
@@ -638,5 +814,120 @@ func Test_GetJoinHandler(t *testing.T) {
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status OK; got %v", res.Status)
+	}
+}
+
+func Test_PostAnnounceHandler_NewNeighbor(t *testing.T) {
+	// Create a new test context
+	ctx := makeTestContext()
+
+	// Create a new request with the announce data
+	form := url.Values{}
+	form.Add("nickname", "test-neighbor")
+	form.Add("uuid", "neighbor-uuid")
+	form.Add("base_url", "neighbor.example.com")
+	form.Add("location", "neighbor-location")
+	form.Add("writeable", "true")
+
+	req, err := http.NewRequest("POST", "localhost:8080/announce/", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// Create a new response recorder
+	rec := httptest.NewRecorder()
+
+	// Call the handler
+	postAnnounceHandler(rec, req, ctx)
+
+	// wait for the cluster to process the message
+	ctx.cluster.Sync()
+
+	// Check the response status code
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("expected status OK; got %v", res.Status)
+	}
+
+	// Check that the neighbor was added
+	neighbor, ok := ctx.cluster.FindNeighborByUUID("neighbor-uuid")
+	if !ok {
+		t.Errorf("expected neighbor to be added")
+	}
+
+	if neighbor.Nickname != "test-neighbor" {
+		t.Errorf("wrong nickname")
+	}
+	if neighbor.BaseURL != "neighbor.example.com" {
+		t.Errorf("wrong base_url")
+	}
+	if neighbor.Location != "neighbor-location" {
+		t.Errorf("wrong location")
+	}
+	if !neighbor.Writeable {
+		t.Errorf("wrong writeable")
+	}
+}
+
+func Test_PostAnnounceHandler_UpdateNeighbor(t *testing.T) {
+	// Create a new test context
+	ctx := makeTestContext()
+
+	// add a neighbor
+	nd := nodeData{
+		Nickname: "old-nickname",
+		UUID:     "neighbor-uuid",
+		BaseURL:  "old.example.com",
+		Location: "old-location",
+	}
+	ctx.cluster.AddNeighbor(nd)
+
+	// Create a new request with the announce data
+	form := url.Values{}
+	form.Add("nickname", "new-nickname")
+	form.Add("uuid", "neighbor-uuid")
+	form.Add("base_url", "new.example.com")
+	form.Add("location", "new-location")
+	form.Add("writeable", "true")
+
+	req, err := http.NewRequest("POST", "localhost:8080/announce/", strings.NewReader(form.Encode()))
+	if err != nil {
+		t.Fatalf("could not create request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// Create a new response recorder
+	rec := httptest.NewRecorder()
+
+	// Call the handler
+	postAnnounceHandler(rec, req, ctx)
+
+	// wait for the cluster to process the message
+	ctx.cluster.Sync()
+
+	// Check the response status code
+	res := rec.Result()
+	if res.StatusCode != http.StatusOK {
+		t.Errorf("expected status OK; got %v", res.Status)
+	}
+
+	// Check that the neighbor was updated
+	neighbor, ok := ctx.cluster.FindNeighborByUUID("neighbor-uuid")
+	if !ok {
+		t.Errorf("expected neighbor to be present")
+	}
+
+	if neighbor.Nickname != "new-nickname" {
+		t.Errorf("wrong nickname")
+	}
+	if neighbor.BaseURL != "new.example.com" {
+		t.Errorf("wrong base_url")
+	}
+	if neighbor.Location != "new-location" {
+		t.Errorf("wrong location")
+	}
+	if !neighbor.Writeable {
+		t.Errorf("wrong writeable")
 	}
 }

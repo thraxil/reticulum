@@ -73,6 +73,14 @@ func (c *cluster) Stashed(ir imageRecord) {
 	}
 }
 
+func (c *cluster) Sync() {
+	r := make(chan struct{})
+	c.chF <- func() {
+		r <- struct{}{}
+	}
+	<-r
+}
+
 func (c *cluster) AddNeighbor(nd nodeData) {
 	c.chF <- func() {
 		c.neighbors[nd.UUID] = nd
