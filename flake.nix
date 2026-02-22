@@ -16,6 +16,7 @@
         gcc
         libcap
         python310
+        nodejs
         vips
         pkg-config
       ];
