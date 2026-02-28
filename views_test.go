@@ -23,13 +23,13 @@ func makeTestContextWithUploadDir(uploadDir string) sitecontext {
 	var n []nodeData
 	_, c := makeNewClusterData(n)
 	b := newDiskBackend(uploadDir)
-	cfg := siteConfig{Backend: b, UploadDirectory: uploadDir}
+	cfg := siteConfig{Backend: b, UploadDirectory: uploadDir, Replication: 1, MinReplication: 1}
 	ch := sharedChannels{
 		ResizeQueue: make(chan resizeRequest),
 	}
 	sl := log.NewNopLogger()
 	imageView := NewImageView(c, b, &cfg, ch, sl)
-	uploadView := NewUploadView(c, b, &cfg, sl)
+	uploadView := NewUploadView(c, b, &cfg, ch, sl)
 	stashView := NewStashView(c, b, &cfg, ch, sl)
 	retrieveInfoView := NewRetrieveInfoView(c, &cfg, sl)
 	retrieveView := NewRetrieveView(imageView, sl)

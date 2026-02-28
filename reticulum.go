@@ -153,7 +153,7 @@ func main() {
 	go verify(c, siteconfig, vSL)
 
 	imageView := NewImageView(c, siteconfig.Backend, &siteconfig, channels, sl)
-	uploadView := NewUploadView(c, siteconfig.Backend, &siteconfig, sl)
+	uploadView := NewUploadView(c, siteconfig.Backend, &siteconfig, channels, sl)
 	stashView := NewStashView(c, siteconfig.Backend, &siteconfig, channels, sl)
 	retrieveInfoView := NewRetrieveInfoView(c, &siteconfig, sl)
 	retrieveView := NewRetrieveView(imageView, sl)

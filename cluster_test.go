@@ -250,6 +250,7 @@ func TestClusterStash(t *testing.T) {
 
 			// Create a cluster.
 			_, c := makeNewClusterData([]nodeData{})
+			c.Myself.Writeable = false
 			neighbor1 := nodeData{
 				Nickname:  "neighbor1",
 				UUID:      "neighbor1-uuid",

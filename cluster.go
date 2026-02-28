@@ -224,8 +224,19 @@ func (c *cluster) Stash(ctx context.Context, ri imageSpecifier, sizeHints string
 	var saveCount = 0
 	// TODO: parallelize this
 	for _, n := range nodesToCheck {
-		// TODO: detect when the node to stash to is the current one
+		// detect when the node to stash to is the current one
 		// and just save directly instead of doing a POST to ourself
+		if n.UUID == c.Myself.UUID {
+			savedTo[saveCount] = n.Nickname
+			saveCount++
+			n.LastSeen = time.Now()
+			c.UpdateNeighbor(n)
+			if saveCount >= replication {
+				break
+			}
+			continue
+		}
+
 		if saveCount > 1 {
 			// only have the first node on the list eagerly resize images
 			sizeHints = ""

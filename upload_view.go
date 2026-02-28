@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"strings"
 
 	"github.com/go-kit/log"
 	"github.com/thraxil/resize"
@@ -17,6 +18,7 @@ type UploadView struct {
 	cluster    Cluster
 	backend    Backend
 	siteConfig *siteConfig
+	channels   sharedChannels
 	logger     log.Logger
 }
 
@@ -25,12 +27,14 @@ func NewUploadView(
 	cluster Cluster,
 	backend Backend,
 	siteConfig *siteConfig,
+	channels sharedChannels,
 	logger log.Logger,
 ) *UploadView {
 	return &UploadView{
 		cluster:    cluster,
 		backend:    backend,
 		siteConfig: siteConfig,
+		channels:   channels,
 		logger:     logger,
 	}
 }
@@ -80,6 +84,23 @@ func (v *UploadView) UploadImage(
 		_ = v.logger.Log("level", "ERR", "msg", "error writing full image to backend", "error", err.Error())
 		return nil, fmt.Errorf("failed to write image to backend: %w", err)
 	}
+
+	// do any eager resizing in the background
+	go func() {
+		sizes := strings.Split(sizeHints, ",")
+		for _, size := range sizes {
+			if size == "" {
+				continue
+			}
+			c := make(chan resizeResponse)
+			fullpath := v.backend.fullPath(ri)
+			v.channels.ResizeQueue <- resizeRequest{fullpath, "." + ext, size, c}
+			result := <-c
+			if !result.Success {
+				_ = v.logger.Log("level", "ERR", "msg", "could not pre-resize")
+			}
+		}
+	}()
 
 	// Stash to other nodes in the cluster
 	nodes := v.cluster.Stash(
