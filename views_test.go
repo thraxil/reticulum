@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -54,7 +55,6 @@ func makeTestContextWithUploadDir(uploadDir string) sitecontext {
 		RetrieveView:     retrieveView,
 	}
 }
-
 
 func makeTestContext() sitecontext {
 	return makeTestContextWithUploadDir("")
@@ -344,9 +344,6 @@ func Test_retrieveHandler_found(t *testing.T) {
 		t.Errorf("for /retrieve/c1986af3c26609b8b7d8933f99c51c1a89e9ea6b/100s/png/ expected status %v; got %v", http.StatusOK, res.Status)
 	}
 }
-
-
-
 
 func Test_configHandler(t *testing.T) {
 	req, err := http.NewRequest("GET", "localhost:8080/", nil)
@@ -650,10 +647,24 @@ func Test_StashHandler(t *testing.T) {
 		t.Errorf("expected status OK; got %v", res.Status)
 	}
 
-	// Check that the file was created
-	_, err = os.Stat("test/uploads3/c1/98/6a/f3/c2/66/09/b8/b7/d8/93/3f/99/c5/1c/1a/89/e9/ea/6b/full.png")
+	// Calculate the expected hash
+	hSHA1 := sha1.New()
+	if _, err := f.Seek(0, 0); err != nil {
+		t.Fatalf("could not seek file: %v", err)
+	}
+	if _, err := io.Copy(hSHA1, f); err != nil {
+		t.Fatalf("could not calculate hash: %v", err)
+	}
+	expectedHash, err := hashFromString(fmt.Sprintf("%x", hSHA1.Sum(nil)), "")
 	if err != nil {
-		t.Errorf("expected file to be created: %v", err)
+		t.Fatalf("could not create hash from string: %v", err)
+	}
+	expectedPath := "test/uploads3/" + expectedHash.AsPath() + "/full.png"
+
+	// Check that the file was created
+	_, err = os.Stat(expectedPath)
+	if err != nil {
+		t.Errorf("expected file to be created at %s: %v", expectedPath, err)
 	}
 }
 
