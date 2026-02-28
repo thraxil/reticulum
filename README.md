@@ -10,4 +10,12 @@ Reticulum is a distributed image and thumbnail server.
 Please visit the [main documentation
 site](http://thraxil.github.com/reticulum/) for more information.
 
+## Running with Docker
+
+To build and run the cluster locally:
+
+    docker-compose up --build
+
+The API will be available at `http://localhost:8080` (and other ports as defined in docker-compose.yml).
+
 
