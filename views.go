@@ -16,13 +16,13 @@ import (
 )
 
 type sitecontext struct {
-	cluster *cluster
-	Cfg     *siteConfig
-	Ch      sharedChannels
-		SL        log.Logger
-		ImageView *ImageView
-	UploadView *UploadView
-	StashView  *StashView
+	cluster          *cluster
+	Cfg              *siteConfig
+	Ch               sharedChannels
+	SL               log.Logger
+	ImageView        *ImageView
+	UploadView       *UploadView
+	StashView        *StashView
 	RetrieveInfoView *RetrieveInfoView
 	RetrieveView     *RetrieveView
 }
@@ -82,8 +82,6 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 	return ri, false
 }
 
-
-
 func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	ri, handled := parsePathServeImage(w, r, ctx)
 	if handled {
@@ -106,14 +104,6 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 	_, _ = w.Write(imgData)
 	servedLocally.Add(1) // Assuming if GetImage succeeds, it was served eventually
 }
-
-
-
-
-
-
-
-
 
 var mimeexts = map[string]string{
 	"image/jpeg": "jpg",

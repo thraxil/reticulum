@@ -6,7 +6,6 @@ import (
 	"io"
 )
 
-
 // Backend is an interface for storing and retrieving images.
 type Backend interface {
 	Read(spec imageSpecifier) ([]byte, error)

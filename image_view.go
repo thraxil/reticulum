@@ -1,7 +1,6 @@
 package main
 
 import (
-
 	"bytes"
 
 	"context"
@@ -10,10 +9,7 @@ import (
 
 	"fmt"
 
-
-
 	"github.com/go-kit/log"
-
 )
 
 // ImageView encapsulates the business logic for serving images.

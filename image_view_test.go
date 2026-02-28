@@ -12,7 +12,7 @@ import (
 // mockCluster is a mock implementation of the Cluster interface for testing.
 type mockCluster struct {
 	RetrieveImageFunc       func(ctx context.Context, ri *imageSpecifier) ([]byte, error)
-	GetMyselfFunc            func() nodeData
+	GetMyselfFunc           func() nodeData
 	StashFunc               func(ctx context.Context, ri imageSpecifier, sizeHints string, replication int, minReplication int, backend Backend) []string
 	UploadedFunc            func(r imageRecord)
 	GetNeighborsFunc        func() []nodeData

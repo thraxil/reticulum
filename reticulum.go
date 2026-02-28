@@ -62,7 +62,7 @@ var (
 	rebalanceSuccesses *expvar.Int
 	rebalanceCleanups  *expvar.Int
 
-	servedLocally     *expvar.Int
+	servedLocally *expvar.Int
 
 	resizeFailures *expvar.Int
 	servedScaled   *expvar.Int
