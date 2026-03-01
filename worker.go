@@ -113,6 +113,13 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
+		if err := tmpFile.Sync(); err != nil {
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpName)
+			_ = sl.Log("level", "ERR", "msg", "could not sync temp file", "path", tmpName, "error", err.Error())
+			req.Response <- resizeResponse{nil, nil, false}
+			continue
+		}
 		if err := tmpFile.Close(); err != nil {
 			_ = os.Remove(tmpName)
 			_ = sl.Log("level", "ERR", "msg", "could not close temp file", "path", tmpName, "error", err.Error())
