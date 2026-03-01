@@ -70,6 +70,7 @@ func (v *ImageView) GetImage(ctx context.Context, ri *imageSpecifier) ([]byte, s
 	}
 
 	// Resize locally
+	_ = v.logger.Log("level", "DEBUG", "msg", "starting resize job")
 	result := v.makeResizeJob(ri)
 	if !result.Success {
 		resizeFailures.Add(1) // Global expvar, needs to be handled
@@ -77,12 +78,23 @@ func (v *ImageView) GetImage(ctx context.Context, ri *imageSpecifier) ([]byte, s
 	}
 	servedScaled.Add(1) // Global expvar, needs to be handled
 
+	_ = v.logger.Log("level", "DEBUG", "msg", "resize job finished")
+	if !result.Success {
+		_ = v.logger.Log("level", "ERR", "msg", "resize job failed")
+		resizeFailures.Add(1) // Global expvar, needs to be handled
+		return nil, "", fmt.Errorf("could not resize image")
+	}
+	servedScaled.Add(1) // Global expvar, needs to be handled
+
 	if result.OutputData == nil {
+		_ = v.logger.Log("level", "ERR", "msg", "resize job returned nil data")
 		return nil, "", fmt.Errorf("resize succeeded but no data returned")
 	}
+	_ = v.logger.Log("level", "DEBUG", "msg", "calculating etag", "datalen", len(result.OutputData))
 	contents = result.OutputData
 	etag := fmt.Sprintf("%x", sha1.Sum(contents))
 
+	_ = v.logger.Log("level", "DEBUG", "msg", "returning contents")
 	return contents, etag, nil
 }
 
@@ -95,8 +107,14 @@ func (v *ImageView) haveImageFullsizeLocally(ri *imageSpecifier) bool {
 }
 
 func (v *ImageView) makeResizeJob(ri *imageSpecifier) resizeResponse {
+	_ = v.logger.Log("level", "DEBUG", "msg", "entering makeResizeJob")
 	c := make(chan resizeResponse)
+	if v.siteConfig == nil {
+		_ = v.logger.Log("level", "ERR", "msg", "siteConfig is nil")
+		return resizeResponse{Success: false}
+	}
 	fmt.Println(ri.fullSizePath(v.siteConfig.UploadDirectory))
+	_ = v.logger.Log("level", "DEBUG", "msg", "sending to resize queue")
 	v.channels.ResizeQueue <- resizeRequest{ri.fullSizePath(v.siteConfig.UploadDirectory), ri.Extension, ri.Size.String(), c}
 	resizeQueueLength.Add(1) // Global expvar, needs to be handled
 	result := <-c

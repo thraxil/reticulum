@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
-	"image"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -37,9 +36,9 @@ func makeTestContextWithUploadDir(uploadDir string) sitecontext {
 
 	go func() {
 		for req := range ch.ResizeQueue {
-			img := image.NewRGBA(image.Rect(0, 0, 100, 100))
-			var i image.Image = img
-			req.Response <- resizeResponse{Success: true, OutputImage: &i, OutputData: []byte("fake image data")}
+			// img := image.NewRGBA(image.Rect(0, 0, 100, 100))
+			// var i image.Image = img
+			req.Response <- resizeResponse{Success: true, OutputImage: nil, OutputData: []byte("fake image data")}
 		}
 	}()
 
