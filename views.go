@@ -394,6 +394,18 @@ func postJoinHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	_, _ = fmt.Fprintf(w, "Added node %s [%s]", n.Nickname, n.UUID)
 }
 
+type logsPage struct {
+	Logs []LogEntry
+}
+
+func logsHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
+	p := logsPage{
+		Logs: GlobalLogCache.StructuredEntries(),
+	}
+	t, _ := template.New("logs").Parse(logsTemplate)
+	_ = t.Execute(w, p)
+}
+
 func faviconHandler(w http.ResponseWriter, r *http.Request) {
 	// just give it nothing to make it go away
 	_, _ = w.Write(nil)
@@ -411,6 +423,7 @@ const joinTemplate = `
   <li><a href="/dashboard/">Dashboard</a></li>
   <li><a href="/debug/vars">expvar</a></li>
   <li><a href="/join/">Add Node</a></li>
+  <li><a href="/logs/">Logs</a></li>
 </ol>
 
 <h1>Add Node</h1>
@@ -437,6 +450,7 @@ const addTemplate = `
   <li><a href="/dashboard/">Dashboard</a></li>
   <li><a href="/debug/vars">expvar</a></li>
   <li><a href="/join/">Add Node</a></li>
+  <li><a href="/logs/">Logs</a></li>
 </ol>
 
 <h1>{{.Title}}</h1>
@@ -467,6 +481,7 @@ const statusTemplate = `
   <li><a href="/dashboard/">Dashboard</a></li>
   <li><a href="/debug/vars">expvar</a></li>
   <li><a href="/join/">Add Node</a></li>
+  <li><a href="/logs/">Logs</a></li>
 </ol>
 
 <body>
@@ -550,6 +565,7 @@ const dashboardTemplate = `
   <li><a href="/dashboard/">Dashboard</a></li>
   <li><a href="/debug/vars">expvar</a></li>
   <li><a href="/join/">Add Node</a></li>
+  <li><a href="/logs/">Logs</a></li>
 </ol>
 
 
@@ -576,6 +592,76 @@ const dashboardTemplate = `
 
 </div>
 
+</body>
+</html>
+`
+
+const logsTemplate = `
+<html>
+<head>
+<title>Reticulum Logs</title>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
+<style>
+.log-table td { font-family: monospace; font-size: 0.9em; }
+.level-ERR { color: red; font-weight: bold; }
+.level-WARN { color: orange; font-weight: bold; }
+.level-INFO { color: green; }
+.log-details { padding-left: 2em !important; background-color: #f9f9f9; }
+</style>
+</head>
+<body>
+
+<ol class="breadcrumb">
+  <li><a href="/">Upload</a></li>
+  <li><a href="/status/">Status</a></li>
+  <li><a href="/dashboard/">Dashboard</a></li>
+  <li><a href="/debug/vars">expvar</a></li>
+  <li><a href="/join/">Add Node</a></li>
+  <li class="active">Logs</li>
+</ol>
+
+<div class="container-fluid">
+<h1>Logs</h1>
+<table class="table table-condensed log-table">
+<thead>
+<tr>
+    <th>Time</th>
+    <th>Level</th>
+    <th>Comp.</th>
+    <th>Node</th>
+    <th>Message</th>
+    <th>Method</th>
+    <th>Path</th>
+    <th>Dur.</th>
+    <th>Remote</th>
+</tr>
+</thead>
+<tbody>
+{{ range .Logs }}
+<tr>
+    <td>{{ .Timestamp }}</td>
+    <td class="level-{{.Level}}">{{ .Level }}</td>
+    <td>{{ .Component }}</td>
+    <td>{{ .Node }}</td>
+    <td>{{ .Message }}</td>
+    <td>{{ .Method }}</td>
+    <td>{{ .Path }}</td>
+    <td>{{ .Duration }}</td>
+    <td>{{ .RemoteAddr }}</td>
+</tr>
+{{ if or .Error .Image .Replication }}
+<tr>
+    <td colspan="9" class="log-details">
+        {{ if .Error }}<div><strong>Error:</strong> {{ .Error }}</div>{{ end }}
+        {{ if .Image }}<div><strong>Image:</strong> {{ .Image }}</div>{{ end }}
+        {{ if .Replication }}<div><strong>Repl:</strong> {{ .Replication }}</div>{{ end }}
+    </td>
+</tr>
+{{ end }}
+{{ end }}
+</tbody>
+</table>
+</div>
 </body>
 </html>
 `

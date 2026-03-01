@@ -162,6 +162,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", makeHandler(getAddHandler, ctx))
+	mux.HandleFunc("GET /logs/", makeHandler(logsHandler, ctx))
 	mux.HandleFunc("POST /", makeHandler(postAddHandler, ctx))
 	mux.HandleFunc("POST /stash/", makeHandler(stashHandler, ctx))
 	mux.HandleFunc("GET /image/{hash}/{size}/{filename}", makeHandler(serveImageHandler, ctx))
