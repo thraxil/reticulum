@@ -253,7 +253,7 @@ type stashableNode interface {
 func (r imageRebalancer) retrieveReplica(n stashableNode, satisfied bool) int {
 
 	s := resize.MakeSizeSpec("full")
-	ri := &imageSpecifier{r.hash, s, r.extension[1:]}
+	ri := &imageSpecifier{r.hash, s, r.extension}
 
 	ctx := context.Background()
 	imgInfo, err := n.RetrieveImageInfo(ctx, ri)

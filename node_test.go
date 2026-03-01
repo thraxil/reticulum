@@ -244,6 +244,79 @@ func TestStash(t *testing.T) {
 	}
 }
 
+func TestStashContentType(t *testing.T) {
+	// Create a mock HTTP server that will act as the remote node.
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check that the request is for the /stash/ endpoint.
+		if r.URL.Path != "/stash/" {
+			t.Errorf("Expected to request '/stash/', got: %s", r.URL.Path)
+		}
+		// Verify Content-Type of the file part
+		err := r.ParseMultipartForm(1024)
+		if err != nil {
+			t.Errorf("failed to parse multipart form: %v", err)
+			return
+		}
+		file, header, err := r.FormFile("image")
+		if err != nil {
+			t.Errorf("failed to get image file: %v", err)
+			return
+		}
+		defer file.Close()
+
+		contentType := header.Header.Get("Content-Type")
+		if contentType != "image/jpeg" {
+			t.Errorf("Expected Content-Type image/jpeg, got: %s", contentType)
+		}
+
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer server.Close()
+
+	// Create a temporary file to act as the image to be stashed.
+	// Name it with .jpg extension
+	tmpfile, err := os.CreateTemp("", "example*.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = os.Remove(tmpfile.Name()) }()
+	if _, err := tmpfile.Write([]byte("hello")); err != nil {
+		t.Fatal(err)
+	}
+	if err := tmpfile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a nodeData instance with the mock server's URL as its BaseURL.
+	n := nodeData{
+		Nickname:  "test node",
+		UUID:      "test-uuid",
+		BaseURL:   server.URL,
+		Location:  "test",
+		Writeable: true,
+	}
+
+	// Create a backend that returns the temporary file's path.
+	b := mockBackend{
+		fullPathFunc: func(ri imageSpecifier) string {
+			return tmpfile.Name()
+		},
+	}
+
+	// Create an imageSpecifier.
+	h, err := hashFromString("fb682e05b9be61797601e60165825c0b089f755e", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := resize.MakeSizeSpec("full")
+	ri := imageSpecifier{h, s, "jpg"}
+
+	// Call the Stash method.
+	if !n.Stash(context.Background(), ri, "somesizehints", b) {
+		t.Error("Stash returned false")
+	}
+}
+
 func TestStashFailures(t *testing.T) {
 	// Create a temporary file to act as the image to be stashed.
 	tmpfile, err := os.CreateTemp("", "example")

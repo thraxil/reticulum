@@ -11,8 +11,10 @@ import (
 
 	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -168,7 +170,20 @@ func postFile(ctx context.Context, filename string, targetURL string, sizeHints 
 	if err != nil {
 		return nil, err
 	}
-	fileWriter, err := bodyWriter.CreateFormFile("image", filename)
+
+	ext := filepath.Ext(filename)
+	contentType, ok := extmimes[ext]
+	if !ok {
+		contentType = "application/octet-stream"
+	}
+
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			"image", filepath.Base(filename)))
+	h.Set("Content-Type", contentType)
+
+	fileWriter, err := bodyWriter.CreatePart(h)
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +202,7 @@ func postFile(ctx context.Context, filename string, targetURL string, sizeHints 
 	if err := bodyWriter.Close(); err != nil {
 		return nil, err
 	}
-	contentType := bodyWriter.FormDataContentType()
+	contentType = bodyWriter.FormDataContentType()
 	req, err := http.NewRequest("POST", targetURL, bodyBuf)
 	if err != nil {
 		return nil, err

@@ -46,7 +46,8 @@ func (i imageSpecifier) retrieveURLPath() string {
 }
 
 func (i imageSpecifier) retrieveInfoURLPath() string {
-	return "/retrieve_info/" + i.Hash.String() + "/" + i.Size.String() + "/" + i.Extension + "/"
+	ext := strings.TrimLeft(i.Extension, ".")
+	return "/retrieve_info/" + i.Hash.String() + "/" + i.Size.String() + "/" + ext + "/"
 }
 
 func (i imageSpecifier) fullVersion() imageSpecifier {

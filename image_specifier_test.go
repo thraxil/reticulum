@@ -67,7 +67,7 @@ func Test_RetrieveInfoUrlPath(t *testing.T) {
 	s := "112e42f26fce70d268438ac8137d81607499ee10/200s/1250.jpg"
 	i := newImageSpecifier(s)
 	r := i.retrieveInfoURLPath()
-	if r != "/retrieve_info/112e42f26fce70d268438ac8137d81607499ee10/200s/.jpg/" {
+	if r != "/retrieve_info/112e42f26fce70d268438ac8137d81607499ee10/200s/jpg/" {
 		t.Errorf("wrong retreiveInfoUrlPath: %s", r)
 	}
 }

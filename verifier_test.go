@@ -64,16 +64,20 @@ func Test_clearCachedFile(t *testing.T) {
 // dummy out a stashableNode
 type sdummy struct {
 	StashValue bool
+	LastRi     imageSpecifier
 }
 
-func (s *sdummy) Stash(context.Context, imageSpecifier, string, Backend) bool { return false }
+func (s *sdummy) Stash(ctx context.Context, ri imageSpecifier, hints string, b Backend) bool {
+	s.LastRi = ri
+	return s.StashValue
+}
 func (s *sdummy) RetrieveImageInfo(context.Context, *imageSpecifier) (*imageInfoResponse, error) {
 	return nil, nil
 }
 
 func Test_RetrieveReplica(t *testing.T) {
 	sl := newDummyLogger()
-	n := sdummy{}
+	n := &sdummy{}
 	hash, err := hashFromString("fb682e05b9be61797601e60165825c0b089f755e", "")
 	if err != nil {
 		t.Error("bad hash")
@@ -82,13 +86,16 @@ func Test_RetrieveReplica(t *testing.T) {
 	_, c := makeNewClusterData(cn)
 	s := siteConfig{}
 	r := newImageRebalancer("foo", ".jpg", hash, c, s, sl)
-	result := r.retrieveReplica(&n, true)
+	result := r.retrieveReplica(n, true)
 	if result != 0 {
 		t.Error("satisfied == true should mean no retrieval")
 	}
-	result = r.retrieveReplica(&n, false)
+	result = r.retrieveReplica(n, false)
 	if result != 0 {
 		t.Error("not satisfied but couldn't stash failed")
+	}
+	if n.LastRi.Extension != ".jpg" {
+		t.Errorf("Stash received extension without dot: '%s'", n.LastRi.Extension)
 	}
 }
 
