@@ -69,7 +69,7 @@ func (v *StashView) StashImage(
 
 	path := v.siteConfig.UploadDirectory + "/" + ahash.AsPath()
 	_ = os.MkdirAll(path, 0755)
-	fullpath := path + "/full" + ext
+	fullpath := path + "/full." + ext
 	f, err := os.OpenFile(fullpath, os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		_ = v.logger.Log("level", "ERR", "msg", "error opening file for stashing", "error", err.Error())
@@ -90,13 +90,13 @@ func (v *StashView) StashImage(
 				continue
 			}
 			c := make(chan resizeResponse)
-			v.channels.ResizeQueue <- resizeRequest{fullpath, ext, size, c}
+			v.channels.ResizeQueue <- resizeRequest{fullpath, "." + ext, size, c}
 			result := <-c
 			if !result.Success {
 				_ = v.logger.Log("level", "ERR", "msg", "could not pre-resize")
 			}
 		}
 	}()
-	v.cluster.Stashed(imageRecord{*ahash, ext})
+	v.cluster.Stashed(imageRecord{*ahash, "." + ext})
 	return "ok", nil
 }
