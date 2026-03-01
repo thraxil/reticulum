@@ -97,9 +97,39 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		}
 
 		outputPath := resizedPath(req.Path, req.Size)
-		err = os.WriteFile(outputPath, newImage, 0644)
+		// Write to a temporary file first
+		tmpFile, err := os.CreateTemp(filepath.Dir(outputPath), "resize-*.tmp")
 		if err != nil {
-			_ = sl.Log("level", "ERR", "msg", "could not write processed image file", "path", outputPath, "error", err.Error())
+			_ = sl.Log("level", "ERR", "msg", "could not create temp file", "path", outputPath, "error", err.Error())
+			req.Response <- resizeResponse{nil, nil, false}
+			continue
+		}
+		tmpName := tmpFile.Name()
+
+		if _, err := tmpFile.Write(newImage); err != nil {
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpName)
+			_ = sl.Log("level", "ERR", "msg", "could not write to temp file", "path", tmpName, "error", err.Error())
+			req.Response <- resizeResponse{nil, nil, false}
+			continue
+		}
+		if err := tmpFile.Close(); err != nil {
+			_ = os.Remove(tmpName)
+			_ = sl.Log("level", "ERR", "msg", "could not close temp file", "path", tmpName, "error", err.Error())
+			req.Response <- resizeResponse{nil, nil, false}
+			continue
+		}
+
+		if err := os.Chmod(tmpName, 0644); err != nil {
+			_ = os.Remove(tmpName)
+			_ = sl.Log("level", "ERR", "msg", "could not chmod temp file", "path", tmpName, "error", err.Error())
+			req.Response <- resizeResponse{nil, nil, false}
+			continue
+		}
+
+		if err := os.Rename(tmpName, outputPath); err != nil {
+			_ = os.Remove(tmpName)
+			_ = sl.Log("level", "ERR", "msg", "could not rename temp file to output path", "tmp", tmpName, "output", outputPath, "error", err.Error())
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
