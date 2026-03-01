@@ -1,7 +1,6 @@
 package main
 
 import (
-	"image"
 	"io"
 
 	"os"
@@ -83,20 +82,6 @@ func (d diskBackend) Exists(img imageSpecifier) bool {
 func (d diskBackend) Delete(img imageSpecifier) error {
 	path := img.sizedPath(d.Root)
 	return os.RemoveAll(path)
-}
-
-func (d diskBackend) writeLocalType(ri imageSpecifier, outputImage image.Image, encFunc encfunc) error {
-	wFile, err := os.OpenFile(ri.sizedPath(d.Root), os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = wFile.Close()
-	}()
-	if err := encFunc(wFile, outputImage); err != nil {
-		return err
-	}
-	return wFile.Sync()
 }
 
 func (d diskBackend) fullPath(ri imageSpecifier) string {

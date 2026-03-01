@@ -1,7 +1,6 @@
 package main
 
 import (
-	"image"
 	"io"
 )
 
@@ -34,10 +33,6 @@ func (m mockBackend) Exists(ri imageSpecifier) bool {
 }
 
 func (m mockBackend) Delete(ri imageSpecifier) error {
-	return nil
-}
-
-func (m mockBackend) writeLocalType(ri imageSpecifier, i image.Image, e encfunc) error {
 	return nil
 }
 

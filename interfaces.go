@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"image"
 	"io"
 )
 
@@ -10,7 +9,6 @@ import (
 type Backend interface {
 	Read(spec imageSpecifier) ([]byte, error)
 	WriteFull(spec imageSpecifier, reader io.ReadCloser) error
-	writeLocalType(spec imageSpecifier, img image.Image, enc encfunc) error
 	fullPath(ri imageSpecifier) string
 	Exists(spec imageSpecifier) bool
 	Delete(img imageSpecifier) error
