@@ -268,11 +268,15 @@ func (n *nodeData) Ping(originator nodeData, sl log.Logger) (announceResponse, e
 		}
 		n.LastSeen = time.Now()
 		// todo, update Writeable, Nickname, etc.
-		b, _ := io.ReadAll(resp.Body)
-		err = json.Unmarshal(b, &response)
+		b, err := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
 		if err != nil {
-			_ = sl.Log("level", "ERR", "bad json response", "value", string(b))
+			_ = sl.Log("level", "ERR", "msg", "error reading response body", "error", err.Error())
+			return response, err
+		}
+		err = json.Unmarshal(b, &response)
+		if err != nil {
+			_ = sl.Log("level", "ERR", "msg", "bad json response", "value", string(b), "error", err.Error())
 			return response, errors.New("bad JSON response")
 		}
 		return response, nil

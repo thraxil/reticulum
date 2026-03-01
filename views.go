@@ -341,6 +341,7 @@ func postAnnounceHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext
 		nd.LastSeen = time.Now()
 		ctx.cluster.AddNeighbor(nd)
 	}
+	getAnnounceHandler(w, r, ctx)
 }
 func getJoinHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	// show form

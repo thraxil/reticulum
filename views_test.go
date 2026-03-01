@@ -860,6 +860,13 @@ func Test_PostAnnounceHandler_NewNeighbor(t *testing.T) {
 		t.Errorf("expected status OK; got %v", res.Status)
 	}
 
+	// Check that the response body is valid JSON
+	var ar announceResponse
+	err = json.NewDecoder(res.Body).Decode(&ar)
+	if err != nil {
+		t.Errorf("failed to decode response: %v", err)
+	}
+
 	// Check that the neighbor was added
 	neighbor, ok := ctx.cluster.FindNeighborByUUID("neighbor-uuid")
 	if !ok {
