@@ -262,7 +262,11 @@ func TestStashContentType(t *testing.T) {
 			t.Errorf("failed to get image file: %v", err)
 			return
 		}
-		defer file.Close()
+		defer func() {
+			if err := file.Close(); err != nil {
+				t.Errorf("failed to close file: %v", err)
+			}
+		}()
 
 		contentType := header.Header.Get("Content-Type")
 		if contentType != "image/jpeg" {
