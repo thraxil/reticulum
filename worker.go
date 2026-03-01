@@ -85,8 +85,27 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 			options.Crop = true
 			options.Gravity = bimg.GravityCentre
 		} else {
-			options.Width = sSpec.Width()
-			options.Height = sSpec.Height()
+			if sSpec.Width() > 0 && sSpec.Height() > 0 {
+				// both specified, but not a square crop
+				// so we want to scale to fit within the box
+				// without changing aspect ratio
+				// and without cropping
+				origSize, _ := bimgImage.Size()
+				origWidth := float64(origSize.Width)
+				origHeight := float64(origSize.Height)
+				targetWidth := float64(sSpec.Width())
+				targetHeight := float64(sSpec.Height())
+
+				ratio := targetWidth / origWidth
+				if targetHeight/origHeight < ratio {
+					ratio = targetHeight / origHeight
+				}
+				options.Width = int(origWidth * ratio)
+				options.Height = int(origHeight * ratio)
+			} else {
+				options.Width = sSpec.Width()
+				options.Height = sSpec.Height()
+			}
 		}
 
 		newImage, err := bimgImage.Process(options)
