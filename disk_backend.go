@@ -37,7 +37,10 @@ func (d diskBackend) WriteSized(img imageSpecifier, r io.ReadCloser) (err error)
 		}
 	}()
 	_, err = io.Copy(f, r)
-	return err
+	if err != nil {
+		return err
+	}
+	return f.Sync()
 }
 
 func (d diskBackend) WriteFull(img imageSpecifier, r io.ReadCloser) (err error) {
@@ -58,7 +61,10 @@ func (d diskBackend) WriteFull(img imageSpecifier, r io.ReadCloser) (err error) 
 		}
 	}()
 	_, err = io.Copy(f, r)
-	return err
+	if err != nil {
+		return err
+	}
+	return f.Sync()
 }
 
 func (d diskBackend) Read(img imageSpecifier) ([]byte, error) {
@@ -87,7 +93,10 @@ func (d diskBackend) writeLocalType(ri imageSpecifier, outputImage image.Image, 
 	defer func() {
 		_ = wFile.Close()
 	}()
-	return encFunc(wFile, outputImage)
+	if err := encFunc(wFile, outputImage); err != nil {
+		return err
+	}
+	return wFile.Sync()
 }
 
 func (d diskBackend) fullPath(ri imageSpecifier) string {
