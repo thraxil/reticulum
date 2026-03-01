@@ -39,7 +39,7 @@ func makeTestContextWithUploadDir(uploadDir string) sitecontext {
 		for req := range ch.ResizeQueue {
 			img := image.NewRGBA(image.Rect(0, 0, 100, 100))
 			var i image.Image = img
-			req.Response <- resizeResponse{Success: true, OutputImage: &i}
+			req.Response <- resizeResponse{Success: true, OutputImage: &i, OutputData: []byte("fake image data")}
 		}
 	}()
 

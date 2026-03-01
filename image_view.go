@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-
 	"context"
 
 	"crypto/sha1"
@@ -79,16 +77,11 @@ func (v *ImageView) GetImage(ctx context.Context, ri *imageSpecifier) ([]byte, s
 	}
 	servedScaled.Add(1) // Global expvar, needs to be handled
 
-	var buf bytes.Buffer
-	enc := extencoders[ri.Extension] // Global map, needs to be handled
-	_ = enc(&buf, *result.OutputImage)
-	contents = buf.Bytes()
-	etag := fmt.Sprintf("%x", sha1.Sum(contents))
-
-	// Write scaled image to local backend
-	if err := v.backend.writeLocalType(*ri, *result.OutputImage, enc); err != nil {
-		_ = v.logger.Log("level", "ERR", "msg", "error writing scaled image locally", "error", err)
+	if result.OutputData == nil {
+		return nil, "", fmt.Errorf("resize succeeded but no data returned")
 	}
+	contents = result.OutputData
+	etag := fmt.Sprintf("%x", sha1.Sum(contents))
 
 	return contents, etag, nil
 }

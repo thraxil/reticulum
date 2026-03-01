@@ -21,6 +21,7 @@ type resizeRequest struct {
 
 type resizeResponse struct {
 	OutputImage *image.Image
+	OutputData  []byte
 	Success     bool
 }
 
@@ -28,7 +29,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 	for req := range requests {
 		if !s.Writeable {
 			// node is not writeable, so we should never handle a resize
-			req.Response <- resizeResponse{nil, false}
+			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 		_ = sl.Log("level", "INFO", "msg", "handling a resize request", "path", req.Path)
@@ -37,13 +38,13 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "resize worker couldn't stat path",
 				"path", req.Path, "error", err)
-			req.Response <- resizeResponse{nil, false}
+			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 		if fi.IsDir() {
 			_ = sl.Log("level", "ERR", "msg", "can't resize a directory",
 				"path", req.Path)
-			req.Response <- resizeResponse{nil, false}
+			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 		origFile, err := os.Open(req.Path)
@@ -51,7 +52,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 			_ = origFile.Close()
 			_ = sl.Log("level", "ERR", "msg", "resize worker could not open image",
 				"image", req.Path, "error", err.Error())
-			req.Response <- resizeResponse{nil, false}
+			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		} else {
 			_ = origFile.Close()
@@ -60,7 +61,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		imageBuffer, err := os.ReadFile(req.Path)
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "could not read image file for bimg", "path", req.Path, "error", err.Error())
-			req.Response <- resizeResponse{nil, false}
+			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 
@@ -68,7 +69,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		_, err = bimgImage.Size()
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "could not get image size for bimg", "path", req.Path, "error", err.Error())
-			req.Response <- resizeResponse{nil, false}
+			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 
@@ -91,7 +92,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		newImage, err := bimgImage.Process(options)
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "bimg processing failed", "path", req.Path, "error", err.Error())
-			req.Response <- resizeResponse{nil, false}
+			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 
@@ -99,12 +100,12 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		err = os.WriteFile(outputPath, newImage, 0644)
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "could not write processed image file", "path", outputPath, "error", err.Error())
-			req.Response <- resizeResponse{nil, false}
+			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 
 		_ = sl.Log("level", "INFO", "msg", "successfully resized image with bimg")
-		req.Response <- resizeResponse{nil, true}
+		req.Response <- resizeResponse{nil, newImage, true}
 		t1 := time.Now()
 		_ = sl.Log("level", "INFO", "msg", "finished resize", "time", t1.Sub(t0))
 
