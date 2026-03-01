@@ -91,8 +91,7 @@ func (v *ImageView) locallyWriteable() bool {
 }
 
 func (v *ImageView) haveImageFullsizeLocally(ri *imageSpecifier) bool {
-	_, err := v.backend.Read(ri.fullVersion())
-	return err == nil
+	return v.backend.Exists(ri.fullVersion())
 }
 
 func (v *ImageView) makeResizeJob(ri *imageSpecifier) resizeResponse {

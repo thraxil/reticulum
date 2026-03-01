@@ -12,6 +12,7 @@ type Backend interface {
 	WriteFull(spec imageSpecifier, reader io.ReadCloser) error
 	writeLocalType(spec imageSpecifier, img image.Image, enc encfunc) error
 	fullPath(ri imageSpecifier) string
+	Exists(spec imageSpecifier) bool
 	Delete(img imageSpecifier) error
 }
 
