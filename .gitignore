@@ -7,3 +7,4 @@ coverage.out
 .direnv
 .env
 c1
+docker-compose.prod.yml
