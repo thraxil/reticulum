@@ -1,5 +1,5 @@
 # Builder stage
-FROM golang:1.25-bookworm AS builder
+FROM golang:1.26-bookworm AS builder
 
 # Install libvips and libwebp dependencies
 RUN apt-get update && apt-get install -y \
