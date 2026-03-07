@@ -343,11 +343,19 @@ type dashboardPage struct {
 	RecentlyStashed  []imageRecord
 }
 
+func reverseImages(images []imageRecord) []imageRecord {
+	newImages := make([]imageRecord, len(images))
+	for i, img := range images {
+		newImages[len(images)-1-i] = img
+	}
+	return newImages
+}
+
 func dashboardHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 	p := dashboardPage{
-		RecentlyVerified: ctx.cluster.GetRecentlyVerified(),
-		RecentlyUploaded: ctx.cluster.GetRecentlyUploaded(),
-		RecentlyStashed:  ctx.cluster.GetRecentlyStashed(),
+		RecentlyVerified: reverseImages(ctx.cluster.GetRecentlyVerified()),
+		RecentlyUploaded: reverseImages(ctx.cluster.GetRecentlyUploaded()),
+		RecentlyStashed:  reverseImages(ctx.cluster.GetRecentlyStashed()),
 	}
 	t, _ := template.New("dashboard").Parse(dashboardTemplate)
 	_ = t.Execute(w, p)

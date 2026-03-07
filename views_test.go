@@ -80,12 +80,37 @@ func Test_dashboardHandler(t *testing.T) {
 		t.Fatalf("could not create request: %v", err)
 	}
 	ctx := makeTestContext()
+
+	// Add some data to verify order
+	h1, _ := hashFromString("1111111111111111111111111111111111111111", "")
+	h2, _ := hashFromString("2222222222222222222222222222222222222222", "")
+	ir1 := imageRecord{Hash: *h1, Extension: ".jpg"}
+	ir2 := imageRecord{Hash: *h2, Extension: ".png"}
+
+	ctx.cluster.(*cluster).verified(ir1)
+	ctx.cluster.(*cluster).verified(ir2)
+	ctx.cluster.Sync() // Ensure data is processed
+
 	rec := httptest.NewRecorder()
 	dashboardHandler(rec, req, ctx)
 
 	res := rec.Result()
 	if res.StatusCode != http.StatusOK {
 		t.Errorf("expected status OK; got %v", res.Status)
+	}
+
+	body, _ := io.ReadAll(res.Body)
+	sBody := string(body)
+
+	pos1 := strings.Index(sBody, h1.String())
+	pos2 := strings.Index(sBody, h2.String())
+
+	if pos1 == -1 || pos2 == -1 {
+		t.Fatal("images not found in dashboard")
+	}
+
+	if pos2 > pos1 {
+		t.Error("expected most recent image (h2) to appear before older image (h1)")
 	}
 }
 
