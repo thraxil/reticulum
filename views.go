@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -8,6 +9,7 @@ import (
 
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -16,7 +18,7 @@ import (
 )
 
 type sitecontext struct {
-	cluster          *cluster
+	cluster          Cluster
 	Cfg              *siteConfig
 	Ch               sharedChannels
 	SL               log.Logger
@@ -83,6 +85,10 @@ func parsePathServeImage(w http.ResponseWriter, r *http.Request,
 }
 
 func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
+	if r.PathValue("size") == "debug" {
+		debugImageHandler(w, r, ctx)
+		return
+	}
 	ri, handled := parsePathServeImage(w, r, ctx)
 	if handled {
 		return
@@ -104,6 +110,155 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 	_, _ = w.Write(imgData)
 	servedLocally.Add(1) // Assuming if GetImage succeeds, it was served eventually
 }
+
+type debugNodeInfo struct {
+	Node       nodeData
+	ShouldHave bool
+	HasIt      bool
+	Status     string
+	IsMyself   bool
+}
+
+type debugPage struct {
+	Title     string
+	Hash      string
+	Thumbnail string
+	Nodes     []debugNodeInfo
+}
+
+func debugImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
+	hash := r.PathValue("hash")
+	filename := r.PathValue("filename")
+	ahash, err := hashFromString(hash, "")
+	if err != nil {
+		http.Error(w, "invalid hash", http.StatusNotFound)
+		return
+	}
+
+	allNodes := ctx.cluster.NeighborsInclusive()
+	writeOrder := ctx.cluster.WriteOrder(hash)
+	replication := ctx.Cfg.Replication
+
+	shouldHaveMap := make(map[string]bool)
+	for i, n := range writeOrder {
+		if i < replication {
+			shouldHaveMap[n.UUID] = true
+		}
+	}
+
+	var infos []debugNodeInfo
+	// using "full" size to check existence of the original image
+	ri := &imageSpecifier{ahash, resize.MakeSizeSpec("full"), filepath.Ext(filename)}
+
+	for i := range allNodes {
+		n := &allNodes[i]
+		shouldHave := shouldHaveMap[n.UUID]
+		hasIt := false
+		status := "unknown"
+
+		// check if node has it
+		// use a short timeout
+		checkCtx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		info, err := n.RetrieveImageInfo(checkCtx, ri)
+		cancel()
+
+		if err != nil {
+			status = "error: " + err.Error()
+		} else {
+			if info.Local {
+				hasIt = true
+				status = "ok"
+			} else {
+				status = "missing"
+			}
+		}
+
+		infos = append(infos, debugNodeInfo{
+			Node:       *n,
+			ShouldHave: shouldHave,
+			HasIt:      hasIt,
+			Status:     status,
+			IsMyself:   n.UUID == ctx.cluster.GetMyself().UUID,
+		})
+	}
+
+	sort.Slice(infos, func(i, j int) bool {
+		if infos[i].ShouldHave != infos[j].ShouldHave {
+			return infos[i].ShouldHave
+		}
+		return infos[i].Node.Nickname < infos[j].Node.Nickname
+	})
+
+	thumbnail := "/image/" + ahash.String() + "/100s/" + filename
+
+	p := debugPage{
+		Title:     "Debug Info",
+		Hash:      hash,
+		Thumbnail: thumbnail,
+		Nodes:     infos,
+	}
+	t, _ := template.New("debug").Parse(debugTemplate)
+	_ = t.Execute(w, p)
+}
+
+const debugTemplate = `
+<html>
+<head>
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" />
+<style>
+.node-row { }
+.should-have-yes { background-color: #e6f3ff; }
+.has-it-yes { color: green; font-weight: bold; }
+.has-it-no { color: red; }
+.status-error { color: orange; }
+</style>
+</head>
+<body>
+
+<ol class="breadcrumb">
+  <li><a href="/">Upload</a></li>
+  <li><a href="/status/">Status</a></li>
+  <li><a href="/dashboard/">Dashboard</a></li>
+  <li><a href="/debug/vars">expvar</a></li>
+  <li><a href="/join/">Add Node</a></li>
+  <li><a href="/logs/">Logs</a></li>
+  <li class="active">Image Debug</li>
+</ol>
+
+<div class="container">
+<h1>Image Debug: {{.Hash}}</h1>
+<a href="/image/{{.Hash}}/full/image.jpg"><img src="{{.Thumbnail}}" /></a>
+
+<table class="table table-bordered">
+<thead>
+<tr>
+    <th>Node</th>
+    <th>UUID</th>
+    <th>Writeable</th>
+    <th>Should Have?</th>
+    <th>Has It?</th>
+    <th>Status</th>
+</tr>
+</thead>
+<tbody>
+{{ range .Nodes }}
+<tr class="node-row {{if .ShouldHave}}should-have-yes{{end}}">
+    <td><a href="{{.Node.BaseURL}}">{{.Node.Nickname}}</a>{{if .IsMyself}} <strong>(this node)</strong>{{end}}</td>
+    <td>{{.Node.UUID}}</td>
+    <td>{{if .Node.Writeable}}yes{{else}}no{{end}}</td>
+    <td>{{if .ShouldHave}}YES{{else}}no{{end}}</td>
+    <td class="{{if .HasIt}}has-it-yes{{else}}has-it-no{{end}}">{{if .HasIt}}YES{{else}}NO{{end}}</td>
+    <td class="{{if ne .Status "ok"}}status-error{{end}}">{{.Status}}</td>
+</tr>
+{{ end }}
+</tbody>
+</table>
+
+</div>
+</body>
+</html>
+`
 
 var mimeexts = map[string]string{
 	"image/jpeg": "jpg",
@@ -379,7 +534,7 @@ func postJoinHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) {
 		return
 	}
 
-	if n.UUID == ctx.cluster.Myself.UUID {
+	if n.UUID == ctx.cluster.GetMyself().UUID {
 		_, _ = fmt.Fprintf(w, "I can't join myself, silly!")
 		return
 	}

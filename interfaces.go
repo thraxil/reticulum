@@ -21,6 +21,10 @@ type Cluster interface {
 	Uploaded(r imageRecord)
 	GetNeighbors() []nodeData
 	FindNeighborByUUID(uuid string) (*nodeData, bool)
+	WriteOrder(hash string) []nodeData
+	ReadOrder(hash string) []nodeData
+	NeighborsInclusive() []nodeData
+	Sync()
 
 	// these are used by the announce handler, and maybe shouldn't be on this interface
 	UpdateNeighbor(n nodeData)

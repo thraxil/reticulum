@@ -23,6 +23,37 @@ type mockCluster struct {
 	GetRecentlyVerifiedFunc func() []imageRecord
 	GetRecentlyUploadedFunc func() []imageRecord
 	GetRecentlyStashedFunc  func() []imageRecord
+	NeighborsInclusiveFunc  func() []nodeData
+	WriteOrderFunc          func(hash string) []nodeData
+	ReadOrderFunc           func(hash string) []nodeData
+	SyncFunc                func()
+}
+
+func (m *mockCluster) Sync() {
+	if m.SyncFunc != nil {
+		m.SyncFunc()
+	}
+}
+
+func (m *mockCluster) NeighborsInclusive() []nodeData {
+	if m.NeighborsInclusiveFunc != nil {
+		return m.NeighborsInclusiveFunc()
+	}
+	return nil
+}
+
+func (m *mockCluster) WriteOrder(hash string) []nodeData {
+	if m.WriteOrderFunc != nil {
+		return m.WriteOrderFunc(hash)
+	}
+	return nil
+}
+
+func (m *mockCluster) ReadOrder(hash string) []nodeData {
+	if m.ReadOrderFunc != nil {
+		return m.ReadOrderFunc(hash)
+	}
+	return nil
 }
 
 func (m *mockCluster) RetrieveImage(ctx context.Context, ri *imageSpecifier) ([]byte, error) {

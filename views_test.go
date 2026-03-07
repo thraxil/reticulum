@@ -263,7 +263,7 @@ func Test_serveImageHandler_direct(t *testing.T) {
 
 func Test_serveImageHandler_resize(t *testing.T) {
 	ctx := makeTestContextWithUploadDir("test/uploads4/")
-	ctx.cluster.Myself.Writeable = true
+	ctx.cluster.(*cluster).Myself.Writeable = true
 	hash := "c1986af3c26609b8b7d8933f99c51c1a89e9ea6b"
 	ahash, _ := hashFromString(hash, "")
 	ri := imageSpecifier{ahash, resize.MakeSizeSpec("full"), ".png"}
