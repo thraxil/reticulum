@@ -154,7 +154,7 @@ func debugImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 		n := &allNodes[i]
 		shouldHave := shouldHaveMap[n.UUID]
 		hasIt := false
-		status := "unknown"
+		var status string
 
 		// check if node has it
 		// use a short timeout
