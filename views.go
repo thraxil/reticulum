@@ -737,19 +737,19 @@ const dashboardTemplate = `
 <h2>Recently Verified</h2>
 
 {{ range .RecentlyVerified }}
-<a href="/image/{{.Hash.String}}/full/image{{.Extension}}"><img src="/image/{{ .Hash.String }}/100s/image{{.Extension}}"></a>
+<a href="/image/{{.Hash.String}}/full/image{{.Extension}}"><img src="/image/{{ .Hash.String }}/100s/image{{.Extension}}" width="100" height="100"></a>
 {{ end }}
 
 <h2>Recently Uploaded</h2>
 
 {{ range .RecentlyUploaded }}
-<a href="/image/{{.Hash.String}}/full/image{{.Extension}}"><img src="/image/{{ .Hash.String }}/100s/image{{.Extension}}"></a>
+<a href="/image/{{.Hash.String}}/full/image{{.Extension}}"><img src="/image/{{ .Hash.String }}/100s/image{{.Extension}}" width="100" height="100"></a>
 {{ end }}
 
 <h2>Recently Stashed</h2>
 
 {{ range .RecentlyStashed }}
-<a href="/image/{{.Hash.String}}/full/image{{.Extension}}"><img src="/image/{{ .Hash.String }}/100s/image{{.Extension}}"></a>
+<a href="/image/{{.Hash.String}}/full/image{{.Extension}}"><img src="/image/{{ .Hash.String }}/100s/image{{.Extension}}" width="100" height="100"></a>
 {{ end }}
 
 
