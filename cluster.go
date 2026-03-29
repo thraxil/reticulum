@@ -86,6 +86,7 @@ func (c *cluster) AddNeighbor(nd nodeData) {
 		c.neighbors[nd.UUID] = nd
 	}
 	numNeighbors.Add(1)
+	neighborsCountGauge.Inc()
 }
 
 type gnresp struct {
@@ -114,6 +115,7 @@ func (c *cluster) RemoveNeighbor(nd nodeData) {
 		delete(c.neighbors, nd.UUID)
 	}
 	numNeighbors.Add(-1)
+	neighborsCountGauge.Dec()
 }
 
 type fResp struct {
@@ -155,6 +157,7 @@ func (c *cluster) FailedNeighbor(neighbor nodeData) {
 			n.LastFailed = time.Now()
 			c.neighbors[neighbor.UUID] = n
 			neighborFailures.Add(1)
+			neighborFailuresTotal.Inc()
 		}
 	}
 }

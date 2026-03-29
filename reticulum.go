@@ -23,6 +23,7 @@ func makeHandler(fn func(http.ResponseWriter, *http.Request, sitecontext), ctx s
 	return func(w http.ResponseWriter, r *http.Request) {
 		fn(w, r, ctx)
 		totalRequests.Add(1)
+		requestsTotal.Inc()
 	}
 }
 
@@ -132,6 +133,7 @@ func main() {
 		for {
 			time.Sleep(1 * time.Second)
 			expUptime.Add(1)
+			uptimeSecondsTotal.Inc()
 		}
 	}()
 	rwSL := log.With(sl, "component", "resize_worker")

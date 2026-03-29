@@ -11,11 +11,11 @@ import (
 )
 
 type LogEntry struct {
-	Timestamp  string      `json:"timestamp"`
-	Level      string      `json:"level"`
-	Message    interface{} `json:"msg"`
-	Caller     string      `json:"caller"`
-	Component  string      `json:"component"`
+	Timestamp   string      `json:"timestamp"`
+	Level       string      `json:"level"`
+	Message     interface{} `json:"msg"`
+	Caller      string      `json:"caller"`
+	Component   string      `json:"component"`
 	Node        string      `json:"node"`
 	RemoteAddr  string      `json:"remote_addr"`
 	Method      string      `json:"method"`

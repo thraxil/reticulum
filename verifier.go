@@ -50,6 +50,7 @@ func verifyImage(path string, extension string, hash *hash, ahash string,
 	if hash.String() != ahash {
 		_ = sl.Log("level", "WARN", "msg", "image appears to be corrupted!", "image", path)
 		corruptedImages.Add(1)
+		corruptedImagesTotal.Inc()
 		// trust that the hash was correct on upload
 		// ask other nodes for a copy
 		repaired, err := repairImage(path, extension, hash, c, sl)
@@ -59,6 +60,7 @@ func verifyImage(path string, extension string, hash *hash, ahash string,
 		}
 		if repaired {
 			repairedImages.Add(1)
+			repairedImagesTotal.Inc()
 			err := clearCached(path, extension)
 			if err != nil {
 				return err
@@ -66,11 +68,13 @@ func verifyImage(path string, extension string, hash *hash, ahash string,
 		} else {
 			_ = sl.Log("level", "ERR", "msg", "could not repair corrupted image", "image", path)
 			unrepairableImages.Add(1)
+			unrepairableImagesTotal.Inc()
 			// return here so we don't try to rebalance a corrupted image
 			return errors.New("unrepairable image")
 		}
 	}
 	verifiedImages.Add(1)
+	verifiedImagesTotal.Inc()
 	return nil
 }
 
@@ -205,16 +209,19 @@ func (r imageRebalancer) Rebalance() error {
 		_ = r.sl.Log("level", "WARN", "msg", "could not replicate",
 			"image", r.path, "replication", r.s.Replication)
 		rebalanceFailures.Add(1)
+		rebalanceFailuresTotal.Inc()
 	} else {
 		_ = r.sl.Log("level", "INFO", "image", r.path,
 			"msg", "full replica set",
 			"foundReplicas", foundReplicas,
 			"desired_replicas", r.s.Replication)
 		rebalanceSuccesses.Add(1)
+		rebalanceSuccessesTotal.Inc()
 	}
 	if satisfied && deleteLocal {
 		cleanUpExcessReplica(r.path, r.sl)
 		rebalanceCleanups.Add(1)
+		rebalanceCleanupsTotal.Inc()
 	}
 	return nil
 }
@@ -388,6 +395,7 @@ func verify(c *cluster, s siteConfig, sl log.Logger) {
 				"error", err.Error())
 		}
 		verifierPass.Add(1)
+		verifierPassTotal.Inc()
 		// offset should only be applied on the first pass through
 	}
 }

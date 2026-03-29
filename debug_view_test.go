@@ -90,7 +90,7 @@ func TestDebugView(t *testing.T) {
 		// node2 is 3rd, so it should have no.
 		// Since valid HTML is generated, we can't easily associate "node1" with "YES" without parsing.
 		// But we can check that we have at least some YES and some no.
-		
+
 		// Check for current node indicator
 		if !strings.Contains(body, "(this node)") {
 			t.Errorf("handler returned unexpected body: missing current node indicator '(this node)'")
@@ -103,7 +103,7 @@ func TestDebugView(t *testing.T) {
 		// (assuming "myself" is also sorted to the top)
 		node1Index := strings.Index(body, "node1")
 		node2Index := strings.Index(body, "node2")
-		
+
 		if node1Index == -1 || node2Index == -1 {
 			t.Errorf("missing node names in body")
 		}

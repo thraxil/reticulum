@@ -29,21 +29,36 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 	for req := range requests {
 		if !s.Writeable {
 			// node is not writeable, so we should never handle a resize
+			resizeOperationsTotal.WithLabelValues("not_writeable", req.Size).Inc()
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 		_ = sl.Log("level", "INFO", "msg", "handling a resize request", "path", req.Path)
 		t0 := time.Now()
+
+		recordMetrics := func(success bool) {
+			t1 := time.Now()
+			duration := t1.Sub(t0).Seconds()
+			status := "success"
+			if !success {
+				status = "failure"
+			}
+			resizeOperationsTotal.WithLabelValues(status, req.Size).Inc()
+			resizeDurationSeconds.WithLabelValues(status, req.Size).Observe(duration)
+		}
+
 		fi, err := os.Stat(req.Path)
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "resize worker couldn't stat path",
 				"path", req.Path, "error", err)
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 		if fi.IsDir() {
 			_ = sl.Log("level", "ERR", "msg", "can't resize a directory",
 				"path", req.Path)
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
@@ -52,6 +67,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 			_ = origFile.Close()
 			_ = sl.Log("level", "ERR", "msg", "resize worker could not open image",
 				"image", req.Path, "error", err.Error())
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		} else {
@@ -61,6 +77,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		imageBuffer, err := os.ReadFile(req.Path)
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "could not read image file for bimg", "path", req.Path, "error", err.Error())
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
@@ -69,6 +86,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		_, err = bimgImage.Size()
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "could not get image size for bimg", "path", req.Path, "error", err.Error())
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
@@ -111,6 +129,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		newImage, err := bimgImage.Process(options)
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "bimg processing failed", "path", req.Path, "error", err.Error())
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
@@ -120,6 +139,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		tmpFile, err := os.CreateTemp(filepath.Dir(outputPath), "resize-*.tmp")
 		if err != nil {
 			_ = sl.Log("level", "ERR", "msg", "could not create temp file", "path", outputPath, "error", err.Error())
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
@@ -129,6 +149,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 			_ = tmpFile.Close()
 			_ = os.Remove(tmpName)
 			_ = sl.Log("level", "ERR", "msg", "could not write to temp file", "path", tmpName, "error", err.Error())
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
@@ -136,12 +157,14 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 			_ = tmpFile.Close()
 			_ = os.Remove(tmpName)
 			_ = sl.Log("level", "ERR", "msg", "could not sync temp file", "path", tmpName, "error", err.Error())
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 		if err := tmpFile.Close(); err != nil {
 			_ = os.Remove(tmpName)
 			_ = sl.Log("level", "ERR", "msg", "could not close temp file", "path", tmpName, "error", err.Error())
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
@@ -149,6 +172,7 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		if err := os.Chmod(tmpName, 0644); err != nil {
 			_ = os.Remove(tmpName)
 			_ = sl.Log("level", "ERR", "msg", "could not chmod temp file", "path", tmpName, "error", err.Error())
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
@@ -156,11 +180,13 @@ func resizeWorker(requests chan resizeRequest, sl log.Logger, s *siteConfig) {
 		if err := os.Rename(tmpName, outputPath); err != nil {
 			_ = os.Remove(tmpName)
 			_ = sl.Log("level", "ERR", "msg", "could not rename temp file to output path", "tmp", tmpName, "output", outputPath, "error", err.Error())
+			recordMetrics(false)
 			req.Response <- resizeResponse{nil, nil, false}
 			continue
 		}
 
 		_ = sl.Log("level", "INFO", "msg", "successfully resized image with bimg")
+		recordMetrics(true)
 		req.Response <- resizeResponse{nil, newImage, true}
 		t1 := time.Now()
 		_ = sl.Log("level", "INFO", "msg", "finished resize", "time", t1.Sub(t0))

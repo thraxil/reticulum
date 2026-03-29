@@ -95,7 +95,11 @@ func (v *UploadView) UploadImage(
 			c := make(chan resizeResponse)
 			fullpath := v.backend.fullPath(ri)
 			v.channels.ResizeQueue <- resizeRequest{fullpath, "." + ext, size, c}
+			resizeQueueLength.Add(1)
+			resizeQueueLengthGauge.Inc()
 			result := <-c
+			resizeQueueLength.Add(-1)
+			resizeQueueLengthGauge.Dec()
 			if !result.Success {
 				_ = v.logger.Log("level", "ERR", "msg", "could not pre-resize")
 			}

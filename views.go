@@ -109,6 +109,7 @@ func serveImageHandler(w http.ResponseWriter, r *http.Request, ctx sitecontext) 
 	w.Header().Set("Etag", etag)
 	_, _ = w.Write(imgData)
 	servedLocally.Add(1) // Assuming if GetImage succeeds, it was served eventually
+	servedLocallyTotal.Inc()
 }
 
 type debugNodeInfo struct {

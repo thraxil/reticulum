@@ -73,18 +73,15 @@ func (v *ImageView) GetImage(ctx context.Context, ri *imageSpecifier) ([]byte, s
 	_ = v.logger.Log("level", "DEBUG", "msg", "starting resize job")
 	result := v.makeResizeJob(ri)
 	if !result.Success {
-		resizeFailures.Add(1) // Global expvar, needs to be handled
-		return nil, "", fmt.Errorf("could not resize image")
-	}
-	servedScaled.Add(1) // Global expvar, needs to be handled
-
-	_ = v.logger.Log("level", "DEBUG", "msg", "resize job finished")
-	if !result.Success {
 		_ = v.logger.Log("level", "ERR", "msg", "resize job failed")
 		resizeFailures.Add(1) // Global expvar, needs to be handled
+		resizeFailuresTotal.Inc()
 		return nil, "", fmt.Errorf("could not resize image")
 	}
+
+	_ = v.logger.Log("level", "DEBUG", "msg", "resize job finished")
 	servedScaled.Add(1) // Global expvar, needs to be handled
+	servedScaledTotal.Inc()
 
 	if result.OutputData == nil {
 		_ = v.logger.Log("level", "ERR", "msg", "resize job returned nil data")
@@ -117,7 +114,9 @@ func (v *ImageView) makeResizeJob(ri *imageSpecifier) resizeResponse {
 	_ = v.logger.Log("level", "DEBUG", "msg", "sending to resize queue")
 	v.channels.ResizeQueue <- resizeRequest{ri.fullSizePath(v.siteConfig.UploadDirectory), ri.Extension, ri.Size.String(), c}
 	resizeQueueLength.Add(1) // Global expvar, needs to be handled
+	resizeQueueLengthGauge.Inc()
 	result := <-c
 	resizeQueueLength.Add(-1) // Global expvar, needs to be handled
+	resizeQueueLengthGauge.Dec()
 	return result
 }
