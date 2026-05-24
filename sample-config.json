@@ -6,6 +6,7 @@
 "GroupCacheSize": 67108864,
 "UploadDirectory" : "uploads/",
 "NumResizeWorkers" : 4,
+"ResizeTimeout" : 10,
 "Neighbors": [],
 "Writeable": true
 }

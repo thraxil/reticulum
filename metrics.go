@@ -114,6 +114,13 @@ var (
 		},
 	)
 
+	resizeTimeoutsTotal = promauto.NewCounter(
+		prometheus.CounterOpts{
+			Name: "reticulum_resize_timeouts_total",
+			Help: "Total number of resize operations that timed out for the caller (resize continues in background).",
+		},
+	)
+
 	servedScaledTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Name: "reticulum_served_scaled_total",

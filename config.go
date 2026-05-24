@@ -10,6 +10,7 @@ type configData struct {
 	Location         string
 	Writeable        bool
 	NumResizeWorkers int
+	ResizeTimeout    int // seconds; 0 means no timeout
 	UploadKeys       []string
 	UploadDirectory  string
 	Neighbors        []nodeData
@@ -68,6 +69,9 @@ func (c configData) MyConfig() siteConfig {
 		goMaxProcs = 1
 	}
 
+	resizeTimeout := c.ResizeTimeout
+	// 0 means no timeout (preserve old behavior)
+
 	b := newDiskBackend(c.UploadDirectory)
 
 	return siteConfig{
@@ -75,6 +79,7 @@ func (c configData) MyConfig() siteConfig {
 		UploadKeys:       c.UploadKeys,
 		UploadDirectory:  c.UploadDirectory,
 		NumResizeWorkers: numWorkers,
+		ResizeTimeout:    resizeTimeout,
 		Replication:      replication,
 		MinReplication:   minReplication,
 		MaxReplication:   maxReplication,
@@ -93,6 +98,7 @@ type siteConfig struct {
 	UploadKeys       []string
 	UploadDirectory  string
 	NumResizeWorkers int
+	ResizeTimeout    int // seconds; 0 means no timeout
 	Replication      int
 	MinReplication   int
 	MaxReplication   int

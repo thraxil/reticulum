@@ -2,10 +2,9 @@ package main
 
 import (
 	"context"
-
 	"crypto/sha1"
-
 	"fmt"
+	"time"
 
 	"github.com/go-kit/log"
 )
@@ -71,7 +70,7 @@ func (v *ImageView) GetImage(ctx context.Context, ri *imageSpecifier) ([]byte, s
 
 	// Resize locally
 	_ = v.logger.Log("level", "DEBUG", "msg", "starting resize job")
-	result := v.makeResizeJob(ri)
+	result := v.makeResizeJob(ctx, ri)
 	if !result.Success {
 		_ = v.logger.Log("level", "ERR", "msg", "resize job failed")
 		resizeFailures.Add(1) // Global expvar, needs to be handled
@@ -103,20 +102,60 @@ func (v *ImageView) haveImageFullsizeLocally(ri *imageSpecifier) bool {
 	return v.backend.Exists(ri.fullVersion())
 }
 
-func (v *ImageView) makeResizeJob(ri *imageSpecifier) resizeResponse {
+func (v *ImageView) makeResizeJob(ctx context.Context, ri *imageSpecifier) resizeResponse {
 	_ = v.logger.Log("level", "DEBUG", "msg", "entering makeResizeJob")
-	c := make(chan resizeResponse)
+	c := make(chan resizeResponse, 1)
 	if v.siteConfig == nil {
 		_ = v.logger.Log("level", "ERR", "msg", "siteConfig is nil")
 		return resizeResponse{Success: false}
 	}
 	fmt.Println(ri.fullSizePath(v.siteConfig.UploadDirectory))
 	_ = v.logger.Log("level", "DEBUG", "msg", "sending to resize queue")
-	v.channels.ResizeQueue <- resizeRequest{ri.fullSizePath(v.siteConfig.UploadDirectory), ri.Extension, ri.Size.String(), c}
-	resizeQueueLength.Add(1) // Global expvar, needs to be handled
+
+	// Apply a resize timeout if configured. This wraps the caller's context
+	// (which may already have a deadline from the HTTP request) with an
+	// additional timeout specific to resize operations.
+	if v.siteConfig.ResizeTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(v.siteConfig.ResizeTimeout)*time.Second)
+		defer cancel()
+	}
+
+	// Try to enqueue the resize request, respecting context cancellation.
+	select {
+	case v.channels.ResizeQueue <- resizeRequest{ri.fullSizePath(v.siteConfig.UploadDirectory), ri.Extension, ri.Size.String(), c}:
+		// Successfully enqueued
+	case <-ctx.Done():
+		// Timed out waiting to enqueue. Re-enqueue in a background goroutine
+		// so the resize still happens (and is cached for the next request).
+		_ = v.logger.Log("level", "WARN", "msg", "resize enqueue timed out, re-enqueueing in background")
+		resizeTimeoutsTotal.Inc()
+		go func() {
+			v.channels.ResizeQueue <- resizeRequest{ri.fullSizePath(v.siteConfig.UploadDirectory), ri.Extension, ri.Size.String(), c}
+			// Drain the response so the worker doesn't block
+			<-c
+		}()
+		return resizeResponse{Success: false}
+	}
+
+	resizeQueueLength.Add(1)
 	resizeQueueLengthGauge.Inc()
-	result := <-c
-	resizeQueueLength.Add(-1) // Global expvar, needs to be handled
-	resizeQueueLengthGauge.Dec()
-	return result
+
+	// Wait for the resize result, respecting context cancellation.
+	select {
+	case result := <-c:
+		resizeQueueLength.Add(-1)
+		resizeQueueLengthGauge.Dec()
+		return result
+	case <-ctx.Done():
+		// Timed out waiting for the resize to complete. The worker will
+		// finish the job and write the result to disk. The response channel
+		// is buffered (cap 1), so the worker's send won't block.
+		// Next request for this image will find it cached on disk.
+		_ = v.logger.Log("level", "WARN", "msg", "resize timed out, will complete in background")
+		resizeTimeoutsTotal.Inc()
+		resizeQueueLength.Add(-1)
+		resizeQueueLengthGauge.Dec()
+		return resizeResponse{Success: false}
+	}
 }
