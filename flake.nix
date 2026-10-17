@@ -11,11 +11,11 @@
   in {
     devShells.${system}.default = pkgs.mkShell {
       buildInputs = with pkgs; [
-        pkgs.go_1_25
+        pkgs.go_1_27
         golangci-lint
         gcc
         libcap
-        python310
+        python3
         nodejs
         vips
         pkg-config
