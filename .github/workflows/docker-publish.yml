@@ -35,6 +35,13 @@ jobs:
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # the defaults, plus an immutable r<run number> tag on master pushes
+          # for deploys to pin
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=ref,event=pr
+            type=raw,value=r${{ github.run_number }},enable={{is_default_branch}}
 
       - name: Build and push Docker image
         id: build-and-push
